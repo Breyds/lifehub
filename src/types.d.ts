@@ -16,8 +16,10 @@ export type Preferences={nickname:string;avatarData:string;tiktokCollectionUrl:s
 export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string;imageUrl?:string;region?:string};
 export type NewsState={items:NewsEntry[];fetchedAt:string;errors:number;totalSources:number;lastAttemptAt?:string};
 export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;at:string}>;
+export type MusicTrack={id:string;title:string;artist:string;url:string;artworkUrl:string;releaseDate:string;market:string;rank:number};
+export type MusicCharts={markets:Record<string,MusicTrack[]>;errors:string[];fetchedAt:string;source:string;method?:string;lastAttemptAt?:string};
 export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
-export type Snapshot={workspace:Workspace;preferences:Preferences;news:NewsState;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type Snapshot={workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -30,6 +32,7 @@ declare global {
     rankedNews:()=>Promise<NewsEntry[]>;
     openLink:(url:string)=>Promise<boolean>;
     exportSongs:()=>Promise<boolean>;
+    refreshMusic:()=>Promise<MusicCharts>;
     aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number}>;
 
     addTask:(task:TaskInput)=>Promise<Task>;

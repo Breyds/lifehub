@@ -1,4 +1,4 @@
-# LifeHub 0.4.0 — Personal Edition
+# LifeHub 0.4.1 — Personal Edition
 
 **Windows / Electron / React / TypeScript** · дані локально · AI лише за твоїм підтвердженням.
 
@@ -50,4 +50,4 @@ npm run dev
 
 ## Випуск версії
 
-Дивись **`PUBLISH_UPDATE.md`**. Не відправляй тег `v0.4.0`, поки перевірка `Validate LifeHub` та локальна команда `npm run build` не завершаться успішно.
+Дивись **`PUBLISH_UPDATE.md`**. Не відправляй тег `v0.4.1`, поки перевірка `Validate LifeHub` та локальна команда `npm run build` не завершаться успішно.

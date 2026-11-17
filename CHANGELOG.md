@@ -1,3 +1,16 @@
+# LifeHub Changelog
+
+## 0.4.1 — Calendar, News, Music & Update Repair
+
+- **Calendar:** an uncompleted one-off all-day event appears only on its scheduled calendar date. Overdue tasks remain accessible in Today without creating phantom future calendar events. The fix covers Study calendar too.
+- **News photos:** allow publisher-provided HTTPS thumbnails under Electron CSP; supplement Google News search with BBC publisher RSS for selected regions and technology. Some news stories still have no photo.
+- **Music charts (beta):** separate live Apple Music top-song charts for US and regional markets (Kazakhstan, Ukraine; Russia when available); switch between current popularity and releases dated within the past 7 days. Source/ranking are displayed honestly. No OpenAI API cost for charts.
+- **Music Friday:** trigger a refresh when the Friday reminder fires while LifeHub is open.
+- **Updater:** if packaged `app-update.yml` is missing or not targeting `Breyds/lifehub`, fall back to configuring the public GitHub release feed directly. Show GitHub-specific errors rather than an ambiguous “not configured” status.
+- Added regression tests for calendar dates, feed images, regional music data and CSP.
+
+**Validation:** 27 Node module tests and syntax checks passed in the current environment; a full Electron/TypeScript build and actual Windows auto-update must still be verified in your GitHub Actions / installed app. Apple Music RSS live access cannot be verified in this offline environment.
+
 # Історія LifeHub
 
 ## 0.4.0 — Personal Modules

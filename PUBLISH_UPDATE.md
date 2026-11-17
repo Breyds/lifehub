@@ -1,4 +1,4 @@
-# Оновити LifeHub з 0.3.1 до 0.4.0 через GitHub
+# Оновити LifeHub з 0.3.1 до 0.4.1 через GitHub
 
 Репозиторій: **https://github.com/Breyds/lifehub**.
 
@@ -6,7 +6,7 @@
 
 ## 1. Онови вихідний код
 
-1. Розпакуй `LifeHub-v0.4.0-Source.zip`.
+1. Розпакуй `LifeHub-v0.4.1-Source.zip`.
 2. Скопіюй **увесь вміст** (включно з `.github`) у папку проєкту, звідки ти раніше запускав `git push`.
 3. Погодься на заміну однакових файлів.
 4. **НЕ видаляй папку `.git`** (вона не входить до архіву), `node_modules`, `release` і `dist` можна залишити — це не вихідний код.
@@ -28,7 +28,7 @@ npm run build
 ```powershell
 git status
 git add .
-git commit -m "LifeHub 0.4.0 features"
+git commit -m "LifeHub 0.4.1 features"
 git push origin main
 ```
 
@@ -39,21 +39,21 @@ git push origin main
 Лише якщо Validate LifeHub завершився без помилок:
 
 ```powershell
-git tag v0.4.0
-git push origin v0.4.0
+git tag v0.4.1
+git push origin v0.4.1
 ```
 
-У Actions з'явиться **Build and publish LifeHub Windows**. Після успішного виконання відкрий **https://github.com/Breyds/lifehub/releases** і опублікуй Draft 0.4.0, якщо GitHub не зробив це сам.
+У Actions з'явиться **Build and publish LifeHub Windows**. Після успішного виконання відкрий **https://github.com/Breyds/lifehub/releases** і опублікуй Draft 0.4.1, якщо GitHub не зробив це сам.
 
 У релізі мають бути:
 
-- `LifeHub-Setup-0.4.0.exe`
+- `LifeHub-Setup-0.4.1.exe`
 - `latest.yml`
-- `LifeHub-Setup-0.4.0.exe.blockmap`
+- `LifeHub-Setup-0.4.1.exe.blockmap`
 
 ## 5. Онови встановлений LifeHub
 
-Відкрий LifeHub 0.3.1 → Налаштування → Перевірити оновлення. Після завантаження підтверди встановлення 0.4.0. Якщо автооновлення непідписаного інсталятора не вдається, завантаж `LifeHub-Setup-0.4.0.exe` з Releases і встанови **поверх попередньої версії**, без видалення даних.
+Відкрий LifeHub 0.3.1 → Налаштування → Перевірити оновлення. Після завантаження підтверди встановлення 0.4.1. Якщо автооновлення непідписаного інсталятора не вдається, завантаж `LifeHub-Setup-0.4.1.exe` з Releases і встанови **поверх попередньої версії**, без видалення даних.
 
 ## Передача помилок
 

@@ -5,21 +5,22 @@ const {extractCandidates}=require('./chat-import.cjs');
 const {scanInbox,copyToInbox}=require('./video-inbox.cjs');
 const {blankWorkspace,safeWorkspace,addItem,updateItem,deleteItem,toggleProjectStep,safePreferences,urlField,fridayForDate}=require('./workspace.cjs');
 const {fetchNews,preferredScore}=require('./news.cjs');
+const {fetchMusicCharts}=require('./music.cjs');
 const path=require('node:path');
 const fs=require('node:fs');
 const {cleanTask,occurs,complete,taskDone,progressFor,updateProgress,occurrenceKey,validateProposal,validDate,validTime,CATEGORIES,RECURRENCES}=require('./logic.cjs');
 const API_MODEL='gpt-5-mini';
 const PRICE_IN=0.25,PRICE_OUT=2.00; // USD per million tokens, recheck if tariff changes
 const LIMIT_USD=5;
-let windowRef=null,db,aiBusy=false,notifyTimer=null,updateTimer=null,newsTimer=null,chatCandidates=[],newsBusy=false;
+let windowRef=null,db,aiBusy=false,notifyTimer=null,updateTimer=null,newsTimer=null,chatCandidates=[],newsBusy=false,musicBusy=false;
 let updateState={status:'not-configured',version:app.getVersion(),message:'Публікацію оновлень ще не налаштовано.'};
-function initial(){return {version:2,tasks:[],apiKeyEncrypted:'',usage:{},autostart:false,evening:true,notified:[],eveningShown:[],videoDrafts:{},workspace:blankWorkspace(),preferences:safePreferences({}),news:{items:[],fetchedAt:'',errors:0,totalSources:0},newsFeedback:{},musicReminderShown:[]};}
+function initial(){return {version:2,tasks:[],apiKeyEncrypted:'',usage:{},autostart:false,evening:true,notified:[],eveningShown:[],videoDrafts:{},workspace:blankWorkspace(),preferences:safePreferences({}),news:{items:[],fetchedAt:'',errors:0,totalSources:0},music:{markets:{},errors:[],fetchedAt:'',source:''},newsFeedback:{},musicReminderShown:[]};}
 const storePath=()=>path.join(app.getPath('userData'),'lifehub.json');
 function save(){const p=storePath();fs.mkdirSync(path.dirname(p),{recursive:true});const temp=p+'.tmp';fs.writeFileSync(temp,JSON.stringify(db,null,2),'utf8');fs.renameSync(temp,p);if(windowRef&&!windowRef.isDestroyed())windowRef.webContents.send('data:changed');}
-function load(){const p=storePath();if(!fs.existsSync(p)){db=initial();save();return;}db={...initial(),...JSON.parse(fs.readFileSync(p,'utf8'))};if(!Array.isArray(db.tasks))throw new Error('Пошкоджено локальну базу завдань');if(!db.videoDrafts||typeof db.videoDrafts!=='object')db.videoDrafts={};db.workspace=safeWorkspace(db.workspace);db.preferences=safePreferences(db.preferences);if(!db.news||!Array.isArray(db.news.items))db.news={items:[],fetchedAt:'',errors:0,totalSources:0};if(!db.newsFeedback||typeof db.newsFeedback!=='object')db.newsFeedback={};if(!Array.isArray(db.musicReminderShown))db.musicReminderShown=[];db.version=2;}
+function load(){const p=storePath();if(!fs.existsSync(p)){db=initial();save();return;}db={...initial(),...JSON.parse(fs.readFileSync(p,'utf8'))};if(!Array.isArray(db.tasks))throw new Error('Пошкоджено локальну базу завдань');if(!db.videoDrafts||typeof db.videoDrafts!=='object')db.videoDrafts={};db.workspace=safeWorkspace(db.workspace);db.preferences=safePreferences(db.preferences);if(!db.news||!Array.isArray(db.news.items))db.news={items:[],fetchedAt:'',errors:0,totalSources:0};if(!db.music||typeof db.music!=='object'||!db.music.markets)db.music={markets:{},errors:[],fetchedAt:'',source:''};if(!db.newsFeedback||typeof db.newsFeedback!=='object')db.newsFeedback={};if(!Array.isArray(db.musicReminderShown))db.musicReminderShown=[];db.version=2;}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function month(){return todayLocal().slice(0,7);}
-function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:db.news,newsFeedback:db.newsFeedback};}
+function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:db.news,music:db.music,newsFeedback:db.newsFeedback};}
 function idFind(id){return db.tasks.find(t=>t.id===id);}
 function checkNotifications(){
   const date=todayLocal(),now=new Date();const hhmm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
@@ -32,32 +33,39 @@ function checkNotifications(){
     db.eveningShown.push(date);changed=true;
     if(Notification.isSupported())new Notification({title:'LifeHub · Підсумок дня',body:'Перевір, що виконано сьогодні, і заплануй завтра.'}).show();
   }
-  if(db.preferences.fridayReminder && now.getDay()===5 && !db.musicReminderShown.includes(date)){db.musicReminderShown.push(date);changed=true;if(Notification.isSupported())new Notification({title:'LifeHub · Музична п’ятниця',body:'Перевір свою колекцію TikTok-знахідок та онови плейлист.'}).show();}
+  if(db.preferences.fridayReminder && now.getDay()===5 && !db.musicReminderShown.includes(date)){db.musicReminderShown.push(date);changed=true;void refreshMusic(true).catch(()=>{});if(Notification.isSupported())new Notification({title:'LifeHub · Музична п’ятниця',body:'Перевір трендові треки США та регіону й свою TikTok-колекцію.'}).show();}
   if(changed){db.notified=db.notified.filter(s=>s.includes(date));db.eveningShown=db.eveningShown.filter(s=>s>=date);db.musicReminderShown=db.musicReminderShown.filter(s=>s>=date);save();}
 }
 function setUpdateStatus(status,message='',version=''){
  updateState={status,message,version:version||app.getVersion()};
  if(windowRef&&!windowRef.isDestroyed())windowRef.webContents.send('update:changed',updateState);
 }
-function updaterConfigured(){
- // electron-builder writes this manifest for a packaged installer.
- try{const file=path.join(process.resourcesPath,'app-update.yml');
-  const feed=fs.readFileSync(file,'utf8');
-  return /provider:\s*github/.test(feed) && !feed.includes('REPLACE_GITHUB_');
- }catch{return false;}
+// The installed version may have been built without app-update.yml.
+// Trust a correctly generated electron-builder manifest; otherwise connect
+// explicitly to the user's PUBLIC GitHub releases (never embed a GH_TOKEN).
+let updateFeedReady=false;
+function configureUpdater(){
+ const file=path.join(process.resourcesPath,'app-update.yml');
+ let feed='';try{feed=fs.readFileSync(file,'utf8');}catch{}
+ const expectedManifest=/provider:\s*github/.test(feed)&&/owner:\s*["']?Breyds/i.test(feed)&&/repo:\s*["']?lifehub/i.test(feed);
+ if(expectedManifest){updateFeedReady=true;return true;}
+ try{
+  autoUpdater.setFeedURL({provider:'github',owner:'Breyds',repo:'lifehub'});
+  updateFeedReady=true;
+  return true;
+ }catch(error){setUpdateStatus('error','Не вдалося налаштувати GitHub Releases: '+String(error?.message||error));return false;}
 }
-
 function initUpdater(){
  if(!app.isPackaged){setUpdateStatus('development','Автооновлення працюють лише у встановленій програмі.');return;}
- if(!updaterConfigured()){setUpdateStatus('not-configured','Спочатку опублікуй реліз у своєму GitHub-репозиторії.');return;}
+ if(!configureUpdater())return;
  autoUpdater.autoDownload=true;
  autoUpdater.autoInstallOnAppQuit=false; // avoid surprise quit/install; user approves restart
  autoUpdater.on('checking-for-update',()=>setUpdateStatus('checking','Перевіряємо оновлення…'));
  autoUpdater.on('update-available',info=>setUpdateStatus('downloading','Завантажуємо нову версію…',info.version));
- autoUpdater.on('update-not-available',()=>setUpdateStatus('current','Установлено актуальну версію.'));
+ autoUpdater.on('update-not-available',()=>setUpdateStatus('current','GitHub Breyds/lifehub: установлено актуальну версію.'));
  autoUpdater.on('download-progress',p=>setUpdateStatus('downloading',`Завантажено ${Math.round(p.percent||0)}%`,updateState.version));
  autoUpdater.on('update-downloaded',info=>setUpdateStatus('ready','Нова версія готова — підтвердь перезапуск.',info.version));
- autoUpdater.on('error',error=>setUpdateStatus('error',String(error.message||error).slice(0,250)));
+ autoUpdater.on('error',error=>setUpdateStatus('error',`GitHub Breyds/lifehub: ${String(error.message||error)}`.slice(0,320)));
  // Only check published releases. No updater or network in development.
  setTimeout(()=>{void autoUpdater.checkForUpdates().catch(e=>setUpdateStatus('error',String(e.message||e)));},9000);
  updateTimer=setInterval(()=>{void autoUpdater.checkForUpdates().catch(()=>{});},6*60*60*1000);
@@ -68,7 +76,7 @@ function makeWindow(){windowRef=new BrowserWindow({width:1280,height:850,minWidt
  if(process.env.VITE_DEV_SERVER_URL)windowRef.loadURL(process.env.VITE_DEV_SERVER_URL);else windowRef.loadFile(path.join(__dirname,'../dist/index.html'));
  windowRef.on('closed',()=>{windowRef=null;});
 }
-app.whenReady().then(()=>{load();Menu.setApplicationMenu(null);makeWindow();checkNotifications();initUpdater();notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
+app.whenReady().then(()=>{load();Menu.setApplicationMenu(null);makeWindow();checkNotifications();initUpdater();notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('before-quit',()=>{if(notifyTimer)clearInterval(notifyTimer);if(updateTimer)clearInterval(updateTimer);if(newsTimer)clearInterval(newsTimer);});
 ipcMain.handle('data:load',()=>cleanSnapshot());
@@ -117,7 +125,27 @@ ipcMain.handle('workspace:preferences',(_event,changes)=>{db.preferences=safePre
 ipcMain.handle('workspace:open-link',async(_event,raw)=>{const url=urlField(raw);if(!url)throw new Error('Недозволене посилання');const u=new URL(url);if(u.protocol!=='https:')throw new Error('Дозволено лише HTTPS');await shell.openExternal(url);return true;});
 ipcMain.handle('music:export',async()=>{const {canceled,filePath}=await dialog.showSaveDialog(windowRef,{title:'Музичний список LifeHub',defaultPath:`LifeHub-songs-${todayLocal()}.csv`,filters:[{name:'CSV',extensions:['csv']}]});if(canceled||!filePath)return false;const escape=x=>'"'+String(x??'').replace(/"/g,'""')+'"';const rows=[['Пісня','Виконавець','TikTok URL','Тиждень','Статус','Нотатка'],...db.workspace.songs.map(x=>[x.title,x.artist,x.url,x.week,x.status,x.note])];fs.writeFileSync(filePath,'\ufeff'+rows.map(row=>row.map(escape).join(',')).join('\r\n'),'utf8');return true;});
 async function refreshNews(force=false){if(newsBusy)return db.news;const hours=(Date.now()-Date.parse(db.news.fetchedAt||''))/3600000;if(!force&&Number.isFinite(hours)&&hours<24)return db.news;if(force&&Number.isFinite(hours)&&hours<0.08)return db.news;
- newsBusy=true;try{const fetched=await fetchNews(db.preferences.newsCategories);if(fetched.items.length){db.news=fetched;save();}else if(!db.news.items.length){db.news=fetched;save();}else {db.news.errors=fetched.errors;db.news.lastAttemptAt=fetched.fetchedAt;save();}return db.news;}finally{newsBusy=false;}}
+ newsBusy=true;try{const fetched=await fetchNews(db.preferences.newsCategories);if(fetched.items.length){db.news=fetched;save();}else if(!db.news.items.length){db.news=fetched;save();}else {db.news.errors=fetched.errors;db.news.lastAttemptAt=fetched.fetchedAt;save();}return db.news;}finally{newsBusy=false,musicBusy=false;}}
+async function refreshMusic(force=false){
+ if(musicBusy)return db.music;
+ const age=(Date.now()-Date.parse(db.music.fetchedAt||''))/3600000;
+ if(!force&&Number.isFinite(age)&&age<24)return db.music;
+ if(force&&Number.isFinite(age)&&age<0.04)return db.music;
+ musicBusy=true;
+ try{
+  const charts=await fetchMusicCharts();
+  if(Object.values(charts.markets).some(x=>x.length)){
+    // Preserve the previous chart in a market if a network error affects just that market.
+    for(const market of Object.keys(charts.markets))if(!charts.markets[market].length&&db.music.markets?.[market]?.length)charts.markets[market]=db.music.markets[market];
+    db.music=charts;
+  }else{
+    db.music.errors=charts.errors;
+    db.music.lastAttemptAt=charts.fetchedAt;
+  }
+  save();return db.music;
+ }finally{musicBusy=false;}
+}
+ipcMain.handle('music:refresh',()=>refreshMusic(true));
 ipcMain.handle('news:refresh',()=>refreshNews(true));
 ipcMain.handle('news:feedback',(_event,id,vote)=>{if(typeof id!=='string'||!['interesting','not'].includes(vote))throw new Error('Некоректна реакція');const article=db.news.items.find(x=>x.id===id);if(!article)throw new Error('Новину не знайдено');db.newsFeedback[id]={vote,category:article.category,at:new Date().toISOString()};if(Object.keys(db.newsFeedback).length>2000){const old=Object.keys(db.newsFeedback).slice(0,200);for(const k of old)delete db.newsFeedback[k];}save();return true;});
 ipcMain.handle('news:rank',()=>db.news.items.slice().sort((a,b)=>preferredScore(b,db.newsFeedback)-preferredScore(a,db.newsFeedback)));
@@ -160,7 +188,7 @@ ipcMain.handle('food:analyze-photo',async()=>{
 });
 ipcMain.handle('update:check',async()=>{
  if(!app.isPackaged)throw new Error('Оновлення доступні тільки у встановленому LifeHub.');
- if(!updaterConfigured())throw new Error('Оновлення ще не прив’язано до GitHub Releases.');
+ if(!updateFeedReady&&!configureUpdater())throw new Error('Не вдалося під’єднати репозиторій Breyds/lifehub.');
  await autoUpdater.checkForUpdates();return updateState;
 });
 ipcMain.handle('update:install',()=>{

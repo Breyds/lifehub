@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   rankedNews:()=>ipcRenderer.invoke('news:rank'),
   openLink:(url)=>ipcRenderer.invoke('workspace:open-link',url),
   exportSongs:()=>ipcRenderer.invoke('music:export'),
+  refreshMusic:()=>ipcRenderer.invoke('music:refresh'),
   aiInsight:(kind,query)=>ipcRenderer.invoke('ai:insight',kind,query),
   addTask:(task)=>ipcRenderer.invoke('tasks:add',task),
   advanceTask:(id,date,delta)=>ipcRenderer.invoke('tasks:progress',id,date,delta),

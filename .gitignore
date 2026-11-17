@@ -7,3 +7,10 @@ release/
 !.env.example
 *.tsbuildinfo
 .DS_Store
+# Personal files and media must never be published in the public repository
+LifeHub-backup*.json
+conversations.json
+*.mp4
+*.mov
+*.webm
+*.m4v

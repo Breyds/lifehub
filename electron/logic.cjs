@@ -20,6 +20,18 @@ function occurs(t, date) {
   if (t.recurrence === 'weekly') return days%7===0;
   return false;
 }
+// Calendar is a record of what was scheduled for a specific date.
+// Unlike occurs(), this must not carry overdue one-time tasks into future calendar cells.
+function scheduledOccurs(t,date){
+  if(!validDate(date)||!validDate(t.dueDate))return false;
+  if(t.recurrence==='none')return t.dueDate===date;
+  const days=dayDiff(t.dueDate,date);
+  if(days<0)return false;
+  if(t.recurrence==='daily')return true;
+  if(t.recurrence==='weekdays'){const d=new Date(date+'T12:00:00Z').getUTCDay();return d!==0&&d!==6;}
+  if(t.recurrence==='weekly')return days%7===0;
+  return false;
+}
 function occurrenceKey(t,date){return t.recurrence==='none'?t.dueDate:date;}
 function complete(t,date){return (t.completions||[]).includes(occurrenceKey(t,date));}
 function cleanTask(payload, id=crypto.randomUUID()) {
@@ -63,4 +75,4 @@ function updateProgress(t,date,delta){
   if(t.progress[key]>=cap)t.completions.push(key);
   return t.progress[key];
 }
-module.exports={CATEGORIES,RECURRENCES,PRIORITIES,validDate,validTime,dayDiff,occurs,occurrenceKey,complete,cleanTask,validateProposal,progressFor,taskDone,updateProgress};
+module.exports={CATEGORIES,RECURRENCES,PRIORITIES,validDate,validTime,dayDiff,occurs,scheduledOccurs,occurrenceKey,complete,cleanTask,validateProposal,progressFor,taskDone,updateProgress};

@@ -6,6 +6,7 @@ const {scanInbox,copyToInbox}=require('./video-inbox.cjs');
 const {blankWorkspace,safeWorkspace,addItem,updateItem,deleteItem,toggleProjectStep,safePreferences,urlField,fridayForDate}=require('./workspace.cjs');
 const {fetchNews,preferredScore}=require('./news.cjs');
 const {fetchMusicCharts}=require('./music.cjs');
+const {checkTikTokUrl}=require('./tiktok.cjs');
 const path=require('node:path');
 const fs=require('node:fs');
 const {cleanTask,occurs,complete,taskDone,progressFor,updateProgress,occurrenceKey,validateProposal,validDate,validTime,CATEGORIES,RECURRENCES}=require('./logic.cjs');
@@ -125,7 +126,7 @@ ipcMain.handle('workspace:preferences',(_event,changes)=>{db.preferences=safePre
 ipcMain.handle('workspace:open-link',async(_event,raw)=>{const url=urlField(raw);if(!url)throw new Error('Недозволене посилання');const u=new URL(url);if(u.protocol!=='https:')throw new Error('Дозволено лише HTTPS');await shell.openExternal(url);return true;});
 ipcMain.handle('music:export',async()=>{const {canceled,filePath}=await dialog.showSaveDialog(windowRef,{title:'Музичний список LifeHub',defaultPath:`LifeHub-songs-${todayLocal()}.csv`,filters:[{name:'CSV',extensions:['csv']}]});if(canceled||!filePath)return false;const escape=x=>'"'+String(x??'').replace(/"/g,'""')+'"';const rows=[['Пісня','Виконавець','TikTok URL','Тиждень','Статус','Нотатка'],...db.workspace.songs.map(x=>[x.title,x.artist,x.url,x.week,x.status,x.note])];fs.writeFileSync(filePath,'\ufeff'+rows.map(row=>row.map(escape).join(',')).join('\r\n'),'utf8');return true;});
 async function refreshNews(force=false){if(newsBusy)return db.news;const hours=(Date.now()-Date.parse(db.news.fetchedAt||''))/3600000;if(!force&&Number.isFinite(hours)&&hours<24)return db.news;if(force&&Number.isFinite(hours)&&hours<0.08)return db.news;
- newsBusy=true;try{const fetched=await fetchNews(db.preferences.newsCategories);if(fetched.items.length){db.news=fetched;save();}else if(!db.news.items.length){db.news=fetched;save();}else {db.news.errors=fetched.errors;db.news.lastAttemptAt=fetched.fetchedAt;save();}return db.news;}finally{newsBusy=false,musicBusy=false;}}
+ newsBusy=true;try{const fetched=await fetchNews(db.preferences.newsCategories.filter(c=>!['music_us','music_ru'].includes(c)));if(fetched.items.length){db.news=fetched;save();}else if(!db.news.items.length){db.news=fetched;save();}else {db.news.errors=fetched.errors;db.news.lastAttemptAt=fetched.fetchedAt;save();}return db.news;}finally{newsBusy=false,musicBusy=false;}}
 async function refreshMusic(force=false){
  if(musicBusy)return db.music;
  const age=(Date.now()-Date.parse(db.music.fetchedAt||''))/3600000;
@@ -146,8 +147,10 @@ async function refreshMusic(force=false){
  }finally{musicBusy=false;}
 }
 ipcMain.handle('music:refresh',()=>refreshMusic(true));
+ipcMain.handle('music:tiktok-check',(_event,url)=>checkTikTokUrl(url));
 ipcMain.handle('news:refresh',()=>refreshNews(true));
-ipcMain.handle('news:feedback',(_event,id,vote)=>{if(typeof id!=='string'||!['interesting','not'].includes(vote))throw new Error('Некоректна реакція');const article=db.news.items.find(x=>x.id===id);if(!article)throw new Error('Новину не знайдено');db.newsFeedback[id]={vote,category:article.category,at:new Date().toISOString()};if(Object.keys(db.newsFeedback).length>2000){const old=Object.keys(db.newsFeedback).slice(0,200);for(const k of old)delete db.newsFeedback[k];}save();return true;});
+ipcMain.handle('news:feedback',(_event,id,vote)=>{if(typeof id!=='string'||!['interesting','not'].includes(vote))throw new Error('Некоректна реакція');const article=db.news.items.find(x=>x.id===id);if(!article)throw new Error('Новину не знайдено');db.newsFeedback[id]={vote,category:article.category,title:article.title,at:new Date().toISOString()};if(Object.keys(db.newsFeedback).length>2000){const old=Object.keys(db.newsFeedback).slice(0,200);for(const k of old)delete db.newsFeedback[k];}save();return true;});
+ipcMain.handle('news:unrate',(_event,id)=>{if(typeof id!=='string'||!db.newsFeedback[id])return false;delete db.newsFeedback[id];save();return true;});
 ipcMain.handle('news:rank',()=>db.news.items.slice().sort((a,b)=>preferredScore(b,db.newsFeedback)-preferredScore(a,db.newsFeedback)));
 async function aiInsight(kind,request){if(aiBusy)throw new Error('AI обробляє інший запит');if(!db.apiKeyEncrypted)throw new Error('Спочатку додай API-ключ');if(typeof request!=='string'||!request.trim()||request.length>1800)throw new Error('Потрібен короткий запит до 1800 символів');if(!['fitness','nutrition','trends','streams','youtube','translate'].includes(kind))throw new Error('Невідомий AI-режим');const spent=Number(db.usage[month()]||0);if(spent>=LIMIT_USD-0.1)throw new Error('Локальний бюджет AI майже вичерпано. Перевір витрати в OpenAI.');if(!safeStorage.isEncryptionAvailable())throw new Error('Системне шифрування недоступне');
  const key=safeStorage.decryptString(Buffer.from(db.apiKeyEncrypted,'base64'));

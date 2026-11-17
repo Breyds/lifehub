@@ -15,7 +15,7 @@ export type WorkspaceItem={id:string;title:string;createdAt:string;updatedAt:str
 export type Preferences={nickname:string;avatarData:string;tiktokCollectionUrl:string;cs2Targets:{dmKills:number;botKills:number;matches:number;minutes:number};accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null;age:number|null;activity:string;weeklyDays:number;homeEquipment:string};fridayReminder:boolean};
 export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string;imageUrl?:string;region?:string};
 export type NewsState={items:NewsEntry[];fetchedAt:string;errors:number;totalSources:number;lastAttemptAt?:string};
-export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;at:string}>;
+export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;title?:string;at:string}>;
 export type MusicTrack={id:string;title:string;artist:string;url:string;artworkUrl:string;releaseDate:string;market:string;rank:number};
 export type MusicCharts={markets:Record<string,MusicTrack[]>;errors:string[];fetchedAt:string;source:string;method?:string;lastAttemptAt?:string};
 export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
@@ -29,10 +29,12 @@ declare global {
     setPreferences:(data:Partial<Preferences>)=>Promise<Preferences>;
     refreshNews:()=>Promise<NewsState>;
     rateNews:(id:string,vote:'interesting'|'not')=>Promise<boolean>;
+    unrateNews:(id:string)=>Promise<boolean>;
     rankedNews:()=>Promise<NewsEntry[]>;
     openLink:(url:string)=>Promise<boolean>;
     exportSongs:()=>Promise<boolean>;
     refreshMusic:()=>Promise<MusicCharts>;
+    checkTikTok:(url:string)=>Promise<{status:'invalid'|'short'|'video'|'collection'|'unknown'|'unavailable';message:string;url:string;title:string;author:string}>;
     aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number}>;
 
     addTask:(task:TaskInput)=>Promise<Task>;

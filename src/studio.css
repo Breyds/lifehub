@@ -276,3 +276,34 @@
 .hub-chart-info strong{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:13px}
 .hub-chart-info small{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#aaa;font-size:11px}
 @media(max-width:850px){.hub-chart-grid{grid-template-columns:1fr}}
+
+/* v0.4.2: unobtrusive, dark scrollbars for all scrollable panels (Chromium + Firefox).
+   Keeps mouse-wheel/keyboard scrolling intact; scroll thumbs remain visible on hover. */
+.app, .app * { scrollbar-width:thin; scrollbar-color:#333b37 transparent; }
+.app ::-webkit-scrollbar { width:7px; height:7px; }
+.app ::-webkit-scrollbar-track { background:transparent; }
+.app ::-webkit-scrollbar-thumb { border-radius:12px; background:#313832; border:1px solid #161b17; }
+.app ::-webkit-scrollbar-thumb:hover { background:var(--hub-accent); }
+.app .sidebar { scrollbar-color:#303930 transparent; }
+.app .sidebar::-webkit-scrollbar { width:6px; }
+.app .sidebar::-webkit-scrollbar-thumb { background:#29352c; }
+.app .hub-news-filter-note {display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:#9fac9d;margin-top:-5px}
+.app .hub-news-placeholder {height:150px;display:flex;align-items:center;justify-content:center;gap:14px;background:linear-gradient(135deg,#233129,#181b20);color:#77a88a;border-radius:8px;margin:-1px -1px 15px;padding:18px}
+.app .hub-news-placeholder span {font-size:11px;letter-spacing:1px;font-weight:850;text-transform:uppercase;color:#a3b7a7}
+.app .hub-news-placeholder.is-games {background:linear-gradient(125deg,#252c3d,#171a23);color:#97b6f0}
+.app .hub-news-placeholder.is-anime {background:linear-gradient(125deg,#352a3a,#1c1922);color:#cea8e8}
+.app .hub-news-placeholder.is-world, .app .hub-news-placeholder.is-europe, .app .hub-news-placeholder.is-america {background:linear-gradient(125deg,#25343c,#192021);color:#9dc7ce}
+.app .hub-news-placeholder.is-tech {background:linear-gradient(125deg,#243638,#161d21);color:#9ed8d5}
+.app .hub-news-actions .is-danger {background:#422c31;border-color:#6c4249;color:#ffc2c4}
+.app .hub-collection-status {margin-top:14px;background:#252b26;border:1px solid #3a4a3d;padding:13px 15px;border-radius:9px;color:#d2ddcf;font-size:12px;line-height:1.7}
+.app .hub-collection-status strong {display:block;margin-bottom:4px;color:var(--hub-accent)}
+.app .hub-collection-status p {margin:0;white-space:pre-wrap}
+.app .hub-collection-status small {display:block;color:#a6b4aa;margin-top:5px}
+.app .hub-news-paging {display:flex;justify-content:center;margin-top:14px}
+
+/* Document scrollbar is outside .app; style it as well to remove bright Windows tracks. */
+:root, html, body { scrollbar-width:thin; scrollbar-color:#303930 #101010; }
+html::-webkit-scrollbar, body::-webkit-scrollbar {width:7px;height:7px;}
+html::-webkit-scrollbar-track, body::-webkit-scrollbar-track {background:#101010;}
+html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb {background:#303a33;border-radius:10px;border:1px solid #101010;}
+html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {background:#688b72;}

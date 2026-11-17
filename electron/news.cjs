@@ -10,9 +10,7 @@ const FEEDS={
  america:{label:'Америка',query:'United States Canada Latin America major news'},
  asia:{label:'Азія',query:'Asia Japan Korea China major news'},
  africa:{label:'Африка',query:'Africa latest major news'},
- cis:{label:'СНД / регіон',query:'Ukraine eastern Europe central Asia major news'},
- music_us:{label:'Музика · світ',query:'new music releases Friday album single pop hip hop'},
- music_ru:{label:'Музика · RU',query:'новинки музыки пятница вышел сингл альбом'}
+ cis:{label:'СНД / регіон',query:'Ukraine eastern Europe central Asia major news'}
 };
 // These publishers include original article thumbnails in RSS when available.
 // Google News search RSS often contains no usable media, so supplement it.

@@ -9,10 +9,28 @@ export type ChatSnippet={id:string;chat:string;date:string;excerpt:string};
 export type ChatImport={scannedConversations:number;matchedMessages:number;candidates:ChatSnippet[]};
 export type VideoDraft={file:string;size:number;modifiedAt:string;title?:string;description?:string;publishAt?:string;status?:string};
 export type VideoInbox={inbox:string;videos:VideoDraft[]};
-export type Snapshot={update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type WorkspaceKind='projects'|'gym'|'cardio'|'cs2logs'|'weight'|'meals'|'channels'|'ideas'|'streams'|'songs'|'programs';
+export type WorkspaceItem={id:string;title:string;createdAt:string;updatedAt:string;[key:string]:unknown};
+export type Preferences={accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null};fridayReminder:boolean};
+export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string};
+export type NewsState={items:NewsEntry[];fetchedAt:string;errors:number;totalSources:number;lastAttemptAt?:string};
+export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;at:string}>;
+export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
+export type Snapshot={workspace:Workspace;preferences:Preferences;news:NewsState;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
+    addWorkspace:(kind:WorkspaceKind,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
+    editWorkspace:(kind:WorkspaceKind,id:string,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
+    deleteWorkspace:(kind:WorkspaceKind,id:string)=>Promise<boolean>;
+    setPreferences:(data:Partial<Preferences>)=>Promise<Preferences>;
+    refreshNews:()=>Promise<NewsState>;
+    rateNews:(id:string,vote:'interesting'|'not')=>Promise<boolean>;
+    rankedNews:()=>Promise<NewsEntry[]>;
+    openLink:(url:string)=>Promise<boolean>;
+    exportSongs:()=>Promise<boolean>;
+    aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube',query:string)=>Promise<{text:string;spent:number}>;
+
     addTask:(task:TaskInput)=>Promise<Task>;
     editTask:(id:string,task:TaskInput)=>Promise<Task>;
     deleteTask:(id:string)=>Promise<boolean>;

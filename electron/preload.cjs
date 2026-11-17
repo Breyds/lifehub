@@ -1,6 +1,16 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('lifehub', {
   load:()=>ipcRenderer.invoke('data:load'),
+  addWorkspace:(kind,data)=>ipcRenderer.invoke('workspace:add',kind,data),
+  editWorkspace:(kind,id,data)=>ipcRenderer.invoke('workspace:update',kind,id,data),
+  deleteWorkspace:(kind,id)=>ipcRenderer.invoke('workspace:delete',kind,id),
+  setPreferences:(data)=>ipcRenderer.invoke('workspace:preferences',data),
+  refreshNews:()=>ipcRenderer.invoke('news:refresh'),
+  rateNews:(id,vote)=>ipcRenderer.invoke('news:feedback',id,vote),
+  rankedNews:()=>ipcRenderer.invoke('news:rank'),
+  openLink:(url)=>ipcRenderer.invoke('workspace:open-link',url),
+  exportSongs:()=>ipcRenderer.invoke('music:export'),
+  aiInsight:(kind,query)=>ipcRenderer.invoke('ai:insight',kind,query),
   addTask:(task)=>ipcRenderer.invoke('tasks:add',task),
   editTask:(id,changes)=>ipcRenderer.invoke('tasks:edit',id,changes),
   deleteTask:(id)=>ipcRenderer.invoke('tasks:delete',id),

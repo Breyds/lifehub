@@ -1,6 +1,6 @@
 {
   "name": "lifehub-personal",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "LifeHub — персональна система з календарем, проєктами, тренуваннями, медіа, новинами й AI",
   "main": "electron/main.cjs",

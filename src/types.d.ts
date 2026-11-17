@@ -1,7 +1,8 @@
 export type Category='personal'|'rankdaily'|'twitch'|'cs2'|'sport'|'study';
 export type Recurrence='none'|'daily'|'weekdays'|'weekly';
-export type Task={id:string;title:string;dueDate:string;time:string;category:Category;recurrence:Recurrence;note:string;completions:string[];createdAt:string};
-export type TaskInput=Pick<Task,'title'|'dueDate'|'time'|'category'|'recurrence'|'note'>;
+export type Priority='low'|'normal'|'high'|'critical';
+export type Task={id:string;title:string;dueDate:string;time:string;allDay?:boolean;category:Category;recurrence:Recurrence;priority?:Priority;progressType?:'check'|'counter';target?:number;unit?:string;progress?:Record<string,number>;note:string;completions:string[];createdAt:string};
+export type TaskInput=Pick<Task,'title'|'dueDate'|'time'|'category'|'recurrence'|'note'> & {allDay?:boolean;priority?:Priority;progressType?:'check'|'counter';target?:number;unit?:string};
 export type PlanChange={action:'create'|'reschedule';task_id:string;title:string;category:Category;date:string;time:string;note:string;recurrence:Recurrence;valid?:boolean};
 export type Plan={summary:string;changes:PlanChange[];spent:number};
 export type UpdateState={status:string;message:string;version:string};
@@ -11,8 +12,8 @@ export type VideoDraft={file:string;size:number;modifiedAt:string;title?:string;
 export type VideoInbox={inbox:string;videos:VideoDraft[]};
 export type WorkspaceKind='projects'|'gym'|'cardio'|'cs2logs'|'weight'|'meals'|'channels'|'ideas'|'streams'|'songs'|'programs';
 export type WorkspaceItem={id:string;title:string;createdAt:string;updatedAt:string;[key:string]:unknown};
-export type Preferences={accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null};fridayReminder:boolean};
-export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string};
+export type Preferences={nickname:string;avatarData:string;tiktokCollectionUrl:string;cs2Targets:{dmKills:number;botKills:number;matches:number;minutes:number};accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null;age:number|null;activity:string;weeklyDays:number;homeEquipment:string};fridayReminder:boolean};
+export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string;imageUrl?:string;region?:string};
 export type NewsState={items:NewsEntry[];fetchedAt:string;errors:number;totalSources:number;lastAttemptAt?:string};
 export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;at:string}>;
 export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
@@ -29,9 +30,12 @@ declare global {
     rankedNews:()=>Promise<NewsEntry[]>;
     openLink:(url:string)=>Promise<boolean>;
     exportSongs:()=>Promise<boolean>;
-    aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube',query:string)=>Promise<{text:string;spent:number}>;
+    aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number}>;
 
     addTask:(task:TaskInput)=>Promise<Task>;
+    advanceTask:(id:string,date:string,delta:number)=>Promise<number>;
+    toggleProjectStep:(id:string,index:number)=>Promise<WorkspaceItem>;
+    analyzeFoodPhoto:()=>Promise<{title:string;calories:number|null;protein:number|null;note:string;photoData:string}|null>;
     editTask:(id:string,task:TaskInput)=>Promise<Task>;
     deleteTask:(id:string)=>Promise<boolean>;
     toggleTask:(id:string,date:string)=>Promise<boolean>;

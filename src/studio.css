@@ -201,3 +201,64 @@
 @media(max-width:1240px){.app .sidebar{width:221px}.app .content{padding:26px 24px}.app .hub-training-layout,.app .calendar-layout{grid-template-columns:1fr}.app .hub-news-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:920px){.app .sidebar{width:230px;left:-245px;position:fixed;height:100vh;top:0;z-index:22;transition:left .2s}.app .sidebar.sidebar-open{left:0}.app .hub-project-grid,.app .hub-news-grid{grid-template-columns:1fr}.app .hub-profile-form{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.app .hub-heading{flex-direction:column;align-items:flex-start}.app .hub-profile-form{grid-template-columns:1fr}.app .hub-news-controls{flex-direction:column;align-items:stretch}.app .hub-music-count{display:none}}
+/* LifeHub 0.4.0 — progress, priorities and personal modules */
+.app .task-meter {margin:9px 0 4px;max-width:420px;display:flex;align-items:center;gap:9px}
+.app .task-meter small{font-size:10px;min-width:105px;color:#b7c3b9;font-variant-numeric:tabular-nums}
+.app .task-meter-track{height:7px;min-width:50px;flex:1;background:#343a35;border-radius:999px;overflow:hidden}
+.app .task-meter-track span{display:block;height:100%;max-width:100%;background:var(--hub-accent,#1ed760);border-radius:999px;transition:width .2s}
+.app .task-counter-controls{display:flex;gap:3px;white-space:nowrap}
+.app .task-counter-controls button{font-weight:800;min-width:36px;color:var(--hub-accent,#1ed760);background:#202d24!important}
+.app .task-counter-controls button:disabled{opacity:.35}
+.app .hub-priority{font-size:10px;border-radius:6px;padding:3px 6px;white-space:nowrap}
+.app .hub-priority.priority-low{color:#90a6b8;background:#283138}
+.app .hub-priority.priority-normal{color:#adb4ac;background:#2e332d}
+.app .hub-priority.priority-high{color:#f0c07e;background:#403423}
+.app .hub-priority.priority-critical{color:#ff9d9d;background:#472d2c}
+.app .hub-all-by-date{display:flex;flex-direction:column;gap:16px}
+.app .hub-date-group h2{font-size:14px;display:flex;align-items:center;gap:9px;margin:0;padding:10px 0;border-bottom:1px solid #343434;text-transform:capitalize}
+.app .hub-compact-record{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid #292929;padding:12px 3px;color:#b4bfb7;font-size:11px}
+.app .hub-compact-record strong{color:#e7eee8;font-size:12px;margin-right:auto}
+.app .hub-milestones{display:flex;flex-direction:column;gap:6px;margin-top:14px;border-top:1px solid #303830;padding-top:12px}
+.app .hub-milestone{display:flex;align-items:center;gap:11px;color:#c1c8c1;font-size:12px;padding:8px;background:#252c25;border-radius:8px;cursor:pointer}
+.app .hub-milestone input{accent-color:var(--hub-accent,#1ed760);width:16px;height:16px}
+.app .hub-milestone input:checked+span{color:#849687;text-decoration:line-through}
+.app .hub-confirm-modal{max-width:430px;background:#222629;border:1px solid #45564a}
+.app .button.danger{background:#a64246;color:#fff;border-color:#a64246}
+.app .hub-checkbox-line{display:flex;align-items:center;gap:8px;font-size:12px;color:#b1bdb4;margin-top:12px}
+.app .hub-checkbox-line input{width:auto!important;accent-color:var(--hub-accent,#1ed760)}
+.app .hub-cs2-goal-grid,.app .hub-preset-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.app .hub-cs2-goal{background:#252a26;border:1px solid #353e36;border-radius:10px;padding:12px}
+.app .hub-cs2-goal label{display:flex;align-items:center;justify-content:space-between;font-size:11px;gap:7px;color:#a6b7aa}
+.app .hub-cs2-goal input{width:77px;background:#171e1a;color:#e2ede4;border:1px solid #3a443d;border-radius:7px;padding:6px}
+.app .hub-cs2-goal strong{font-variant-numeric:tabular-nums;display:block;margin:12px 0;font-size:13px}
+.app .hub-presets .hub-preset-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.app .hub-preset-grid button{text-align:left;line-height:1.5;min-height:52px}
+.app .hub-photo-result{display:grid;grid-template-columns:160px 1fr;align-items:start;gap:18px;margin:16px 0;background:#232a25;padding:14px;border-radius:10px}
+.app .hub-photo-result img{width:160px;height:140px;object-fit:cover;border-radius:9px}
+.app .hub-photo-result p{color:#aab9af;font-size:12px}
+.app .hub-meal-thumb{width:58px;height:58px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.app .hub-stream-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin:20px 0}
+.app .hub-stream-week button{display:flex;flex-direction:column;align-items:center;gap:5px;background:#252825;border:1px solid #353b35;border-radius:9px;padding:16px 5px;cursor:pointer;color:#d5e0d8}
+.app .hub-stream-week button.is-selected{background:#2a4330;border-color:var(--hub-accent,#1ed760)}
+.app .hub-stream-week strong{font-size:20px}.app .hub-stream-week span,.app .hub-stream-week small{font-size:10px;color:#a4b3a7}
+.app .hub-news-image{height:126px;max-height:126px;width:100%;object-fit:cover;border-radius:7px;background:#292d29}
+.app .hub-collection input[type=url]{flex:1;min-width:180px;padding:12px;border:1px solid #39453b;border-radius:8px;color:#eee;background:#242924}
+.app .hub-profile-avatar{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.app .hub-profile-avatar input[type=text]{padding:10px;border:1px solid #3b433c;color:#eee;background:#292e2a;border-radius:8px;max-width:190px}
+.app .hub-profile-avatar .hub-upload-avatar{position:relative;display:flex;cursor:pointer;font-size:11px;color:#d6e8d8;background:#304536;padding:9px;border-radius:8px}
+.app .hub-profile-avatar .hub-upload-avatar input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}
+.app .hub-avatar-preview,.app .avatar{overflow:hidden}
+.app .hub-avatar-preview img,.app .avatar img{display:block;width:100%;height:100%;object-fit:cover}
+.app .hub-stats-categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:19px 0}
+.app .hub-stat-category{display:flex;align-items:center;gap:12px;font-size:11px;color:#bac7bd}
+.app .hub-stat-category>span{width:110px;flex-shrink:0}.app .hub-stat-category strong{min-width:40px;font-variant-numeric:tabular-nums}
+.app .hub-integration-guide{border-top:1px solid #313a32;margin-top:12px;padding-top:12px}
+.app .hub-integration-guide strong{font-size:12px}
+@media(max-width:1050px){.app .hub-cs2-goal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app .hub-stream-week{gap:3px}}
+@media(max-width:740px){.app .hub-presets .hub-preset-grid{grid-template-columns:1fr}.app .hub-photo-result{grid-template-columns:1fr}.app .hub-stream-week{overflow:auto}.app .hub-stats-categories{grid-template-columns:1fr}}
+.app .hub-photo-result .hub-photo-values{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.app .hub-photo-result .hub-field{margin-bottom:10px}
+.app .hub-import-settings {max-width:950px;margin-top:24px;background:#1c221f;border:1px solid #354138;border-radius:12px;padding:18px}
+.app .hub-import-settings summary{cursor:pointer;display:flex;align-items:center;gap:11px;font-weight:700;font-size:13px;color:#e1eee3;list-style:none}
+.app .hub-import-settings summary span{margin-left:auto;font-size:10px;color:#97aa9b;font-weight:400}
+.app .hub-import-settings[open] summary{padding-bottom:18px;border-bottom:1px solid #304035}

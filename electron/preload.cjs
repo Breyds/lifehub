@@ -1,0 +1,25 @@
+const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('lifehub', {
+  load:()=>ipcRenderer.invoke('data:load'),
+  addTask:(task)=>ipcRenderer.invoke('tasks:add',task),
+  editTask:(id,changes)=>ipcRenderer.invoke('tasks:edit',id,changes),
+  deleteTask:(id)=>ipcRenderer.invoke('tasks:delete',id),
+  toggleTask:(id,date)=>ipcRenderer.invoke('tasks:toggle',id,date),
+  setKey:(key)=>ipcRenderer.invoke('settings:set-key',key),
+  removeKey:()=>ipcRenderer.invoke('settings:remove-key'),
+  aiPlan:(prompt,today)=>ipcRenderer.invoke('ai:plan',prompt,today),
+  applyPlan:(changes)=>ipcRenderer.invoke('ai:apply',changes),
+  setAutostart:(enabled)=>ipcRenderer.invoke('settings:autostart',enabled),
+  setEvening:(enabled)=>ipcRenderer.invoke('settings:evening',enabled),
+  exportData:()=>ipcRenderer.invoke('data:export'),
+  importChats:()=>ipcRenderer.invoke('chats:import'),
+  proposeChats:(ids,today)=>ipcRenderer.invoke('chats:propose',ids,today),
+  listVideos:()=>ipcRenderer.invoke('videos:list'),
+  openInbox:()=>ipcRenderer.invoke('videos:open-folder'),
+  importVideos:()=>ipcRenderer.invoke('videos:import'),
+  saveVideoDraft:(filename,meta)=>ipcRenderer.invoke('videos:save-draft',filename,meta),
+  checkUpdates:()=>ipcRenderer.invoke('update:check'),
+  installUpdate:()=>ipcRenderer.invoke('update:install'),
+  onUpdate:(cb)=>{const f=(_e,state)=>cb(state);ipcRenderer.on('update:changed',f);return()=>ipcRenderer.removeListener('update:changed',f);},
+  onChanged:(cb)=>{const f=()=>cb();ipcRenderer.on('data:changed',f);return()=>ipcRenderer.removeListener('data:changed',f);}
+});

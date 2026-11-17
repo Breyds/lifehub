@@ -1,0 +1,40 @@
+name: Build and publish LifeHub Windows
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run tests
+        run: npm test
+      - name: Configure GitHub update feed
+        shell: pwsh
+        run: |
+          $package = Get-Content package.json -Raw | ConvertFrom-Json
+          $parts = $env:GITHUB_REPOSITORY.Split('/')
+          $package.build.publish[0].owner = $parts[0]
+          $package.build.publish[0].repo = $parts[1]
+          $package | ConvertTo-Json -Depth 30 | Set-Content -Path package.json -Encoding utf8
+      - name: Build Windows installer and release metadata
+        run: npm run release:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Save installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lifehub-windows
+          path: |
+            release/*.exe
+            release/latest.yml
+            release/*.blockmap

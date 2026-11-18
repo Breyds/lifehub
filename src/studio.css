@@ -315,3 +315,12 @@ html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {backgr
 .hub-collected-video strong{font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
 .hub-collected-video small{font-size:11px;color:#aaa}
 .hub-clip-number{opacity:.7;min-width:16px}
+/* LifeHub 0.4.4: research cards */
+.trend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px;margin:14px 0}
+.trend-card{display:flex;flex-direction:column;gap:10px;min-width:0;padding:12px}
+.trend-thumbnail{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:#202329}
+.trend-card .hub-record-body{display:flex;flex-direction:column;gap:6px}
+.smart-settings .setting-header{align-items:flex-start}.smart-settings .hub-tool-row{flex-wrap:wrap;margin-top:10px}
+.smart-settings textarea{width:100%;background:#13161b;color:#eaeef3;border:1px solid #333943;border-radius:10px;padding:12px}
+
+.hub-news-figure{margin:0;position:relative}.hub-news-figure figcaption{font-size:10px;padding:3px 7px;color:#a3aab4}.hub-news-figure figcaption button{background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;padding:0}

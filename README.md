@@ -1,3 +1,7 @@
+# LifeHub 0.5.0 — Smart Assistant
+
+**Передрелізний вихідний код.** Почни з файлу `UPDATE_0.5.0.md`. Попередні описи нижче можуть стосуватися старішої версії.
+
 # LifeHub 0.4.2 — Personal Edition
 
 **Windows / Electron / React / TypeScript** · дані локально · AI лише за твоїм підтвердженням.

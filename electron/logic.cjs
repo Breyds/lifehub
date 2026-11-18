@@ -49,8 +49,10 @@ function cleanTask(payload, id=crypto.randomUUID()) {
   const rawTarget=Number(payload.target??1);
   if(progressType==='counter' && (!Number.isFinite(rawTarget)||rawTarget<=0||rawTarget>1000000))throw new Error('Вкажи ціль більше нуля (до 1 000 000)');
   const target=progressType==='counter'?rawTarget:1;
+  const durationMin=Number(payload.durationMin||0);
+  if(!Number.isInteger(durationMin)||durationMin<0||durationMin>1440)throw new Error('Тривалість має бути від 0 до 1440 хвилин');
   const allDay=typeof payload.allDay==='boolean'?payload.allDay:!time;
-  return {id,title,dueDate,time:allDay?'':time,allDay,category,recurrence,priority,progressType,target,unit:String(payload.unit||'').trim().slice(0,24),note:String(payload.note||'').trim().slice(0,500),completions:[],progress:{},createdAt:new Date().toISOString()};
+  return {id,title,dueDate,time:allDay?'':time,allDay,durationMin,category,recurrence,priority,progressType,target,unit:String(payload.unit||'').trim().slice(0,24),note:String(payload.note||'').trim().slice(0,500),completions:[],progress:{},createdAt:new Date().toISOString()};
 }
 function validateProposal(p,tasks) {
   if (!p || !['create','reschedule'].includes(p.action)) return null;

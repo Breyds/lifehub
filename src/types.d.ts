@@ -1,8 +1,8 @@
 export type Category='personal'|'rankdaily'|'twitch'|'cs2'|'sport'|'study';
 export type Recurrence='none'|'daily'|'weekdays'|'weekly';
 export type Priority='low'|'normal'|'high'|'critical';
-export type Task={id:string;title:string;dueDate:string;time:string;allDay?:boolean;category:Category;recurrence:Recurrence;priority?:Priority;progressType?:'check'|'counter';target?:number;unit?:string;progress?:Record<string,number>;note:string;completions:string[];createdAt:string};
-export type TaskInput=Pick<Task,'title'|'dueDate'|'time'|'category'|'recurrence'|'note'> & {allDay?:boolean;priority?:Priority;progressType?:'check'|'counter';target?:number;unit?:string};
+export type Task={id:string;durationMin?:number;title:string;dueDate:string;time:string;allDay?:boolean;category:Category;recurrence:Recurrence;priority?:Priority;progressType?:'check'|'counter';target?:number;unit?:string;progress?:Record<string,number>;note:string;completions:string[];createdAt:string};
+export type TaskInput=Pick<Task,'title'|'dueDate'|'time'|'category'|'recurrence'|'note'> & {durationMin?:number;allDay?:boolean;priority?:Priority;progressType?:'check'|'counter';target?:number;unit?:string};
 export type PlanChange={action:'create'|'reschedule';task_id:string;title:string;category:Category;date:string;time:string;note:string;recurrence:Recurrence;valid?:boolean};
 export type Plan={summary:string;changes:PlanChange[];spent:number};
 export type UpdateState={status:string;message:string;version:string};
@@ -13,13 +13,15 @@ export type VideoInbox={inbox:string;videos:VideoDraft[]};
 export type WorkspaceKind='projects'|'gym'|'cardio'|'cs2logs'|'weight'|'meals'|'channels'|'ideas'|'streams'|'songs'|'programs';
 export type WorkspaceItem={id:string;title:string;createdAt:string;updatedAt:string;[key:string]:unknown};
 export type Preferences={nickname:string;avatarData:string;tiktokCollectionUrl:string;cs2Targets:{dmKills:number;botKills:number;matches:number;minutes:number};accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null;age:number|null;activity:string;weeklyDays:number;homeEquipment:string};fridayReminder:boolean};
-export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string;imageUrl?:string;region?:string};
+export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string;imageUrl?:string;imageCreditUrl?:string;imageCaption?:string;region?:string};
 export type NewsState={items:NewsEntry[];fetchedAt:string;errors:number;totalSources:number;lastAttemptAt?:string};
 export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;title?:string;at:string}>;
 export type MusicTrack={id:string;title:string;artist:string;url:string;artworkUrl:string;releaseDate:string;market:string;rank:number;source?:'chart'|'new-album';album?:string};
 export type MusicCharts={markets:Record<string,MusicTrack[]>;freshReleases?:Record<string,MusicTrack[]>;freshErrors?:string[];errors:string[];fetchedAt:string;source:string;method?:string;lastAttemptAt?:string};
 export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
-export type Snapshot={workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type YouTubeTrend={id:string;category:string;subtopic:string;title:string;channel:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
+export type YoutubeTrendsState={videos:YouTubeTrend[];fetchedAt:string;topics:{id:string;label:string}[];method?:string};
+export type Snapshot={telegram:{connected:boolean;enabled:boolean};audDConnected:boolean;blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -32,6 +34,17 @@ declare global {
     unrateNews:(id:string)=>Promise<boolean>;
     rankedNews:()=>Promise<NewsEntry[]>;
     openLink:(url:string)=>Promise<boolean>;
+    saveAudDToken:(token:string)=>Promise<boolean>;
+    removeAudDToken:()=>Promise<boolean>;
+    recognizeAudio:()=>Promise<{found:boolean;title?:string;artist?:string;album?:string;spotifyUrl?:string;message:string}|null>;
+    connectTelegram:(token:string)=>Promise<boolean>;
+    testTelegram:()=>Promise<boolean>;
+    enableTelegram:(enabled:boolean)=>Promise<boolean>;
+    disconnectTelegram:()=>Promise<boolean>;
+    saveBlackouts:(raw:string)=>Promise<boolean>;
+    saveYouTubeKey:(key:string)=>Promise<boolean>;
+    removeYouTubeKey:()=>Promise<boolean>;
+    getYouTubeTrends:(force:boolean)=>Promise<YoutubeTrendsState>;
     exportSongs:()=>Promise<boolean>;
     refreshMusic:()=>Promise<MusicCharts>;
     checkTikTok:(url:string)=>Promise<{status:'invalid'|'short'|'video'|'collection'|'unknown'|'unavailable';message:string;url:string;title:string;author:string;videos?:{url:string;title:string;author:string;sound:string}[]}>;

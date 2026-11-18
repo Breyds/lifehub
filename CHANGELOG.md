@@ -47,3 +47,12 @@
 - Показ списку знайдених відео і Spotify-пошуку за доступним звуком або підписом (не автоматичне розпізнавання аудіо).
 - Виправлено кеш старих музичних даних після переходу з 0.4.2.
 - Обмеження: TikTok може вимагати авторизацію, міняти HTML або блокувати автоматичне читання. Читання відеокарток не означає Shazam/ідентифікацію пісень.
+
+## 0.5.0 — Smart Assistant (candidate)
+
+- Telegram Bot API for reminders while LifeHub is running.
+- AudD recognition of locally selected audio fragments; no automatic TikTok audio extraction.
+- YouTube official public video statistics grouped by categories.
+- Task time estimates, manual daily power outage slots for AI planning.
+- Contextual Wikipedia thumbnail for selected named subjects when RSS lacks media.
+- NSIS silent installation and forced relaunch after approved update.

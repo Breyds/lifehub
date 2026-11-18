@@ -10,7 +10,7 @@ function parseAudDResponse(json){
 async function recognizeAudio(apiToken,buffer,name,fetcher=fetch){
  if(typeof apiToken!=='string'||!apiToken.trim())throw new Error('Вкажи токен AudD у налаштуваннях.');
  if(!Buffer.isBuffer(buffer)||buffer.length<100||buffer.length>12*1024*1024)throw new Error('Фрагмент аудіо має бути менше 12 МБ.');
- const form=new FormData();form.append('api_token',apiToken);form.append('return','spotify');form.append('file',new Blob([buffer],{type:'audio/mpeg'}),String(name||'clip.mp3').slice(0,100));
+ const form=new FormData();form.append('api_token',apiToken);form.append('return','spotify');form.append('file',new Blob([buffer],{type:/\.webm$/i.test(String(name||''))?'audio/webm':'audio/mpeg'}),String(name||'clip.mp3').slice(0,100));
  const response=await fetcher('https://api.audd.io/',{method:'POST',body:form,signal:AbortSignal.timeout(35000)});
  if(!response.ok)throw new Error('AudD API: HTTP '+response.status);
  return parseAudDResponse(await response.json());

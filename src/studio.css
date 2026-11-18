@@ -324,3 +324,18 @@ html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {backgr
 .smart-settings textarea{width:100%;background:#13161b;color:#eaeef3;border:1px solid #333943;border-radius:10px;padding:12px}
 
 .hub-news-figure{margin:0;position:relative}.hub-news-figure figcaption{font-size:10px;padding:3px 7px;color:#a3aab4}.hub-news-figure figcaption button{background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;padding:0}
+
+/* LifeHub 0.5.1 - calendar count + detail dialog */
+.app .hub-day-dots{display:none}
+.app .hub-day-count{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:21px;padding:0 6px;border-radius:7px;background:color-mix(in srgb,var(--hub-accent) 21%,#171717);border:1px solid color-mix(in srgb,var(--hub-accent) 35%,transparent);color:var(--hub-accent);font-weight:800;font-size:11px}
+.app .hub-date-popup{max-width:570px;max-height:84vh;overflow-y:auto}
+.app .hub-popup-event{padding:13px 0;border-top:1px solid #393939;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.app .hub-popup-event strong{display:block;font-size:13px}
+.app .hub-popup-event small{color:#a2aaa4;display:block;margin-top:5px}
+.app .hub-popup-event p{font-size:12px;color:#b4bdb5;overflow-wrap:anywhere}
+.app .hub-pair-panel{background:#1e2c25;border:1px solid #3b5546;border-radius:12px;margin:12px 0;padding:16px}
+.app .hub-pair-panel code{font-size:15px;color:#acffce}
+.app .hub-address-box{margin:13px 0;border:1px solid #373b39;padding:14px;border-radius:10px}
+.app .hub-address-box>strong{font-size:13px}
+.app .hub-address-fields{display:grid;grid-template-columns:1fr 1.1fr .65fr;gap:8px;margin:12px 0}
+@media (max-width:850px){.app .hub-address-fields{grid-template-columns:1fr}}

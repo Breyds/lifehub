@@ -21,7 +21,7 @@ export type MusicCharts={markets:Record<string,MusicTrack[]>;freshReleases?:Reco
 export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
 export type YouTubeTrend={id:string;category:string;subtopic:string;title:string;channel:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
 export type YoutubeTrendsState={videos:YouTubeTrend[];fetchedAt:string;topics:{id:string;label:string}[];method?:string};
-export type Snapshot={telegram:{connected:boolean;enabled:boolean};audDConnected:boolean;blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type Snapshot={telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -36,12 +36,16 @@ declare global {
     openLink:(url:string)=>Promise<boolean>;
     saveAudDToken:(token:string)=>Promise<boolean>;
     removeAudDToken:()=>Promise<boolean>;
+    armAudioCapture:()=>Promise<boolean>;
+    recognizeCapturedAudio:(bytes:Uint8Array)=>Promise<{found:boolean;title?:string;artist?:string;album?:string;spotifyUrl?:string;message:string}>;
     recognizeAudio:()=>Promise<{found:boolean;title?:string;artist?:string;album?:string;spotifyUrl?:string;message:string}|null>;
-    connectTelegram:(token:string)=>Promise<boolean>;
+    connectTelegram:(token:string)=>Promise<string>;
+    checkTelegramPair:()=>Promise<boolean>;
     testTelegram:()=>Promise<boolean>;
     enableTelegram:(enabled:boolean)=>Promise<boolean>;
     disconnectTelegram:()=>Promise<boolean>;
     saveBlackouts:(raw:string)=>Promise<boolean>;
+    savePowerAddress:(address:{settlement:string;street:string;house:string})=>Promise<boolean>;
     saveYouTubeKey:(key:string)=>Promise<boolean>;
     removeYouTubeKey:()=>Promise<boolean>;
     getYouTubeTrends:(force:boolean)=>Promise<YoutubeTrendsState>;

@@ -1,0 +1,61 @@
+const newsCat:Record<string,string>={anime:'Аніме',games:'Ігри',internet:'Інтернет',world:'Світ',tech:'Технології',europe:'Європа',america:'Америка',asia:'Азія',africa:'Африка',cis:'СНД / регіон'};
+const newsTokens=(title:string)=>new Set((title.toLowerCase().match(/[\p{L}]{4,}/gu)||[]).filter(w=>!['news','today','latest','about','after','with','from','this','that','have','your','will','коли','після','сьогодні','новини','новий','стало','який','якщо','with','live'].includes(w)).slice(0,20));
+const newsArt:Record<string,ReactNode>={anime:<Sparkles size={34}/>,games:<Gamepad2 size={34}/>,tech:<Sparkles size={34}/>,internet:<TrendingUp size={34}/>,world:<ExternalLink size={34}/>,europe:<ExternalLink size={34}/>,america:<ExternalLink size={34}/>,asia:<ExternalLink size={34}/>,africa:<ExternalLink size={34}/>,cis:<ExternalLink size={34}/>};
+export function NewsPage(props:WorkspaceActions){
+ const {snapshot,refresh,report,onAddTask}=props;
+ const [tab,setTab]=useState('all'),[sort,setSort]=useState<'forYou'|'recent'>('forYou');
+ const [busy,setBusy]=useState(false),[visibleCount,setVisibleCount]=useState(30);
+ const [localHidden,setLocalHidden]=useState<Set<string>>(()=>new Set());
+ const [translations,setTranslations]=useState<Record<string,string>>({}),[translating,setTranslating]=useState('');
+ const reactions=snapshot.newsFeedback;
+ const isHidden=(article:NewsEntry)=>localHidden.has(article.id)||reactions[article.id]?.vote==='not';
+ async function load(){setBusy(true);try{const n=await window.lifehub.refreshNews();await refresh();report(n.items.length?`Оновлено: ${n.items.length} статей`:'RSS недоступний. Перевір інтернет.');}catch(e){report(String(e));}finally{setBusy(false);}}
+ async function translate(article:NewsEntry,language:'uk'|'ru'){setTranslating(article.id);try{const r=await window.lifehub.aiInsight('translate',`Мова перекладу: ${language==='ru'?'російська':'українська'}. Текст: ${article.title}`);setTranslations(old=>({...old,[article.id]:r.text}));await refresh();}catch(e){report(String(e));}finally{setTranslating('');}}
+ async function rate(id:string,vote:'interesting'|'not'){
+  if(vote==='not')setLocalHidden(old=>new Set(old).add(id));
+  try{await window.lifehub.rateNews(id,vote);await refresh();}catch(e){if(vote==='not')setLocalHidden(old=>{const next=new Set(old);next.delete(id);return next;});report(String(e));}
+ }
+ async function restore(id:string){try{await window.lifehub.unrateNews(id);setLocalHidden(old=>{const next=new Set(old);next.delete(id);return next;});await refresh();report('Новину повернуто у стрічку');}catch(e){report(String(e));}}
+ const hiddenCount=snapshot.news.items.filter(x=>isHidden(x)).length;
+ const sorted=useMemo(()=>{
+  const arr=snapshot.news.items.filter(x=>tab==='hidden'?localHidden.has(x.id)||reactions[x.id]?.vote==='not':tab==='interesting'?(reactions[x.id]?.vote==='interesting'&&!localHidden.has(x.id)):(tab==='all'||x.category===tab)&&reactions[x.id]?.vote!=='not'&&!localHidden.has(x.id));
+  if(tab==='hidden'||sort==='recent')return arr.slice().sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt));
+  const scores:Record<string,number>={},likes:Map<string,number>=new Map();
+  for(const f of Object.values(reactions)){
+   const delta=f.vote==='interesting'?1:-1;
+   scores[f.category]=(scores[f.category]||0)+delta;
+   if(f.title)for(const word of newsTokens(f.title))likes.set(word,(likes.get(word)||0)+delta);
+  }
+  const score=(x:NewsEntry)=>{
+   let topicScore=0;for(const word of newsTokens(x.title))topicScore+=Math.max(-3,Math.min(3,likes.get(word)||0));
+   const ageDays=Math.max(0,(Date.now()-Date.parse(x.publishedAt))/86400000);
+   return Math.max(-3,Math.min(3,scores[x.category]||0))*0.38+Math.max(-3,Math.min(3,topicScore))*0.3-Math.min(ageDays,7)*0.22+(x.imageUrl?.length?0.15:0)+(reactions[x.id]?.vote==='interesting'?2:0);
+  };
+  return arr.slice().sort((a,b)=>score(b)-score(a));
+ },[snapshot.news.items,reactions,tab,sort,localHidden]);
+ const changeTab=(id:string)=>{setTab(id);setVisibleCount(30);};
+ return <div className="hub-workspace">
+  <PageHeading label="DISCOVER / NEWS" title="Новини для тебе" subtitle="Оцінюй цікавість статей: приховані одразу зникають, а оцінки допомагають персоналізувати стрічку." action={<button className="button primary" disabled={busy} onClick={()=>void load()}><RefreshCw size={16}/>{busy?'Оновлення…':'Оновити стрічку'}</button>}/>
+  <div className="hub-news-controls"><div className="hub-tabs">{[['all','Для тебе'],['interesting','Цікаві'],...Object.entries(newsCat),['hidden',`Приховані (${hiddenCount})`]].map(([id,name])=><button className={tab===id?'active':''} onClick={()=>changeTab(id)} key={id}>{name}</button>)}</div><select className="hub-mini-select" value={sort} onChange={e=>setSort(e.target.value as typeof sort)}><option value="forYou">За моїми інтересами</option><option value="recent">Найновіші</option></select></div>
+  <div className="hub-news-filter-note"><HeartOff size={14}/> «Не цікаво» одразу приховує статтю. Повернути її можна через вкладку «Приховані». Оцінки зберігаються на ПК.</div>
+  <div className="hub-source-note"><Bell size={15}/>{snapshot.news.fetchedAt?`Останнє оновлення: ${new Date(snapshot.news.fetchedAt).toLocaleString('uk-UA')}`:'Дані ще не завантажувалися.'} · Якщо RSS не містить фото, показується декоративна тематична іконка (не фотографія події). Переклад UA/RU використовує API.</div>
+  <div className="hub-news-grid">{sorted.slice(0,visibleCount).map(a=><article className="hub-surface hub-news-card" key={a.id}>
+   {a.imageUrl?<img className="hub-news-image" src={a.imageUrl} alt="Фото з новинного RSS-джерела" loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.style.display='none';}}/>:<div className={`hub-news-placeholder is-${a.category}`}>{newsArt[a.category]||<TrendingUp size={34}/>}<span>{newsCat[a.category]||'Новини'}</span></div>}
+   <div className="hub-news-top"><span className="hub-chip">{newsCat[a.category]||a.category}</span><small>{a.source} · {new Date(a.publishedAt).toLocaleDateString('uk-UA')}</small></div>
+   <h2>{translations[a.id]||a.title}</h2>
+   <div className="hub-news-actions">
+    {tab==='hidden'?<button className="hub-soft-button" onClick={()=>void restore(a.id)}><RefreshCw size={15}/> Повернути</button>:<>
+     <button disabled={!snapshot.hasKey||translating===a.id} className="hub-soft-button" onClick={()=>void translate(a,'uk')} title="Переклад за допомогою платного AI">UA</button><button disabled={!snapshot.hasKey||translating===a.id} className="hub-soft-button" onClick={()=>void translate(a,'ru')} title="Переклад за допомогою платного AI">RU</button>
+     <button className={`hub-soft-button ${reactions[a.id]?.vote==='interesting'?'is-picked':''}`} onClick={()=>void rate(a.id,'interesting')}><Heart size={15}/> Цікаво</button>
+     <button className="hub-soft-button is-danger" onClick={()=>void rate(a.id,'not')}><HeartOff size={15}/> Не цікаво</button>
+     <button title="Додати справу" className="hub-icon-button" onClick={()=>onAddTask(nowDate(),'personal',`Перевірити: ${a.title.slice(0,80)}`)}><CalendarDays size={16}/></button>
+    </>}
+    <button title="Відкрити джерело" className="hub-icon-button" onClick={()=>void window.lifehub.openLink(a.url).catch(e=>report(String(e)))}><ExternalLink size={16}/></button>
+   </div></article>)}
+   {!sorted.length&&<section className="hub-surface"><Empty icon={<Search size={28}/>} title={tab==='hidden'?'Прихованих новин поки немає':'Нічого не знайдено'} body={tab==='hidden'?'Усі приховані тобою статті з поточного завантаження з’являться тут.':'Перемкни категорію або онови стрічку.'}/></section>}
+  </div>
+  {sorted.length>visibleCount&&<div className="hub-news-paging"><button className="hub-soft-button" onClick={()=>setVisibleCount(n=>n+30)}>Показати ще 30 · залишилося {sorted.length-visibleCount}</button></div>}
+  <p className="hub-footnote">Переваги визначаються з твоїх оцінок категорій і слів із заголовків. Це персональне сортування, а не гарантовано точна модель інтересів.</p>
+ </div>;
+}
+

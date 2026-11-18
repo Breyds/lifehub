@@ -307,3 +307,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar {width:7px;height:7px;}
 html::-webkit-scrollbar-track, body::-webkit-scrollbar-track {background:#101010;}
 html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb {background:#303a33;border-radius:10px;border:1px solid #101010;}
 html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {background:#688b72;}
+
+/* 0.4.3: read-only TikTok collection preview */
+.hub-collected-videos{display:grid;gap:8px;margin-top:15px}
+.hub-collected-video{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);padding:10px;border-radius:10px}
+.hub-collected-video>div{flex:1;min-width:0;display:grid;gap:4px}
+.hub-collected-video strong{font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.hub-collected-video small{font-size:11px;color:#aaa}
+.hub-clip-number{opacity:.7;min-width:16px}

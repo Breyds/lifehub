@@ -7,6 +7,7 @@ const {blankWorkspace,safeWorkspace,addItem,updateItem,deleteItem,toggleProjectS
 const {fetchNews,preferredScore}=require('./news.cjs');
 const {fetchMusicCharts}=require('./music.cjs');
 const {checkTikTokUrl}=require('./tiktok.cjs');
+const {canScanUrl,scanCollectionInWindow}=require('./tiktok-collection.cjs');
 const path=require('node:path');
 const fs=require('node:fs');
 const {cleanTask,occurs,complete,taskDone,progressFor,updateProgress,occurrenceKey,validateProposal,validDate,validTime,CATEGORIES,RECURRENCES}=require('./logic.cjs');
@@ -130,8 +131,9 @@ async function refreshNews(force=false){if(newsBusy)return db.news;const hours=(
 async function refreshMusic(force=false){
  if(musicBusy)return db.music;
  const age=(Date.now()-Date.parse(db.music.fetchedAt||''))/3600000;
- if(!force&&Number.isFinite(age)&&age<24)return db.music;
- if(force&&Number.isFinite(age)&&age<0.04)return db.music;
+ const needsFreshAlbumUpgrade=!db.music.freshReleases;
+ if(!force&&!needsFreshAlbumUpgrade&&Number.isFinite(age)&&age<24)return db.music;
+ if(force&&!needsFreshAlbumUpgrade&&Number.isFinite(age)&&age<0.04)return db.music;
  musicBusy=true;
  try{
   const charts=await fetchMusicCharts();
@@ -147,7 +149,7 @@ async function refreshMusic(force=false){
  }finally{musicBusy=false;}
 }
 ipcMain.handle('music:refresh',()=>refreshMusic(true));
-ipcMain.handle('music:tiktok-check',(_event,url)=>checkTikTokUrl(url));
+ipcMain.handle('music:tiktok-check',(_event,url)=>canScanUrl(url)?scanCollectionInWindow(url,BrowserWindow,windowRef):checkTikTokUrl(url));
 ipcMain.handle('news:refresh',()=>refreshNews(true));
 ipcMain.handle('news:feedback',(_event,id,vote)=>{if(typeof id!=='string'||!['interesting','not'].includes(vote))throw new Error('Некоректна реакція');const article=db.news.items.find(x=>x.id===id);if(!article)throw new Error('Новину не знайдено');db.newsFeedback[id]={vote,category:article.category,title:article.title,at:new Date().toISOString()};if(Object.keys(db.newsFeedback).length>2000){const old=Object.keys(db.newsFeedback).slice(0,200);for(const k of old)delete db.newsFeedback[k];}save();return true;});
 ipcMain.handle('news:unrate',(_event,id)=>{if(typeof id!=='string'||!db.newsFeedback[id])return false;delete db.newsFeedback[id];save();return true;});

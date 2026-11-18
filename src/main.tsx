@@ -59,6 +59,7 @@ function App(){
  const [menuOpen,setMenuOpen]=useState(false);
  const [allFilter,setAllFilter]=useState<'all'|'critical'|'high'|'repeat'|'other'>('all');
  const [expanded,setExpanded]=useState<string|null>(null);
+ const [counterDraft,setCounterDraft]=useState<Record<string,string>>({});
  const [confirmTask,setConfirmTask]=useState<Task|null>(null);
  async function refresh(){try{setSnapshot(await window.lifehub.load());}catch(e){showError(e);}}
  useEffect(()=>{void refresh();const dispose=window.lifehub.onChanged(()=>void refresh());return dispose;},[]);
@@ -91,18 +92,28 @@ function App(){
  const navLabel=(p:{id:string;title:string})=>snapshot?.preferences.language==='en'?(englishLabels[p.id]||p.title):p.title;
  function taskItem(t:Task,date:string,showDate=false){
   const done=isDone(t,date),unavailable=t.recurrence!=='none'&&!occurs(t,date),tone=categories.find(c=>c.id===t.category)?.tone||'slate';
-  const target=Math.max(1,Number(t.target||1)),current=progressFor(t,date),counter=t.progressType==='counter';
-  const incr=t.unit?.toLowerCase().includes('мл')?250:target>=100?Math.max(1,Math.round(target/10)):target>=10?5:1;
+  const target=Math.max(0.001,Number(t.target||1)),current=progressFor(t,date),counter=t.progressType==='counter';
+  const isMl=/^(?:мл|ml)$/i.test((t.unit||'').trim());
+  const isL=/^(?:л|l|літр(?:и|ів)?)$/i.test((t.unit||'').trim());
+  const incr=isMl?250:isL?0.25:target>=100?Math.max(1,Math.round(target/10)):target>=10?5:1;
+  const counterKey=`${t.id}|${date}`;
+  const customDelta=()=>{const raw=(counterDraft[counterKey]||'').trim().replace(',', '.');const n=Number(raw);
+    if(!raw||!Number.isFinite(n)||n<=0){showError('Введи додатне число, наприклад 0,8');return;}
+    void safe(()=>window.lifehub.advanceTask(t.id,date,n),'Прогрес оновлено');setCounterDraft(old=>({...old,[counterKey]:''}));
+  };
   return <div className={`task ${done?'task-done':''} priority-${t.priority||'normal'}`} key={t.id}>
     <button className={`task-check ${done?'checked':''}`} disabled={unavailable} title={done?'Скасувати виконання':'Відмітити виконаним'} onClick={()=>void safe(()=>window.lifehub.toggleTask(t.id,date))}>{done&&<Check size={15}/>}</button>
     <div className="task-body" onClick={()=>setExpanded(expanded===t.id?null:t.id)} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter')setExpanded(expanded===t.id?null:t.id);}}>
       <span className="task-title">{t.title}</span>
       <div className="task-meta"><span className={`tag ${tone}`}>{categories.find(c=>c.id===t.category)?.title}</span><span className={`hub-priority priority-${t.priority||'normal'}`}>{priorityNames[t.priority||'normal']}</span><span><Clock size={12}/>{t.time||'Увесь день'}</span>{!!t.durationMin&&<span>≈{t.durationMin} хв</span>}{showDate&&<span><CalendarDays size={12}/>{t.dueDate}</span>}{t.recurrence!=='none'&&<span><RotateCcw size={12}/>{repeatLabels[t.recurrence]}</span>}</div>
-      {counter&&<div className="task-meter"><div className="task-meter-track"><span style={{width:`${Math.min(100,current/target*100)}%`}}/></div><small>{current} / {target} {t.unit||'од.'} · {Math.round(current/target*100)}%</small></div>}
+      {counter&&<div className="task-meter"><div className="task-meter-track"><span style={{width:`${Math.min(100,current/target*100)}%`}}/></div><small>{current} / {target} {t.unit||'од.'} · {Math.round(current/target*100)}%{current>target?` · понад ціль +${Number((current-target).toFixed(3))} ${t.unit||'од.'}`:''}</small></div>}
       {expanded===t.id&&t.note&&<p className="task-note">{t.note}</p>}
     </div>
     <div className="task-actions">
-      {counter&&<div className="task-counter-controls"><button disabled={unavailable||current<=0} title={`−${incr}`} onClick={()=>void safe(()=>window.lifehub.advanceTask(t.id,date,-incr))}>−</button><button disabled={unavailable||current>=target} title={`+${incr}`} onClick={()=>void safe(()=>window.lifehub.advanceTask(t.id,date,incr))}>+{incr}</button></div>}
+      {counter&&<div className="task-counter-editor" aria-label={`Прогрес завдання ${t.title}`}>
+       <div className="task-counter-controls"><button disabled={unavailable||current<=0||working} title={`Мінус ${incr}`} onClick={()=>void safe(()=>window.lifehub.advanceTask(t.id,date,-incr))}>−{incr}</button><button disabled={unavailable||working} title={`Додати ${incr}`} onClick={()=>void safe(()=>window.lifehub.advanceTask(t.id,date,incr))}>+{incr}</button></div>
+       <div className="task-counter-custom"><input type="text" inputMode="decimal" autoComplete="off" value={counterDraft[counterKey]||''} onChange={e=>setCounterDraft(old=>({...old,[counterKey]:e.target.value}))} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();customDelta();}}} placeholder={isL?'0,8':isMl?'250':'Кількість'} aria-label="Додати довільний обсяг" disabled={unavailable}/><span>{t.unit||'од.'}</span><button disabled={unavailable||working} title="Додати введену кількість" onClick={customDelta}>Додати</button></div>
+      </div>}
       <button title="Редагувати" onClick={()=>showEdit(t)}><Edit3 size={15}/></button><button title="Видалити" onClick={()=>setConfirmTask(t)}><Trash2 size={15}/></button>
     </div>
   </div>;

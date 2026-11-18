@@ -20,7 +20,7 @@ function mapDtekResponse(raw,source='dtek-krem.com.ua'){
  const data=raw&&typeof raw==='object'?raw:{};
  const intervals=validateIntervals(data.intervals),days=Array.isArray(data.days)?data.days:[];
  const verified=intervals.length>0||days.some(d=>d.slots?.some(s=>['on','off','possible'].includes(s.status)));
- return {status:verified?'verified':'unavailable',source,checkedAt:timestamp(),intervals,days:days.slice(0,2),message:String(data.message||(verified?'Години отримані від ДТЕК.':'ДТЕК не повернув підтверджених годин.')).slice(0,300)};
+ return {group:data.group||'',status:verified?'verified':'unavailable',source,checkedAt:timestamp(),intervals,days:days.slice(0,2),message:String(data.message||(verified?'Години отримані від ДТЕК.':'ДТЕК не повернув підтверджених годин.')).slice(0,300)};
 }
 function localDate(unix){const ms=Number(unix)*1000;if(!Number.isFinite(ms)||ms<1500000000000||ms>2200000000000)return '';
  try{return kyivDate(new Date(ms));}catch{return '';}}
@@ -54,7 +54,7 @@ function extractFactResponse(data,house,dates){
   const day=slotsToDay(slots,date);result.push(day);off.push(...slotsToIntervals(slots,date));
  }
  result.sort((a,b)=>a.date.localeCompare(b.date));
- return {message:result.length?`ДТЕК: черга ${groups[0].replace('GPV','')}. Отримано добовий графік.`:'ДТЕК не повернув підтверджених годин для сьогодні/завтра.',days:result,intervals:off};
+ return {group:groups[0],message:result.length?`ДТЕК: черга ${groups[0].replace('GPV','')}. Отримано добовий графік.`:'ДТЕК не повернув підтверджених годин для сьогодні/завтра.',days:result,intervals:off};
 }
 function matchingKey(values,name){const keys=Array.isArray(values)?values:Object.keys(values||{});return keys.find(x=>norm(x)===norm(name))||keys.find(x=>norm(x).endsWith(norm(name))||norm(name).endsWith(norm(x)))||'';}
 // This is an optional, unofficial integration, not a guaranteed public API.

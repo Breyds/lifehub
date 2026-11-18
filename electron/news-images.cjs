@@ -19,7 +19,18 @@ const NAMED_TOPICS=[
  {words:[/\btelegram\b/i],article:'Telegram_(software)'},
  {words:[/\bmeta\b.*\bai\b/i],article:'Meta_Platforms'},
  {words:[/\btiktok\b/i],article:'TikTok'},
- {words:[/\bopenai\b/i],article:'OpenAI'}
+ {words:[/\bopenai\b/i],article:'OpenAI'},
+ {words:[/sakamoto\s*days/i],article:'Sakamoto_Days'},
+ {words:[/spice\s*(?:&|and)\s*wolf/i],article:'Spice_and_Wolf'},
+ {words:[/yaiba.*samurai/i,/samurai\s*legend/i],article:'Yaiba:_Samurai_Legend'},
+ {words:[/otherworldly\s*munchkin/i],article:"The_Otherworldly_Munchkin:_Let\'s_Speedrun_the_Dungeon_with_Only_1_HP"},
+ {words:[/one\s*piece/i],article:'One_Piece'},
+ {words:[/chainsaw\s*man/i],article:'Chainsaw_Man'},
+ {words:[/my\s*hero\s*academia/i],article:'My_Hero_Academia'},
+ {words:[/frieren/i],article:'Frieren'},
+ {words:[/blue\s*lock/i],article:'Blue_Lock'},
+ {words:[/naruto/i],article:'Naruto'},
+ {words:[/bleach/i],article:'Bleach_(TV_series)'}
 ];
 function matchArticle(title){const match=NAMED_TOPICS.find(x=>x.words.some(r=>r.test(String(title||''))));return match?.article||'';}
 function safeImageUrl(raw){try{const url=new URL(String(raw||''));if(url.protocol!=='https:'||url.username||url.password||url.href.length>1200||!/^https:\/\//.test(url.href))return '';return url.href;}catch{return '';}}
@@ -32,9 +43,20 @@ function extractOGImage(html,pageUrl){
  }
  return '';
 }
-const TRUSTED_HOSTS=new Set(['bbc.com','bbc.co.uk','reuters.com','aljazeera.com','mashable.com','cbr.com','comicbook.com','techrepublic.com','theverge.com','ign.com','apnews.com','adobe.com','techcrunch.com','polygon.com','gamespot.com','billboard.com','engadget.com','wired.com','variety.com']);
+const TRUSTED_HOSTS=new Set(['bbc.com','bbc.co.uk','reuters.com','aljazeera.com','mashable.com','cbr.com','comicbook.com','techrepublic.com','theverge.com','ign.com','apnews.com','adobe.com','techcrunch.com','polygon.com','gamespot.com','billboard.com','engadget.com','wired.com','variety.com','animenewsnetwork.com','crunchyroll.com','anitrendz.com','gamerant.com','animecorner.me']);
 function trustedArticle(url){try{const u=new URL(url);const name=u.hostname.toLowerCase().replace(/^www\./,'');return u.protocol==='https:'&&[...TRUSTED_HOSTS].some(h=>name===h||name.endsWith('.'+h))&&!u.username&&!u.password;}catch{return false;}}
-async function fetchOriginalImage(url,fetcher=fetch){if(!trustedArticle(url))return null;try{const r=await fetcher(url,{signal:AbortSignal.timeout(7000),headers:{'User-Agent':'LifeHub personal news reader'}});if(!r.ok||!String(r.headers?.get('content-type')||'').toLowerCase().includes('text/html'))return null;const html=(await r.text()).slice(0,550000);const img=extractOGImage(html,url);return img?{imageUrl:img,imageCreditUrl:url,imageCaption:'Фото зі сторінки оригінальної публікації'}:null;}catch{return null;}}
+function googleNewsArticle(url){try{const u=new URL(url);return u.protocol==='https:'&&u.hostname==='news.google.com'&&u.pathname.startsWith('/rss/articles/');}catch{return false;}}
+async function fetchOriginalImage(url,fetcher=fetch){
+ if(!trustedArticle(url)&&!googleNewsArticle(url))return null;
+ try{const r=await fetcher(url,{signal:AbortSignal.timeout(7000),redirect:'follow',headers:{'User-Agent':'Mozilla/5.0 LifeHub personal news reader'}});
+  if(!r.ok||!String(r.headers?.get('content-type')||'').toLowerCase().includes('text/html'))return null;
+  const finalUrl=r.url||url;
+  // Never trust an image from an unknown redirect destination.
+  if(!trustedArticle(finalUrl))return null;
+  const html=(await r.text()).slice(0,600000);const img=extractOGImage(html,finalUrl);
+  return img?{imageUrl:img,imageCreditUrl:finalUrl,imageCaption:'Фото зі сторінки оригінальної публікації'}:null;
+ }catch{return null;}
+}
 async function fetchWikiImage(article,fetcher=fetch){
  if(!NAMED_TOPICS.some(t=>t.article===article))return null;
  try{const url=`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(article)}`;
@@ -47,7 +69,7 @@ async function fetchWikiImage(article,fetcher=fetch){
 async function enrichNewsImages(items,fetcher=fetch){
  const missing=(items||[]).filter(x=>!x.imageUrl);
  // Only a bounded number of trusted source pages, to avoid hammering websites on refresh.
- const originalLoaded=new Map(await Promise.all(missing.filter(x=>trustedArticle(x.url)).slice(0,28).map(async x=>[x.id,await fetchOriginalImage(x.url,fetcher)])));
+ const originalLoaded=new Map(await Promise.all(missing.filter(x=>trustedArticle(x.url)||googleNewsArticle(x.url)).sort((a,b)=>Number(trustedArticle(b.url))-Number(trustedArticle(a.url))).slice(0,28).map(async x=>[x.id,await fetchOriginalImage(x.url,fetcher)])));
  const subjects=[...new Set(missing.filter(x=>!originalLoaded.get(x.id)).map(x=>matchArticle(x.title)).filter(Boolean))].slice(0,18);
  const wikiLoaded=new Map(await Promise.all(subjects.map(async name=>[name,await fetchWikiImage(name,fetcher)])));
  return (items||[]).map(x=>{if(x.imageUrl)return x;const y=originalLoaded.get(x.id)||wikiLoaded.get(matchArticle(x.title));return y?{...x,...y}:x;});

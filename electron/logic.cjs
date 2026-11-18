@@ -71,7 +71,11 @@ function updateProgress(t,date,delta){
   if(t.progressType!=='counter')throw new Error('Це завдання з галочкою, а не лічильником');
   const key=occurrenceKey(t,date),cap=Number(t.target||1);
   if(!t.progress||typeof t.progress!=='object')t.progress={};
-  t.progress[key]=Math.round(Math.max(0,Math.min(cap,progressFor(t,date)+Number(delta)))*100)/100;
+  // Preserve fractional portions (e.g. 0.8 l) and actual over-achievement.
+  // A generous sanity limit prevents a mistaken multi-million-unit click.
+  const next=progressFor(t,date)+Number(delta);
+  if(!Number.isFinite(next)||Math.abs(Number(delta))>Math.max(1000000,cap*10))throw new Error('Занадто велика зміна прогресу');
+  t.progress[key]=Math.round(Math.max(0,Math.min(cap*10,next))*1000)/1000;
   t.completions=Array.isArray(t.completions)?t.completions:[];
   t.completions=t.completions.filter(x=>x!==key);
   if(t.progress[key]>=cap)t.completions.push(key);

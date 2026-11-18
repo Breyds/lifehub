@@ -22,7 +22,7 @@ export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
 export type YouTubeTrend={id:string;category:string;subtopic:string;title:string;channel:string;channelUrl?:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
 export type YoutubeTrendsState={videos:YouTubeTrend[];fetchedAt:string;topics:{id:string;label:string}[];method?:string};
 export type PowerLive={status:string;checkedAt:string;source:string;message:string;intervals:{date:string;start:string;end:string;status:string}[];days?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[]};
-export type Snapshot={powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type Snapshot={powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -31,6 +31,7 @@ declare global {
     deleteWorkspace:(kind:WorkspaceKind,id:string)=>Promise<boolean>;
     setPreferences:(data:Partial<Preferences>)=>Promise<Preferences>;
     refreshNews:()=>Promise<NewsState>;
+    repairNewsImages:()=>Promise<{repaired:number;total:number}>;
     rateNews:(id:string,vote:'interesting'|'not')=>Promise<boolean>;
     unrateNews:(id:string)=>Promise<boolean>;
     saveNews:(id:string)=>Promise<boolean>;
@@ -51,6 +52,7 @@ declare global {
     saveBlackouts:(raw:string)=>Promise<boolean>;
     savePowerAddress:(address:{settlement:string;street:string;house:string})=>Promise<boolean>;
     fetchPower:()=>Promise<PowerLive>;
+    savePowerGroup:(group:string)=>Promise<boolean>;
     saveYouTubeKey:(key:string)=>Promise<boolean>;
     removeYouTubeKey:()=>Promise<boolean>;
     getYouTubeTrends:(force:boolean)=>Promise<YoutubeTrendsState>;

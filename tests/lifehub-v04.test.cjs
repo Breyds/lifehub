@@ -3,17 +3,17 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {cleanTask,progressFor,taskDone,updateProgress,validDate}=require('../electron/logic.cjs');
 const {blankWorkspace,addItem,updateItem,toggleProjectStep,safePreferences}=require('../electron/workspace.cjs');
-test('task with progress target stores quantity and caps increments',()=>{
+test('task with progress target stores quantity and allows over-achievement',()=>{
   const task=cleanTask({title:'Вода',dueDate:'2026-11-18',recurrence:'daily',progressType:'counter',target:3000,unit:'мл',priority:'high'});
   assert.equal(progressFor(task,'2026-11-18'),0);
   updateProgress(task,'2026-11-18',500);
   assert.equal(progressFor(task,'2026-11-18'),500);
   assert.equal(taskDone(task,'2026-11-18'),false);
   updateProgress(task,'2026-11-18',7000);
-  assert.equal(progressFor(task,'2026-11-18'),3000);
+  assert.equal(progressFor(task,'2026-11-18'),7500);
   assert.equal(taskDone(task,'2026-11-18'),true);
   assert.equal(progressFor(task,'2026-11-19'),0);
-  updateProgress(task,'2026-11-18',-500);
+  updateProgress(task,'2026-11-18',-5000);
   assert.equal(taskDone(task,'2026-11-18'),false);
 });
 test('all-day tasks default to no clock',()=>{

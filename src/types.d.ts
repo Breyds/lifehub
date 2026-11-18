@@ -19,9 +19,10 @@ export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string
 export type MusicTrack={id:string;title:string;artist:string;url:string;artworkUrl:string;releaseDate:string;market:string;rank:number;source?:'chart'|'new-album';album?:string};
 export type MusicCharts={markets:Record<string,MusicTrack[]>;freshReleases?:Record<string,MusicTrack[]>;freshErrors?:string[];errors:string[];fetchedAt:string;source:string;method?:string;lastAttemptAt?:string};
 export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
-export type YouTubeTrend={id:string;category:string;subtopic:string;title:string;channel:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
+export type YouTubeTrend={id:string;category:string;subtopic:string;title:string;channel:string;channelUrl?:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
 export type YoutubeTrendsState={videos:YouTubeTrend[];fetchedAt:string;topics:{id:string;label:string}[];method?:string};
-export type Snapshot={telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type PowerLive={status:string;checkedAt:string;source:string;message:string;intervals:{date:string;start:string;end:string;status:string}[]};
+export type Snapshot={powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -46,6 +47,7 @@ declare global {
     disconnectTelegram:()=>Promise<boolean>;
     saveBlackouts:(raw:string)=>Promise<boolean>;
     savePowerAddress:(address:{settlement:string;street:string;house:string})=>Promise<boolean>;
+    fetchPower:()=>Promise<PowerLive>;
     saveYouTubeKey:(key:string)=>Promise<boolean>;
     removeYouTubeKey:()=>Promise<boolean>;
     getYouTubeTrends:(force:boolean)=>Promise<YoutubeTrendsState>;

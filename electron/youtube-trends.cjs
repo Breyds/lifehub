@@ -15,7 +15,7 @@ function parseTrends(searchResults,details,now=Date.now()){
  const byId=new Map((details?.items||[]).map(v=>[v.id,v]));
  const map=new Map();
  for(const row of searchResults){const video=byId.get(row?.id?.videoId);if(!video)continue;const id=video.id;const snippet=video.snippet||{};const views=Number(video.statistics?.viewCount||0);const likes=Number(video.statistics?.likeCount||0);const days=Math.max(0.25,(now-Date.parse(snippet.publishedAt))/86400000);if(!views||!Number.isFinite(days))continue;
-  const old=map.get(id);const item={id,category:row._topic||'games',subtopic:row._query||'',title:String(snippet.title||'').slice(0,160),channel:String(snippet.channelTitle||'').slice(0,100),url:`https://www.youtube.com/watch?v=${id}`,thumbnail:snippet.thumbnails?.medium?.url||'',publishedAt:snippet.publishedAt||'',views,likes,viewsPerDay:Math.round(views/days),likeRate:views?Math.round(likes/views*10000)/100:0};
+  const old=map.get(id);const item={id,category:row._topic||'games',subtopic:row._query||'',title:String(snippet.title||'').slice(0,160),channel:String(snippet.channelTitle||'').slice(0,100),channelUrl:/^UC[a-zA-Z0-9_-]{22}$/.test(String(snippet.channelId||''))?`https://www.youtube.com/channel/${snippet.channelId}`:'',url:`https://www.youtube.com/watch?v=${id}`,thumbnail:snippet.thumbnails?.medium?.url||'',publishedAt:snippet.publishedAt||'',views,likes,viewsPerDay:Math.round(views/days),likeRate:views?Math.round(likes/views*10000)/100:0};
   if(!old)map.set(id,item);
  }
  const grouped={};for(const item of map.values()){(grouped[item.category]??=[]).push(item);}for(const key in grouped)grouped[key].sort((a,b)=>b.viewsPerDay-a.viewsPerDay);

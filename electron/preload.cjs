@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   disconnectTelegram:()=>ipcRenderer.invoke('telegram:disconnect'),
   saveBlackouts:(raw)=>ipcRenderer.invoke('power:save',raw),
   savePowerAddress:(address)=>ipcRenderer.invoke('power:address-save',address),
+  fetchPower:()=>ipcRenderer.invoke('power:fetch'),
   saveYouTubeKey:(key)=>ipcRenderer.invoke('youtube:key-save',key),
   removeYouTubeKey:()=>ipcRenderer.invoke('youtube:key-remove'),
   getYouTubeTrends:(force)=>ipcRenderer.invoke('youtube:trends',!!force),

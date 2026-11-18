@@ -355,3 +355,43 @@ html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {backgr
 .hub-power-slots>div{border:1px solid #ee777555;border-radius:8px;padding:9px;background:#c45c4c17}
 
 .hub-news-source-logo{display:block!important;width:62px!important;height:62px!important;object-fit:contain;image-rendering:auto;filter:drop-shadow(0 5px 16px #0003)}
+/* LifeHub 0.5.3 — focused controls */
+.app .hub-day-count{position:absolute;right:9px;top:9px;min-width:21px;height:21px;padding:0 5px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;background:#a493ff;color:#13141b;font-size:12px;font-weight:850;box-shadow:0 4px 12px #17152280}
+.app .hub-date{position:relative}
+.app .hub-accordion-title{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;padding:13px 16px;color:#e8e8f0;background:#25262c;border:1px solid #34343a;border-radius:10px;cursor:pointer;font-size:13px;font-weight:700}
+.app .hub-accordion-title:hover{background:#303037}
+.app .hub-accordion-title strong{background:#9b89ff22;color:#b7a8ff;border-radius:6px;padding:2px 7px;margin-left:7px}
+.app .hub-popup-group{margin:10px 0}
+.app .hub-all-filters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:14px 0}
+.app .hub-filter-tile{border:1px solid #35363c;background:#1d1f24;padding:16px 12px;border-radius:12px;text-align:left;cursor:pointer;color:#ddd;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.app .hub-filter-tile span{color:#aa99ff;font-weight:800}.app .hub-filter-tile.active{background:#282436;border-color:#aa99ff}
+.app .hub-electric-day{border-radius:14px;padding:18px;border:1px solid #33363e;background:#1a1d21}
+.app .hub-electric-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0}
+.app .hub-electric-day h3{margin:0 0 15px;font-size:17px;text-transform:capitalize}
+.app .hub-power-page .hub-heading h1{display:flex;align-items:center;gap:12px}
+.app .hub-power-address{margin-top:10px}.app .hub-power-address p{color:#9ba4a5;font-size:12px}
+.app .hub-power-address .hub-address-fields{margin:16px 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.app .hub-power-address label{display:grid;gap:8px;font-size:12px;color:#aeb5b6}
+.app .hub-power-address input{width:100%;min-width:0}
+.app .hub-power-results{margin-top:16px}
+.app .hub-electric-timeline{display:flex;align-items:stretch;gap:2px;height:21px;overflow:hidden;border-radius:8px;background:#43464d}
+.app .hub-electric-timeline span{min-width:2px}
+.app .power-on{background:#4fa774!important;color:#b5edc5!important}
+.app .power-off{background:#b86b73!important;color:#f1c0c2!important}
+.app .power-possible{background:#b99b55!important;color:#ffe6ac!important}
+.app .power-unknown{background:#5d626a!important;color:#bbbfc5!important}
+.app .hub-electric-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px}
+.app .hub-electric-legend span{padding:4px 10px;font-size:12px;border-radius:6px}
+.app .hub-electric-periods{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+.app .hub-electric-periods>div{display:flex;gap:7px;align-items:center;border-radius:8px;padding:6px 10px;background:transparent!important;font-size:11px;border:1px solid currentColor}
+.app .hub-electric-no-data{display:flex;gap:10px;align-items:center;color:#a4a7b3;font-size:12px;line-height:1.5}
+.app .hub-electric-badge{color:#ddb99a;background:#55402777;border-radius:16px;padding:6px 12px;font-size:11px}
+.app .hub-electric-badge.is-verified{color:#ade6bf;background:#244a3477}
+.app .hub-electric-note{font-size:13px;color:#b9b8c0;margin-top:12px}
+.app .hub-footnote{display:flex;gap:6px;align-items:center}
+.app .hub-news-image-consent{border:1px solid #9f8bff80;padding:12px;border-radius:10px;background:#242037;font-size:12px}
+.app .hub-news-image-consent p{margin:8px 0;color:#b9bac3}
+@media(max-width:1050px){.app .hub-all-filters{grid-template-columns:repeat(3,minmax(0,1fr))}.app .hub-electric-days{grid-template-columns:1fr}}
+@media(max-width:700px){.app .hub-all-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.app .hub-power-address .hub-address-fields{grid-template-columns:1fr}}
+
+.app .hub-ai-image-label{color:#e4d4ff;font-size:11px;background:#3b345a;padding:5px 8px;border-radius:6px;display:inline-block}

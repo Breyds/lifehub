@@ -1,3 +1,5 @@
+import {Zap} from 'lucide-react';
+import {PowerPage} from './PowerPage';
 import {useEffect,useMemo,useState} from 'react';
 import type {ComponentType,FormEvent} from 'react';
 import {createRoot} from 'react-dom/client';
@@ -55,6 +57,7 @@ function App(){
  const [aiLoading,setAiLoading]=useState(false);
  const [keyInput,setKeyInput]=useState('');
  const [menuOpen,setMenuOpen]=useState(false);
+ const [allFilter,setAllFilter]=useState<'all'|'critical'|'high'|'repeat'|'other'>('all');
  const [expanded,setExpanded]=useState<string|null>(null);
  const [confirmTask,setConfirmTask]=useState<Task|null>(null);
  async function refresh(){try{setSnapshot(await window.lifehub.load());}catch(e){showError(e);}}
@@ -74,18 +77,17 @@ function App(){
  const estimatedMinutes=dayTasks.filter(t=>!isDone(t,selectedDate)).reduce((sum,t)=>sum+Number(t.durationMin||0),0);
  const pct=dayTasks.length?Math.round(completed/dayTasks.length*100):0;
  const activeCat=categories.find(c=>c.id===page);
- const categoryTasks=useMemo(()=>activeCat?tasks.filter(t=>t.category===activeCat.id).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||(a.time||'99:99').localeCompare(b.time||'99:99')):[],[activeCat,tasks]);
  const stats=useMemo(()=>Array.from({length:7},(_,i)=>{const d=plusDays(today(),i-6);const t=tasks.filter(x=>occurs(x,d));return {date:d,all:t.length,done:t.filter(x=>isDone(x,d)).length};}),[tasks]);
  const dueSoon=tasks.filter(t=>t.recurrence==='none'&&t.dueDate>=today()&&!isDone(t,t.dueDate)).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,5);
  const navSections=[
-  {title:'ПЛАНУВАННЯ',items:[{id:'today',title:'Сьогодні',icon:ListTodo},{id:'planner',title:'Плани',icon:CalendarRange},{id:'projects',title:'Проєкти',icon:FolderKanban},{id:'allTasks',title:'Усі справи',icon:CheckCheck}]},
+  {title:'ПЛАНУВАННЯ',items:[{id:'today',title:'Сьогодні',icon:ListTodo},{id:'planner',title:'Плани',icon:CalendarRange},{id:'projects',title:'Проєкти',icon:FolderKanban},{id:'allTasks',title:'Усі справи',icon:CheckCheck},{id:'power',title:'Світло',icon:Zap}]},
   {title:'ТРЕНУВАННЯ',items:[{id:'fitness',title:'Фізична форма',icon:Dumbbell},{id:'cs2train',title:'CS2 · Практика',icon:Crosshair}]},
   {title:'КОНТЕНТ ТА МЕДІА',items:[{id:'youtube',title:'YouTube',icon:Youtube},{id:'streams',title:'Стріми',icon:Radio},{id:'news',title:'Новини',icon:Newspaper},{id:'music',title:'Музика',icon:Music2}]},
   {title:'ОСОБИСТЕ',items:[{id:'study',title:'Навчання',icon:GraduationCap}]},
   {title:'АНАЛІТИКА',items:[{id:'stats',title:'Статистика',icon:BarChart3}]}
  ];
  const allNav=navSections.flatMap(x=>x.items);
- const englishLabels:Record<string,string>={today:'Today',planner:'Planner',projects:'Projects',allTasks:'All tasks',fitness:'Fitness',cs2train:'CS2 training',youtube:'YouTube',streams:'Streams',news:'News',music:'Music',study:'Studies',stats:'Statistics',imports:'ChatGPT Import',settings:'Settings'};
+ const englishLabels:Record<string,string>={today:'Today',planner:'Planner',projects:'Projects',allTasks:'All tasks',power:'Power',fitness:'Fitness',cs2train:'CS2 training',youtube:'YouTube',streams:'Streams',news:'News',music:'Music',study:'Studies',stats:'Statistics',imports:'ChatGPT Import',settings:'Settings'};
  const navLabel=(p:{id:string;title:string})=>snapshot?.preferences.language==='en'?(englishLabels[p.id]||p.title):p.title;
  function taskItem(t:Task,date:string,showDate=false){
   const done=isDone(t,date),unavailable=t.recurrence!=='none'&&!occurs(t,date),tone=categories.find(c=>c.id===t.category)?.tone||'slate';
@@ -130,8 +132,26 @@ function App(){
       </section><div className="right-stack"><section className="panel ai-card"><div className="ai-symbol"><Sparkles size={22}/></div><h2>Плануй разом з AI</h2><p>Напиши, що хочеш встигнути. AI запропонує зміни, а ти їх перевіриш і підтвердиш.</p><button className="button bright" onClick={()=>setAiOpen(true)}>Скласти план <ArrowRight size={17}/></button></section><section className="panel next-card"><div className="panel-head"><h2>Найближчі справи</h2><span className="mini-label">{dueSoon.length} задач</span></div>{dueSoon.length?dueSoon.map(t=><div className="next-row" key={t.id}><span className={`dot ${categories.find(c=>c.id===t.category)?.tone}`}/><div><strong>{t.title}</strong><small>{pretty(t.dueDate,{day:'numeric',month:'short'})}{t.time?' · '+t.time:''}</small></div></div>):<p className="muted">Немає майбутніх одноразових завдань.</p>}</section></div></div>
       {!tasks.length&&<section className="starter"><div><Lightbulb size={22}/><strong>Швидкий старт</strong><span>Можеш додати готовий шаблон, якщо він відповідає твоєму графіку.</span></div><button className="button outline" onClick={()=>void templateVideo()}>+ Rank Daily щодня о 19:00</button></section>}
     </>}
-    {page==='allTasks'&&<><div className="intro-row"><div><h1>Усі справи · за датами</h1><p className="subtitle">Критичні, важливі, повторювані та звичайні справи розділені. Створюй нові в календарі.</p></div></div><section className="panel list-panel hub-all-by-date">{tasks.length?Array.from(new Set(tasks.map(t=>t.dueDate))).sort().map(d=><div key={d} className="hub-date-group"><h2><CalendarDays size={18}/>{pretty(d,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h2>{[{name:'Критично / терміново',which:(t:Task)=>t.priority==='critical'},{name:'Важливо',which:(t:Task)=>t.priority==='high'},{name:'Щоденні та повторювані',which:(t:Task)=>!['critical','high'].includes(t.priority||'normal')&&t.recurrence!=='none'},{name:'Інші справи',which:(t:Task)=>!['critical','high'].includes(t.priority||'normal')&&t.recurrence==='none'}].map(group=>{const matches=tasks.filter(t=>t.dueDate===d&&group.which(t)).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));return matches.length?<div className="hub-task-class" key={group.name}><h3>{group.name} · {matches.length}</h3>{matches.map(t=><div className="hub-compact-record" key={t.id}><span className={`hub-priority priority-${t.priority||'normal'}`}>{priorityNames[t.priority||'normal']}</span><strong>{t.title}</strong><span>{t.time||'Весь день'}</span>{t.recurrence!=='none'&&<span>· {repeatLabels[t.recurrence]}</span>}{t.note&&<small title={t.note}>{t.note.slice(0,100)}</small>}</div>)}</div>:null;})}</div>):<div className="empty"><FolderKanban size={35}/><h3>Тут з’являться твої справи</h3><p>Створи їх у календарі або на головній.</p></div>}</section></>}
-    {activeCat&&page!=='study'&&<><div className="intro-row"><div><div className="eyebrow">ТВІЙ НАПРЯМ</div><h1>{activeCat.title}</h1><p className="subtitle">{activeCat.short} · {categoryTasks.length} завдань у цьому напрямі</p></div><button className="button primary" onClick={()=>showAdd(activeCat.id)}><Plus size={17}/> Нове завдання</button></div><section className="panel list-panel">{categoryTasks.length?categoryTasks.map(t=>taskItem(t,t.recurrence==='none'?t.dueDate:today(),true)):<div className="empty"><activeCat.icon size={40}/><h3>Поки немає завдань</h3><p>Цей простір можна наповнити власними цілями, тренуваннями та проєктами.</p><button className="button outline" onClick={()=>showAdd(activeCat.id)}>Додати перше завдання</button></div>}</section></>}
+    {page==='allTasks'&&<>
+      <div className="intro-row"><div><h1>Усі справи · за датами</h1><p className="subtitle">Вибирай тип завдань — фільтр працює для всіх дат одразу.</p></div></div>
+      <div className="hub-all-filters">{[
+       {id:'all',title:'Усі завдання',match:(_t:Task)=>true},
+       {id:'critical',title:'Термінові',match:(t:Task)=>t.priority==='critical'},
+       {id:'high',title:'Важливі',match:(t:Task)=>t.priority==='high'},
+       {id:'repeat',title:'Повторювані',match:(t:Task)=>t.recurrence!=='none'},
+       {id:'other',title:'Звичайні',match:(t:Task)=>!['critical','high'].includes(t.priority||'normal')&&t.recurrence==='none'}
+      ].map(x=><button key={x.id} className={`hub-filter-tile ${allFilter===x.id?'active':''}`} onClick={()=>setAllFilter(x.id as typeof allFilter)}><strong>{x.title}</strong><span>{tasks.filter(x.match).length}</span></button>)}</div>
+      <section className="panel list-panel hub-all-by-date">{tasks.some(t=>allFilter==='all'||(allFilter==='critical'?t.priority==='critical':allFilter==='high'?t.priority==='high':allFilter==='repeat'?t.recurrence!=='none':!['critical','high'].includes(t.priority||'normal')&&t.recurrence==='none'))?
+        Array.from(new Set(tasks.filter(t=>allFilter==='all'||(allFilter==='critical'?t.priority==='critical':allFilter==='high'?t.priority==='high':allFilter==='repeat'?t.recurrence!=='none':!['critical','high'].includes(t.priority||'normal')&&t.recurrence==='none')).map(t=>t.dueDate))).sort().map(d=><div key={d} className="hub-date-group"><h2><CalendarDays size={18}/>{pretty(d,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h2>
+        {[{name:'Критично / терміново',which:(t:Task)=>t.priority==='critical'},
+          {name:'Важливо',which:(t:Task)=>t.priority==='high'},
+          {name:'Щоденні та повторювані',which:(t:Task)=>!['critical','high'].includes(t.priority||'normal')&&t.recurrence!=='none'},
+          {name:'Інші справи',which:(t:Task)=>!['critical','high'].includes(t.priority||'normal')&&t.recurrence==='none'}]
+         .map(group=>{const matches=tasks.filter(t=>t.dueDate===d&&group.which(t)&&(allFilter==='all'||(allFilter==='critical'?t.priority==='critical':allFilter==='high'?t.priority==='high':allFilter==='repeat'?t.recurrence!=='none':!['critical','high'].includes(t.priority||'normal')&&t.recurrence==='none'))).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+         return matches.length?<div className="hub-task-class" key={group.name}><h3>{group.name} · {matches.length}</h3>{matches.map(t=><div className="hub-compact-record" key={t.id}><span className={`hub-priority priority-${t.priority||'normal'}`}>{priorityNames[t.priority||'normal']}</span><strong>{t.title}</strong><span>{t.time||'Весь день'}</span>{t.recurrence!=='none'&&<span>· {repeatLabels[t.recurrence]}</span>}{t.note&&<small title={t.note}>{t.note.slice(0,100)}</small>}</div>)}</div>:null;})}</div>)
+      :<div className="empty"><FolderKanban size={35}/><h3>Для цього фільтра завдань немає</h3><p>Обери іншу категорію.</p></div>}</section>
+    </>}
+    {page==='power'&&<PowerPage snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='study'&&<PlannerPage categoryFilter="study" heading="Навчання та дедлайни" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d)=>showAdd('study',d)} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
     {page==='planner'&&<PlannerPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
     {page==='projects'&&<ProjectsPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')}/>}

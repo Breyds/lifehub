@@ -30,11 +30,12 @@ test('TikTok unavailable video gives useful status',async()=>{
 test('Music news categories removed from the news feeds',()=>{
  assert.equal(FEEDS.music_us,undefined);assert.equal(FEEDS.music_ru,undefined);
 });
-test('News feed UI suppresses rejected article, supports undo and page size',()=>{
+test('News feed UI hides both reactions and supports separate bookmarks',()=>{
  const src=fs.readFileSync(path.join(__dirname,'../src/WorkspacePages.tsx'),'utf8');
- assert.match(src,/setLocalHidden\(old=>new Set\(old\)\.add\(id\)\)/);
- assert.match(src,/reactions\[x\.id\]\?\.vote!=='not'/);
- assert.match(src,/window\.lifehub\.unrateNews\(id\)/);
+ assert.match(src,/setHiddenNow\(prev=>new Set\(prev\)\.add\(id\)\)/);
+ assert.match(src,/window\.lifehub\.rateNews\(id,kind\)/);
+ assert.match(src,/window\.lifehub\.saveNews\(id\)/);
+ assert.match(src,/snapshot\.newsSaved/);
  assert.match(src,/sorted\.slice\(0,visibleCount\)/);
 });
 test('Thin branded scrollbars are styled for Chromium',()=>{

@@ -21,7 +21,7 @@ const {normalizeGroup,fetchMirror}=require('./dtek-mirror.cjs');
 const {fetchYoutubeTrends}=require('./youtube-trends.cjs');
 const path=require('node:path');
 const fs=require('node:fs');
-const {cleanTask,occurs,complete,taskDone,progressFor,updateProgress,occurrenceKey,validateProposal,validDate,validTime,CATEGORIES,RECURRENCES}=require('./logic.cjs');
+const {cleanTask,occurs,complete,taskDone,progressFor,updateProgress,occurrenceKey,validateProposal,validDate,validTime,validScheduledDate,assertScheduledDate,CATEGORIES,RECURRENCES}=require('./logic.cjs');
 const API_MODEL='gpt-5-mini';
 const PRICE_IN=0.25,PRICE_OUT=2.00; // USD per million tokens, recheck if tariff changes
 const LIMIT_USD=5;
@@ -140,10 +140,10 @@ app.whenReady().then(()=>{load();Menu.setApplicationMenu(null);makeWindow();setu
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('before-quit',()=>{if(notifyTimer)clearInterval(notifyTimer);if(telegramTimer)clearInterval(telegramTimer);if(updateTimer)clearInterval(updateTimer);if(newsTimer)clearInterval(newsTimer);});
 ipcMain.handle('data:load',()=>cleanSnapshot());
-ipcMain.handle('tasks:add',(_event,payload)=>{const task=cleanTask(payload);db.tasks.push(task);save();return task;});
+ipcMain.handle('tasks:add',(_event,payload)=>{assertScheduledDate(payload?.dueDate);const task=cleanTask(payload);db.tasks.push(task);save();return task;});
 ipcMain.handle('tasks:edit',(_event,id,patch)=>{
  const i=db.tasks.findIndex(t=>t.id===id);if(i<0)throw new Error('Завдання не знайдено');
- const original=db.tasks[i];const updated=cleanTask({...original,...patch},original.id);
+ const original=db.tasks[i];assertScheduledDate(patch?.dueDate??original.dueDate,original.dueDate);const updated=cleanTask({...original,...patch},original.id);
  updated.completions=original.completions;updated.progress=original.progress||{};updated.createdAt=original.createdAt;
  db.tasks[i]=updated;save();return updated;
 });
@@ -467,7 +467,7 @@ async function generatePlan(request,today,fromImport=false){
    const output=(result.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==='output_text').map(x=>x.text).join('');
    if(!output)throw new Error('AI не повернув текстову пропозицію');
    const parsed=JSON.parse(output);
-   return {summary:String(parsed.summary||'').slice(0,1500),changes:Array.isArray(parsed.changes)?parsed.changes.slice(0,8).map(p=>({...p,valid:!!validateProposal({...p,date:p.date,time:p.time},db.tasks)})):[],spent:db.usage[month()]};
+   return {summary:String(parsed.summary||'').slice(0,1500),changes:Array.isArray(parsed.changes)?parsed.changes.slice(0,8).map(p=>({...p,valid:validScheduledDate(p.date)&&!!validateProposal({...p,date:p.date,time:p.time},db.tasks)})):[],spent:db.usage[month()]};
  }finally{aiBusy=false;}
 }
 ipcMain.handle('ai:plan',(_event,prompt,today)=>generatePlan(prompt,today));
@@ -480,7 +480,7 @@ ipcMain.handle('chats:propose',(_event,ids,today)=>{
 });
 ipcMain.handle('ai:apply',(_event,raw)=>{
  if(!Array.isArray(raw)||raw.length>8)throw new Error('Надто багато пропозицій');
- const resolved=raw.map(p=>validateProposal(p,db.tasks));
+ const resolved=raw.map(p=>validScheduledDate(p?.date)?validateProposal(p,db.tasks):null);
  if(resolved.some(p=>!p))throw new Error('Деякі запропоновані зміни вже застаріли або некоректні. Створи нову пропозицію.');
  for(const p of resolved){if(p.action==='create')db.tasks.push(p.task);else {const t=idFind(p.taskId);t.dueDate=p.date;t.time=p.time;}}
  save();return resolved.length;

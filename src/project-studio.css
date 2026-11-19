@@ -160,3 +160,10 @@
 @media(max-width:1150px){.app .lh-proj-detail-hero{grid-template-columns:1fr}.app .lh-proj-hero-progress{grid-column:1;max-width:320px}.app .lh-proj-detail-actions{position:static;justify-content:flex-end}}
 @media(max-width:900px){.app .lh-proj-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.app .lh-proj-card-grid{grid-template-columns:1fr}.app .lh-proj-title-row h1{font-size:27px}}
 @media(max-width:660px){.app .lh-proj-page-head{flex-direction:column;align-items:stretch}.app .lh-proj-tab-content{padding:17px}.app .lh-proj-overview>div{padding:12px}.app .lh-proj-form-pair{grid-template-columns:1fr}.app .lh-project-form form{padding:20px}.app .lh-project-form>header{padding:20px}.app .lh-proj-link-form{grid-template-columns:1fr}.app .lh-proj-link-form input:nth-child(3),.app .lh-proj-link-form button{grid-column:1}.app .lh-proj-stage-controls{flex-wrap:wrap}}
+
+
+/* Overdue project repair — introduced in 0.7.1 */
+.app .lh-proj-deadline{flex-wrap:wrap}
+.app .lh-proj-fix-date{border:1px solid #8c6254;background:#45362e;color:#ffd4ae;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer}
+.app .lh-proj-fix-date:hover{background:#614336}
+.app .lh-proj-old-deadline{font-size:11px;line-height:1.5;color:#f2bb9a;font-weight:500}

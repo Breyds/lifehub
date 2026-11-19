@@ -1,6 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
-const {validDate}=require('./logic.cjs');
+const {validDate,assertScheduledDate}=require('./logic.cjs');
 const KINDS=['projects','gym','cardio','cs2logs','weight','meals','channels','ideas','streams','songs','programs'];
 const MAX_ITEMS=2000;
 const string=(x,max=500)=>String(x??'').trim().slice(0,max);
@@ -14,6 +14,11 @@ function validateItem(kind,raw,original){
  if(!KINDS.includes(kind))throw new Error('Невідомий тип запису');
  if(!raw||typeof raw!=='object')throw new Error('Некоректні дані');
  const x={id:original?.id||crypto.randomUUID(),createdAt:original?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+ // History (workouts, meals, completed streams, published videos) may retain past dates.
+ // Only new/changed future commitments are blocked.
+ if(kind==='projects'&&raw.deadline)assertScheduledDate(String(raw.deadline),String(original?.deadline||''));
+ if(kind==='streams'&&raw.date&&raw.status!=='done'&&raw.status!=='cancelled')assertScheduledDate(String(raw.date),String(original?.date||''));
+ if(kind==='ideas'&&raw.date&&raw.status!=='published')assertScheduledDate(String(raw.date),String(original?.date||''));
  if(kind==='projects'){
   const legacy=string(raw.steps,4000).split('\n').map(s=>s.trim()).filter(Boolean).slice(0,80);
   const legacyDone=new Set(Array.isArray(raw.completedSteps)?raw.completedSteps.map(Number).filter(Number.isInteger):[]);

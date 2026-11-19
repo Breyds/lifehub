@@ -9,6 +9,9 @@ function validDate(x) {
   return Number.isFinite(d.valueOf()) && d.toISOString().slice(0,10) === x;
 }
 function validPlanningDate(x){return validDate(x)&&Number(x.slice(0,4))>=2000&&Number(x.slice(0,4))<=2100;}
+function localToday(){const d=new Date();const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function validScheduledDate(x,from=localToday()){return validPlanningDate(x)&&x>=from;}
+function assertScheduledDate(x,previous=''){if(x===previous)return;if(!validScheduledDate(x))throw new Error('Для нового плану обери сьогодні або майбутню дату. Минулі дати можна переглянути й перенести.');}
 function validTime(x) { return typeof x === 'string' && (x === '' || /^([01]\d|2[0-3]):[0-5]\d$/.test(x)); }
 function dayDiff(a,b){ const aMs=Date.parse(a+'T12:00:00Z'); const bMs=Date.parse(b+'T12:00:00Z'); return Math.round((bMs-aMs)/86400000); }
 function occurs(t, date) {
@@ -82,4 +85,4 @@ function updateProgress(t,date,delta){
   if(t.progress[key]>=cap)t.completions.push(key);
   return t.progress[key];
 }
-module.exports={CATEGORIES,RECURRENCES,PRIORITIES,validDate,validPlanningDate,validTime,dayDiff,occurs,scheduledOccurs,occurrenceKey,complete,cleanTask,validateProposal,progressFor,taskDone,updateProgress};
+module.exports={CATEGORIES,RECURRENCES,PRIORITIES,validDate,validPlanningDate,validScheduledDate,assertScheduledDate,validTime,dayDiff,occurs,scheduledOccurs,occurrenceKey,complete,cleanTask,validateProposal,progressFor,taskDone,updateProgress};

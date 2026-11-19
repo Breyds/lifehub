@@ -194,7 +194,7 @@ function App(){
     {page==='power'&&<PowerPage snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='study'&&<PlannerPage categoryFilter="study" heading="Навчання та дедлайни" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d)=>showAdd('study',d)} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
     {page==='planner'&&<PlannerPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
-    {page==='projects'&&<ProjectsPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')}/>}
+    {page==='projects'&&<ProjectsPage snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='fitness'&&<FitnessPage kind="fitness" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'sport',d,title||'')}/>}
     {page==='cs2train'&&<FitnessPage kind="cs2" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'cs2',d,title||'')}/>}
     {page==='youtube'&&<YoutubePage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'rankdaily',d,title||'')}/>}

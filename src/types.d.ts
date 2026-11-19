@@ -61,6 +61,7 @@ declare global {
     refreshMusic:()=>Promise<MusicCharts>;
     checkTikTok:(url:string)=>Promise<{status:'invalid'|'short'|'video'|'collection'|'unknown'|'unavailable';message:string;url:string;title:string;author:string;videos?:{url:string;title:string;author:string;sound:string}[]}>;
     aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number}>;
+    projectReview:(id:string,evidence:string,mode:'review'|'plan')=>Promise<{summary:string;updates:{index:number;progress:number;reason:string}[];suggestedStages:string[];nextActions:string[];risks:string[];spent:number}>;
 
     addTask:(task:TaskInput)=>Promise<Task>;
     advanceTask:(id:string,date:string,delta:number)=>Promise<number>;

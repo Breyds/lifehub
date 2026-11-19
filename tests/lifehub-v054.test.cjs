@@ -49,5 +49,5 @@ test('article has an original image when og meta is available',async()=>{
 });
 test('v0.5.4 UI has precise quantity input and power group fallback',()=>{
  const main=fs.readFileSync(path.join(__dirname,'../src/main.tsx'),'utf8');const power=fs.readFileSync(path.join(__dirname,'../src/PowerPage.tsx'),'utf8');
- assert.match(main,/customDelta/);assert.match(main,/Додати довільний обсяг/);assert.match(power,/Резервний графік за чергою/);
+ assert.match(main,/customDelta/);assert.match(main,/Додати довільний обсяг/);assert.match(power,/Резервне налаштування/);assert.match(power,/HourGrid/);
 });

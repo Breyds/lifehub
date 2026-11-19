@@ -1,0 +1,105 @@
+/* LifeHub Power Studio 0.8.0 — scoped interface, no changes to other categories */
+.app .lh-power-studio{display:flex;flex-direction:column;gap:18px;width:100%;color:#edf4ee;max-width:1480px;animation:hub-entry .2s ease}
+.app .lh-power-studio button{cursor:pointer;font:inherit;transition:background .15s,border-color .15s,transform .15s}
+.app .lh-power-studio button:disabled{cursor:not-allowed;opacity:.45}
+.app .lh-power-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;border:1px solid #465a4b;background:radial-gradient(circle at 93% 0%,#b7a0ff32,transparent 48%),linear-gradient(115deg,#283b2e,#1e2823 58%,#21232b);border-radius:18px;padding:28px 31px;min-height:186px}
+.app .lh-power-eyebrow,.app .lh-power-kicker{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:1.5px;font-weight:900;color:#b6a5ff}
+.app .lh-power-eyebrow svg{color:#ffc947}
+.app .lh-power-hero h1{font-size:34px;line-height:1.15;letter-spacing:-1px;margin:13px 0 10px}
+.app .lh-power-hero p{margin:0;color:#acc1b0;font-size:13px;line-height:1.6;max-width:625px}
+.app .lh-power-hero-actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.app .lh-power-refresh,.app .lh-power-official{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:10px 15px;border-radius:10px;font-size:12px!important;font-weight:850!important;white-space:nowrap}
+.app .lh-power-refresh{background:#b4a2fa;border:1px solid #b4a2fa;color:#181520}
+.app .lh-power-refresh:hover:not(:disabled){background:#d4c8ff}
+.app .lh-power-official{background:#26372d;border:1px solid #526b58;color:#e3f1e5}
+.app .lh-power-official:hover{background:#355341}
+.app .lh-power-studio .spin{animation:lh-power-spin 1.1s linear infinite}
+@keyframes lh-power-spin{to{transform:rotate(360deg)}}
+.app .lh-power-summary{display:grid;grid-template-columns:1.3fr .8fr 1fr 1fr;gap:12px}
+.app .lh-power-summary-card{background:linear-gradient(145deg,#232d26,#1e2421);border:1px solid #405144;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;min-height:137px;overflow-wrap:anywhere}
+.app .lh-power-summary-card>span{display:flex;align-items:center;gap:8px;color:#a5bba9;font-size:10px;font-weight:850;letter-spacing:.55px}
+.app .lh-power-summary-card>span svg{color:#a99aff;flex-shrink:0}
+.app .lh-power-summary-card strong{font-size:17px;line-height:1.4;letter-spacing:-.25px;overflow-wrap:anywhere}
+.app .lh-power-summary-card:nth-child(2) strong{font-size:28px;color:#f1d26e}
+.app .lh-power-summary-card small{color:#9cb7a3;font-size:11px;line-height:1.5}
+.app .lh-power-summary-card button{align-self:flex-start;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;padding:0;color:#beafff;font-size:11px;font-weight:800}
+.app .lh-power-summary-card button:hover{color:white}
+.app .lh-power-panel,.app .lh-power-address-panel,.app .lh-power-backup{background:#1c2420;border:1px solid #415347;border-radius:16px;overflow:hidden}
+.app .lh-power-panel-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:19px}
+.app .lh-power-panel-header h2{font-size:22px;line-height:1.2;margin:6px 0 7px;letter-spacing:-.5px}
+.app .lh-power-panel-header p{margin:0;color:#aabdae;font-size:12px;line-height:1.55}
+.app .lh-power-address-panel{padding:23px 27px;display:flex;flex-direction:column;gap:7px}
+.app .lh-power-address-panel .lh-power-panel-header>span{font-size:11px;white-space:nowrap;color:#b5e2b9;background:#304638;padding:8px 11px;border-radius:8px}
+.app .lh-power-address-fields{display:grid;grid-template-columns:1fr 1.3fr .55fr;gap:12px}
+.app .lh-power-address-fields label{display:flex;flex-direction:column;gap:9px;font-size:11px;font-weight:750;color:#b8cabb}
+.app .lh-power-address-fields input,.app .lh-power-backup select{min-width:0;border:1px solid #546c58;border-radius:9px;padding:12px 13px;background:#242e28;color:#f1f6ef;font-size:13px;outline:none}
+.app .lh-power-address-fields input:focus,.app .lh-power-backup select:focus{border-color:#b6a2ff}
+.app .lh-power-address-actions{display:flex;align-items:center;gap:11px;margin-top:17px}
+.app .lh-power-address-actions button,.app .lh-power-backup-body>div button{border:1px solid #a996f2;background:#a995f4;color:#17121e;border-radius:9px;padding:12px 15px;font-weight:850;font-size:12px;display:inline-flex;align-items:center;gap:7px}
+.app .lh-power-address-actions button:last-child{border-color:#526554;background:#29352c;color:#d2ded3}
+.app .lh-power-chart-panel{padding:25px 27px}
+.app .lh-power-tabs{display:flex;align-items:center;gap:4px;background:#262f29;border:1px solid #42564a;border-radius:11px;padding:4px;white-space:nowrap}
+.app .lh-power-tabs button{padding:10px 13px;border:0;border-radius:8px;background:transparent;color:#a7b9ac;font-size:12px!important;font-weight:780!important}
+.app .lh-power-tabs button.active{color:#efe8ff;background:#50456f;box-shadow:inset 0 0 0 1px #8770c6}
+.app .lh-power-tabs button:not(.active):hover{background:#344137}
+.app .lh-power-notice{display:flex;align-items:flex-start;gap:12px;background:#302d2c;border:1px solid #655447;border-radius:11px;padding:15px 17px;color:#edc7a1;font-size:12px;line-height:1.55;margin:0 0 18px}
+.app .lh-power-notice svg{flex-shrink:0;margin-top:1px}
+.app .lh-power-notice.verified{background:#21392c;border-color:#3e6650;color:#bedfc8}
+.app .lh-power-notice.mirror{background:#282f37;border-color:#465b71;color:#c2d5e5}
+.app .lh-power-legend{display:flex;align-items:center;gap:10px 19px;flex-wrap:wrap;margin-bottom:18px}
+.app .lh-power-legend>span{display:inline-flex;align-items:center;gap:8px;color:#b7cabe;font-size:11px;font-weight:650}
+.app .lh-power-legend i,.app .lh-power-detail-halves i{display:inline-flex;overflow:hidden;height:15px;width:21px;flex-shrink:0;border-radius:4px;border:1px solid #758174}
+.app .lh-power-legend i.state-on,.app .lh-power-detail-halves i.state-on{background:#f3c949;border-color:#d8bb62}
+.app .lh-power-legend i.state-off,.app .lh-power-detail-halves i.state-off{background:#101514;border-color:#506054}
+.app .lh-power-legend i.state-possible,.app .lh-power-detail-halves i.state-possible{background:repeating-linear-gradient(125deg,#b68a4e 0,#b68a4e 5px,#eed7a4 5px,#eed7a4 9px);border-color:#bc9859}
+.app .lh-power-legend i.state-unknown,.app .lh-power-detail-halves i.state-unknown{background:#4b5553;border-color:#687574}
+.app .lh-power-legend-partial i b{height:100%;width:50%;display:block}
+.app .lh-power-legend-partial i b.state-off{background:#101514}
+.app .lh-power-legend-partial i b.state-on{background:#f3c949}
+.app .lh-power-grid-scroll{width:100%;overflow-x:auto;overflow-y:hidden;border:1px solid #405247;background:#18211d;border-radius:13px;padding:14px;scrollbar-width:thin;scrollbar-color:#657268 #1e2621;outline-offset:3px}
+.app .lh-power-grid{display:grid;grid-template-columns:151px repeat(24,minmax(27px,1fr));gap:4px;min-width:920px}
+.app .lh-power-grid-row{display:contents}
+.app .lh-power-grid-label,.app .lh-power-grid-hour{display:flex;align-items:center;justify-content:center;min-height:33px;font-weight:850;color:#a4b8a9;font-size:10px;background:#28342c;border-radius:5px}
+.app .lh-power-grid-label{position:sticky;left:0;z-index:4;justify-content:flex-start;padding-left:10px;background:#29372e}
+.app .lh-power-grid-hour.current{color:#f2e7b0;background:#565138}
+.app .lh-power-grid-date{position:sticky;left:0;z-index:3;background:#28342c;border-radius:7px;padding:8px 9px;min-height:56px;display:flex;flex-direction:column;justify-content:center;gap:4px;border:1px solid #3d5243}
+.app .lh-power-grid-date strong{font-size:11px;text-transform:capitalize;font-weight:850;color:#eef5ee}
+.app .lh-power-grid-date span{font-size:9px;color:#b2c6b5}
+.app .lh-power-grid-date small{font-size:9px;color:#d6bd6e}
+.app .lh-power-grid-row.is-today .lh-power-grid-date{background:#3d513d;border-color:#75927b}
+.app .lh-power-hour-cell{height:56px;display:flex;min-width:0;padding:2px!important;border:1px solid #354a3b;background:#2e3c32;border-radius:5px;gap:1px;position:relative;overflow:hidden}
+.app .lh-power-hour-cell:hover{border-color:#c4b5ff;transform:scale(1.06);z-index:2}
+.app .lh-power-hour-cell:focus-visible,.app .lh-power-hour-cell.chosen{outline:2px solid #b7a1ff;outline-offset:1px;z-index:2}
+.app .lh-power-hour-cell.now{box-shadow:0 0 0 2px #d6aef6 inset}
+.app .lh-power-grid-row.is-today .lh-power-hour-cell{border-color:#58765c}
+.app .lh-power-grid-row.is-today .lh-power-hour-cell.chosen{border-color:#c3a4ff}
+.app .lh-power-half{width:50%;height:100%;min-width:0;display:block;border-radius:2px}
+.app .lh-power-half.state-on{background:#f4cd4a}
+.app .lh-power-half.state-off{background:#121817}
+.app .lh-power-half.state-possible{background:repeating-linear-gradient(145deg,#b18a4d 0,#b18a4d 4px,#f5d89c 4px,#f5d89c 8px)}
+.app .lh-power-half.state-unknown{background:#52615a}
+.app .lh-power-grid-note{display:flex;align-items:flex-start;gap:8px;color:#93ae9c;font-size:11px;line-height:1.6;margin:13px 0 0}
+.app .lh-power-grid-note svg{flex-shrink:0;margin-top:2px}
+.app .lh-power-hour-details{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-top:18px;padding:18px 20px;border:1px solid #6b6669;border-radius:13px;background:linear-gradient(115deg,#303c32,#2b3034)}
+.app .lh-power-hour-details h3{font-size:16px;margin:7px 0 5px;line-height:1.45;text-transform:capitalize}
+.app .lh-power-hour-details p{font-size:11px;color:#b4c5b5;margin:0;line-height:1.4}
+.app .lh-power-detail-halves{display:flex;flex-wrap:wrap;gap:9px}
+.app .lh-power-detail-halves>div{display:grid;grid-template-columns:23px 1fr;align-items:center;gap:4px 6px;background:#222c27;border:1px solid #475e4b;padding:10px;border-radius:9px;min-width:150px}
+.app .lh-power-detail-halves strong{font-size:11px}
+.app .lh-power-detail-halves span{grid-column:2;font-size:10px;color:#a9c0ad}
+.app .lh-power-hour-details>button{border:1px solid #657a68;background:#324135;color:#d3e6d5;padding:10px 12px;font-size:11px;border-radius:8px}
+.app .lh-power-source-note{border-top:1px solid #3a5141;padding-top:17px;margin-top:21px;display:flex;gap:9px;align-items:flex-start;color:#9eb5a3;font-size:11px;line-height:1.6}
+.app .lh-power-source-note svg{flex-shrink:0;margin-top:1px;color:#e0be78}
+.app .lh-power-backup summary{padding:16px 20px;list-style:none;cursor:pointer}
+.app .lh-power-backup summary::-webkit-details-marker{display:none}
+.app .lh-power-backup summary>svg{display:inline-block;color:#b09ef6;vertical-align:middle;margin-right:9px;transition:transform .2s}
+.app .lh-power-backup[open] summary>svg{transform:rotate(180deg)}
+.app .lh-power-backup summary strong{font-size:12px}
+.app .lh-power-backup summary small{font-size:11px;color:#92aa98;margin-left:16px}
+.app .lh-power-backup-body{border-top:1px solid #405446;padding:19px 21px}
+.app .lh-power-backup-body p{font-size:12px;line-height:1.7;color:#b6cbb9;margin:0 0 14px}
+.app .lh-power-backup-body p button{background:transparent;border:0;color:#b8a8ff;font-size:11px;display:inline-flex;gap:5px;align-items:center;font-weight:700}
+.app .lh-power-backup-body>div{display:flex;gap:12px;align-items:center}
+@media(max-width:1200px){.app .lh-power-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.app .lh-power-hero{align-items:flex-start;flex-direction:column}}
+@media(max-width:780px){.app .lh-power-hero{padding:22px}.app .lh-power-hero h1{font-size:27px}.app .lh-power-chart-panel{padding:20px}.app .lh-power-panel-header{flex-direction:column}.app .lh-power-address-fields{grid-template-columns:1fr}.app .lh-power-backup summary small{display:block;margin:6px 0 0 27px}}
+@media(max-width:510px){.app .lh-power-summary{grid-template-columns:1fr}.app .lh-power-summary-card{min-height:105px}.app .lh-power-detail-halves{width:100%}.app .lh-power-detail-halves>div{flex:1}.app .lh-power-hero-actions,.app .lh-power-tabs{width:100%}.app .lh-power-tabs button{flex:1}}

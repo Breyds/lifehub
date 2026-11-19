@@ -1,8 +1,9 @@
 export type Category='personal'|'rankdaily'|'twitch'|'cs2'|'sport'|'study';
 export type Recurrence='none'|'daily'|'weekdays'|'weekly';
-export type Priority='low'|'normal'|'high'|'critical';
-export type Task={id:string;durationMin?:number;title:string;dueDate:string;time:string;allDay?:boolean;category:Category;recurrence:Recurrence;priority?:Priority;progressType?:'check'|'counter';target?:number;unit?:string;progress?:Record<string,number>;note:string;completions:string[];createdAt:string};
-export type TaskInput=Pick<Task,'title'|'dueDate'|'time'|'category'|'recurrence'|'note'> & {durationMin?:number;allDay?:boolean;priority?:Priority;progressType?:'check'|'counter';target?:number;unit?:string};
+export type Priority='low'|'normal'|'high'|'critical'|'urgent';
+export type Task={id:string;durationMin?:number;title:string;dueDate:string;time:string;allDay?:boolean;category:Category;recurrence:Recurrence;priority?:Priority;progressType?:'check'|'counter'|'minutes';target?:number;unit?:string;progress?:Record<string,number>;note:string;completions:string[];createdAt:string};
+export type TaskInput=Pick<Task,'title'|'dueDate'|'time'|'category'|'recurrence'|'note'> & {durationMin?:number;allDay?:boolean;priority?:Priority;progressType?:'check'|'counter'|'minutes';target?:number;unit?:string};
+export type PersonalImportRecord={id:string;title:string;kind:string;recordType:'workspace'|'draft';status:'ready'|'review'|'duplicate';reason:string;recurrence?:string;time?:string;exists:boolean};
 export type PlanChange={action:'create'|'reschedule';task_id:string;title:string;category:Category;date:string;time:string;note:string;recurrence:Recurrence;valid?:boolean};
 export type Plan={summary:string;changes:PlanChange[];spent:number};
 export type UpdateState={status:string;message:string;version:string};
@@ -75,6 +76,8 @@ declare global {
     setAutostart:(enabled:boolean)=>Promise<boolean>;
     setEvening:(enabled:boolean)=>Promise<boolean>;
     exportData:()=>Promise<boolean>;
+    previewPersonalImport:()=>Promise<{count:number;records:PersonalImportRecord[]}|null>;
+    applyPersonalImport:(selection:{id:string;date?:string}[])=>Promise<{added:number;skipped:number;workspace:number;tasks:number}>;
     importChats:()=>Promise<ChatImport|null>;
     proposeChats:(ids:string[],today:string)=>Promise<Plan>;
     listVideos:()=>Promise<VideoInbox>;

@@ -14,3 +14,8 @@ conversations.json
 *.mov
 *.webm
 *.m4v
+
+# Personal ChatGPT history and proposed profile exports
+LifeHub-Personal-Import*.json
+LifeHub-*-Import*.json
+LifeHub-personal*.json

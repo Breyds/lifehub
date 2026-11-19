@@ -2,6 +2,7 @@
 const {app,BrowserWindow,ipcMain,Notification,safeStorage,dialog,shell,Menu,nativeImage,session,desktopCapturer}=require('electron');
 const {autoUpdater}=require('electron-updater');
 const {extractCandidates}=require('./chat-import.cjs');
+const {candidates:personalCandidates,publicCandidates,applyCandidates}=require('./personal-import.cjs');
 const {scanInbox,copyToInbox}=require('./video-inbox.cjs');
 const {blankWorkspace,safeWorkspace,addItem,updateItem,deleteItem,toggleProjectStep,safePreferences,urlField,fridayForDate}=require('./workspace.cjs');
 const {fetchNews,preferredScore}=require('./news.cjs');
@@ -24,7 +25,7 @@ const {cleanTask,occurs,complete,taskDone,progressFor,updateProgress,occurrenceK
 const API_MODEL='gpt-5-mini';
 const PRICE_IN=0.25,PRICE_OUT=2.00; // USD per million tokens, recheck if tariff changes
 const LIMIT_USD=5;
-let windowRef=null,db,aiBusy=false,notifyTimer=null,updateTimer=null,newsTimer=null,telegramTimer=null,telegramPolling=false,captureArmedUntil=0,chatCandidates=[],newsBusy=false,musicBusy=false;
+let windowRef=null,db,aiBusy=false,notifyTimer=null,updateTimer=null,newsTimer=null,telegramTimer=null,telegramPolling=false,captureArmedUntil=0,chatCandidates=[],personalImportCandidates=[],newsBusy=false,musicBusy=false;
 let updateState={status:'not-configured',version:app.getVersion(),message:'Публікацію оновлень ще не налаштовано.'};
 function initial(){return {version:2,tasks:[],apiKeyEncrypted:'',usage:{},autostart:false,evening:true,notified:[],eveningShown:[],videoDrafts:{},workspace:blankWorkspace(),preferences:safePreferences({}),news:{items:[],fetchedAt:'',errors:0,totalSources:0},music:{markets:{},errors:[],fetchedAt:'',source:''},newsFeedback:{},newsDismissed:{},newsSaved:[],newsIllustrations:{},newsImageCount:{},musicReminderShown:[],audDTokenEncrypted:'',telegram:{tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0},powerAddress:{settlement:'',street:'',house:''},powerGroup:'',blackoutSchedule:'',powerLive:{status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Натисни «Отримати графік ДТЕК».'},youtubeApiKeyEncrypted:'',youtubeTrends:{videos:[],fetchedAt:'',topics:[]}};}
 const storePath=()=>path.join(app.getPath('userData'),'lifehub.json');
@@ -151,7 +152,7 @@ ipcMain.handle('tasks:toggle',(_event,id,date)=>{
  if(!validDate(date))throw new Error('Некоректна дата');const t=idFind(id);if(!t)throw new Error('Завдання не знайдено');
  if(!occurs(t,date)&&t.recurrence!=='none')throw new Error('На цю дату завдання не заплановане');
  const key=occurrenceKey(t,date);
- if(t.progressType==='counter'){updateProgress(t,date,taskDone(t,date)?-progressFor(t,date):Number(t.target||1)-progressFor(t,date));}
+ if(t.progressType==='counter'||t.progressType==='minutes'){updateProgress(t,date,taskDone(t,date)?-progressFor(t,date):Number(t.target||1)-progressFor(t,date));}
  else {const i=t.completions.indexOf(key);if(i>=0)t.completions.splice(i,1);else t.completions.push(key);}
  save();return true;
 });
@@ -238,6 +239,22 @@ ipcMain.handle('youtube:key-remove',()=>{db.youtubeApiKeyEncrypted='';save();ret
 ipcMain.handle('youtube:trends',async(_event,force=false)=>{if(!db.youtubeApiKeyEncrypted)throw new Error('Додай YouTube Data API key у налаштуваннях');const age=Date.now()-Date.parse(db.youtubeTrends?.fetchedAt||'');if(Number.isFinite(age)&&age<(force?20*60*1000:24*60*60*1000))return db.youtubeTrends;const token=safeStorage.decryptString(Buffer.from(db.youtubeApiKeyEncrypted,'base64'));db.youtubeTrends=await fetchYoutubeTrends(token);save();return db.youtubeTrends;});
 ipcMain.handle('settings:autostart',(_e,val)=>{db.autostart=!!val;if(app.isPackaged)app.setLoginItemSettings({openAtLogin:db.autostart});save();return true;});
 ipcMain.handle('settings:evening',(_e,val)=>{db.evening=!!val;save();return true;});
+// Personal-profile JSON is previewed locally; changes require per-record approval.
+ipcMain.handle('personal:preview',async()=>{
+ const result=await dialog.showOpenDialog(windowRef,{title:'LifeHub — імпорт особистого профілю',properties:['openFile'],filters:[{name:'LifeHub JSON',extensions:['json']}]});
+ if(result.canceled||!result.filePaths[0])return null;
+ const filename=result.filePaths[0];if(fs.statSync(filename).size>2*1024*1024)throw new Error('JSON більший за 2 МБ');
+ let raw;try{raw=JSON.parse(fs.readFileSync(filename,'utf8'));}catch{throw new Error('Файл не є коректним JSON');}
+ personalImportCandidates=personalCandidates(raw);
+ return {records:publicCandidates(personalImportCandidates,db),count:personalImportCandidates.length};
+});
+ipcMain.handle('personal:apply',(_event,selection)=>{
+ if(!personalImportCandidates.length)throw new Error('Спочатку вибери файл для попереднього перегляду');
+ const result=applyCandidates(db,personalImportCandidates,selection,addItem);
+ if(result.added)save();
+ personalImportCandidates=[];
+ return result;
+});
 ipcMain.handle('data:export',async()=>{
  const {canceled,filePath}=await dialog.showSaveDialog(windowRef,{title:'Експорт LifeHub',defaultPath:`LifeHub-backup-${todayLocal()}.json`,filters:[{name:'JSON',extensions:['json']}]});
  if(canceled||!filePath)return false;

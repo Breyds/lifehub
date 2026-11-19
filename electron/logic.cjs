@@ -2,7 +2,7 @@
 const crypto = require('node:crypto');
 const CATEGORIES = ['personal','rankdaily','twitch','cs2','sport','study'];
 const RECURRENCES = ['none','daily','weekdays','weekly'];
-const PRIORITIES=['low','normal','high','critical'];
+const PRIORITIES=['low','normal','high','critical','urgent'];
 function validDate(x) {
   if (typeof x !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(x)) return false;
   const d = new Date(x + 'T12:00:00Z');
@@ -45,10 +45,10 @@ function cleanTask(payload, id=crypto.randomUUID()) {
   const category=CATEGORIES.includes(payload.category)?payload.category:'personal';
   const recurrence=RECURRENCES.includes(payload.recurrence)?payload.recurrence:'none';
   const priority=PRIORITIES.includes(payload.priority)?payload.priority:'normal';
-  const progressType=payload.progressType==='counter'?'counter':'check';
+  const progressType=payload.progressType==='counter'||payload.progressType==='minutes'?payload.progressType:'check';
   const rawTarget=Number(payload.target??1);
-  if(progressType==='counter' && (!Number.isFinite(rawTarget)||rawTarget<=0||rawTarget>1000000))throw new Error('Вкажи ціль більше нуля (до 1 000 000)');
-  const target=progressType==='counter'?rawTarget:1;
+  if(progressType!=='check' && (!Number.isFinite(rawTarget)||rawTarget<=0||rawTarget>1000000))throw new Error('Вкажи ціль більше нуля (до 1 000 000)');
+  const target=progressType!=='check'?rawTarget:1;
   const durationMin=Number(payload.durationMin||0);
   if(!Number.isInteger(durationMin)||durationMin<0||durationMin>1440)throw new Error('Тривалість має бути від 0 до 1440 хвилин');
   const allDay=typeof payload.allDay==='boolean'?payload.allDay:!time;
@@ -65,10 +65,10 @@ function validateProposal(p,tasks) {
   return {action:'reschedule',taskId:target.id,date:p.date,time:p.time,title:target.title};
 }
 function progressFor(t,date){const key=occurrenceKey(t,date);return Number(t.progress?.[key]||0);}
-function taskDone(t,date){return complete(t,date)||(t.progressType==='counter'&&progressFor(t,date)>=Number(t.target||1));}
+function taskDone(t,date){return complete(t,date)||(['counter','minutes'].includes(t.progressType)&&progressFor(t,date)>=Number(t.target||1));}
 function updateProgress(t,date,delta){
   if(!validDate(date)||!Number.isFinite(Number(delta)))throw new Error('Некоректний прогрес');
-  if(t.progressType!=='counter')throw new Error('Це завдання з галочкою, а не лічильником');
+  if(!['counter','minutes'].includes(t.progressType))throw new Error('Це завдання з галочкою, а не лічильником');
   const key=occurrenceKey(t,date),cap=Number(t.target||1);
   if(!t.progress||typeof t.progress!=='object')t.progress={};
   // Preserve fractional portions (e.g. 0.8 l) and actual over-achievement.

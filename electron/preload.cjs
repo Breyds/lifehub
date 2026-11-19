@@ -49,6 +49,8 @@ contextBridge.exposeInMainWorld('lifehub', {
   setAutostart:(enabled)=>ipcRenderer.invoke('settings:autostart',enabled),
   setEvening:(enabled)=>ipcRenderer.invoke('settings:evening',enabled),
   exportData:()=>ipcRenderer.invoke('data:export'),
+  previewPersonalImport:()=>ipcRenderer.invoke('personal:preview'),
+  applyPersonalImport:(selection)=>ipcRenderer.invoke('personal:apply',selection),
   importChats:()=>ipcRenderer.invoke('chats:import'),
   proposeChats:(ids,today)=>ipcRenderer.invoke('chats:propose',ids,today),
   listVideos:()=>ipcRenderer.invoke('videos:list'),

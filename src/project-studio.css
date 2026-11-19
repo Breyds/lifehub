@@ -136,6 +136,7 @@
 .app .lh-project-form form{padding:25px 30px 30px;display:flex;flex-direction:column;gap:15px}
 .app .lh-proj-form-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .app .lh-proj-date-input{display:flex;flex-direction:column;gap:7px}
+.app .lh-proj-empty-date{display:flex;align-items:center;gap:8px;border:1px solid #586c5c;border-radius:9px;background:#27362c;color:#d5e3d8;font-size:12px;padding:12px 15px;cursor:pointer}
 .app .lh-proj-clear-date{align-self:flex-start;border:0;background:transparent;color:#b5a4ff;font-size:11px;padding:0;cursor:pointer}
 .app .lh-proj-form-section{border:1px solid #425848;border-radius:12px;padding:17px;background:#222c25;display:flex;flex-direction:column;gap:8px}
 .app .lh-proj-form-subhead{display:flex;justify-content:space-between;align-items:center;gap:10px}

@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   refreshMusic:()=>ipcRenderer.invoke('music:refresh'),
   checkTikTok:(url)=>ipcRenderer.invoke('music:tiktok-check',url),
   aiInsight:(kind,query)=>ipcRenderer.invoke('ai:insight',kind,query),
+  projectReview:(id,evidence,mode)=>ipcRenderer.invoke('projects:ai-review',id,evidence,mode),
   addTask:(task)=>ipcRenderer.invoke('tasks:add',task),
   advanceTask:(id,date,delta)=>ipcRenderer.invoke('tasks:progress',id,date,delta),
   toggleProjectStep:(id,index)=>ipcRenderer.invoke('workspace:project:toggle-step',id,index),

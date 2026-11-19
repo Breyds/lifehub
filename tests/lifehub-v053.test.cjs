@@ -51,7 +51,9 @@ test('News image prompt avoids fake documentary photographic news depiction',()=
 });
 test('Power page is separate and calendar/all tasks have filtering',()=>{
  const main=fs.readFileSync(path.join(__dirname,'../src/main.tsx'),'utf8');
+ const allTasks=fs.readFileSync(path.join(__dirname,'../src/AllTasksPage.tsx'),'utf8');
  const plan=fs.readFileSync(path.join(__dirname,'../src/WorkspacePages.tsx'),'utf8');
- assert.match(main,/page==='power'/);assert.match(main,/hub-all-filters/);
+ assert.match(main,/page==='power'/);assert.match(main,/page==='allTasks'&&<AllTasksPage/);
+ assert.match(allTasks,/lh-all-filters/);assert.match(allTasks,/kind==='high'/);
  assert.match(plan,/hub-accordion-title/);assert.match(plan,/priority==='high'/);
 });

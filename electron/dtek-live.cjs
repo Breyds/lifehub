@@ -20,7 +20,7 @@ function mapDtekResponse(raw,source='dtek-krem.com.ua'){
  const data=raw&&typeof raw==='object'?raw:{};
  const intervals=validateIntervals(data.intervals),days=Array.isArray(data.days)?data.days:[];
  const verified=intervals.length>0||days.some(d=>d.slots?.some(s=>['on','off','possible'].includes(s.status)));
- return {group:data.group||'',status:verified?'verified':'unavailable',source,checkedAt:timestamp(),intervals,days:days.slice(0,2),message:String(data.message||(verified?'Години отримані від ДТЕК.':'ДТЕК не повернув підтверджених годин.')).slice(0,300)};
+ return {group:data.group||'',groupSource:data.group?'official':'',status:verified?'verified':'unavailable',source,checkedAt:timestamp(),intervals,days:days.slice(0,7),message:String(data.message||(verified?'Години отримані від ДТЕК.':'ДТЕК не повернув підтверджених годин.')).slice(0,300)};
 }
 function localDate(unix){const ms=Number(unix)*1000;if(!Number.isFinite(ms)||ms<1500000000000||ms>2200000000000)return '';
  try{return kyivDate(new Date(ms));}catch{return '';}}
@@ -45,7 +45,8 @@ function extractFactResponse(data,house,dates){
  const rawGroups=homes[key]?.sub_type_reason;
  const groups=[...new Set(Array.isArray(rawGroups)?rawGroups:typeof rawGroups==='string'?[rawGroups]:[])].filter(x=>/^GPV\d+\.\d+$/.test(x));
  if(groups.length!==1)return {message:groups.length?'Будинок має кілька груп відключень — потрібне уточнення.':'Чергу для будинку не визначено.',intervals:[],days:[]};
- if(data.showTableFact===false)return {message:'ДТЕК поки не опублікував підтверджений добовий графік.',intervals:[],days:[]};
+ // The address->queue lookup is independently useful, even without a published schedule.
+ if(data.showTableFact===false)return {group:groups[0],message:'ДТЕК визначив чергу '+groups[0].slice(3)+', але добовий графік ще не опубліковано.',intervals:[],days:[]};
  const result=[],off=[],fact=data.fact?.data||{};
  const expected=dates||null;
  for(const [stamp,groupsOnDay] of Object.entries(fact)){

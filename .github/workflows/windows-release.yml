@@ -84,3 +84,26 @@ jobs:
             release/*.exe
             release/latest.yml
             release/*.blockmap
+
+      - name: Publish draft release after verifying assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = node -p "require('./package.json').version"
+          $tag = "v$version"
+          $releases = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=30" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to fetch GitHub releases' }
+          $draft = $releases | Where-Object { $_.tag_name -eq $tag -and $_.draft } | Select-Object -First 1
+          if ($null -eq $draft) {
+            Write-Host "No draft release to publish for $tag"
+            exit 0
+          }
+          $assetNames = @($draft.assets | ForEach-Object { $_.name })
+          if ($assetNames -notcontains "LifeHub-Setup-$version.exe" -or $assetNames -notcontains 'latest.yml') {
+            throw "Draft $tag is missing a Windows installer or latest.yml"
+          }
+          gh api --method PATCH "repos/$env:GITHUB_REPOSITORY/releases/$($draft.id)" -F "draft=false" | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "Failed to publish release $tag" }
+          Write-Host "Published $tag"

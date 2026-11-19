@@ -11,14 +11,26 @@ function parseMirror(raw,group,now=new Date()){
  if(!raw||raw.regionId!=='kyiv-region'||!raw.fact||typeof raw.fact.data!=='object')throw new Error('Некоректні дані дзеркала');
  const updated=Date.parse(raw.lastUpdated||'');if(!Number.isFinite(updated)||updated>now.getTime()+3600000)throw new Error('Невірна дата оновлення дзеркала');
  const age=(now.getTime()-updated)/3600000;const today=isoKyiv(now),tomorrow=nextDay(today);
- const days=[],intervals=[];
+ const days=[],weeklyDays=[],intervals=[];
  for(const [stamp,groups] of Object.entries(raw.fact.data)){
   const date=localDate(stamp);if(date!==today&&date!==tomorrow)continue;
   const slots=groups?.[key];if(!slots||!Object.keys(slots).some(x=>/^(?:[1-9]|1\d|2[0-4])$/.test(x)))continue;
   days.push(slotsToDay(slots,date));intervals.push(...slotsToIntervals(slots,date));
  }
  days.sort((a,b)=>a.date.localeCompare(b.date));
- const stale=age>8;return {status:days.length?(stale?'stale':'mirror'):'unavailable',checkedAt:now.toISOString(),source:'Baskerville42/outage-data-ua (неофіційне дзеркало)',sourceUpdatedAt:new Date(updated).toISOString(),group:key,days,intervals:stale?[]:intervals,message:days.length?(stale?`Дзеркало застаріло (${Math.round(age)} год). Не використовуй як актуальний графік.`:`Черга ${key.slice(3)} — дані з публічного дзеркала, а не перевірка адреси. Зістав із ДТЕК.`):`Для черги ${key.slice(3)} сьогодні/завтра графік не опубліковано.`};
+ // The public 'preset' schedule is a weekly FORECAST, not evidence that a house lost power.
+ // Keep it separate from published daily fact data and never feed it into AI as confirmed hours.
+ const forecast=raw.preset?.data?.[key]||{};
+ for(let i=0;i<7;i++){
+  let date=today;for(let j=0;j<i;j++)date=nextDay(date);
+  const dow=new Date(date+'T12:00:00Z').getUTCDay()||7;
+  const slots=forecast[String(dow)];
+  if(!slots||typeof slots!=='object'||!Object.keys(slots).some(x=>/^(?:[1-9]|1\d|2[0-4])$/.test(x)))continue;
+  weeklyDays.push(slotsToDay(slots,date));
+ }
+ const stale=age>8,hasAny=days.length||weeklyDays.length;
+ const message=!hasAny?`Для черги ${key.slice(3)} графік не опубліковано.`:stale?`Дані дзеркала застаріли (${Math.round(age)} год). Графік показано лише для довідки.`:days.length?`Черга ${key.slice(3)}: публічні добові дані з дзеркала; прогноз на тиждень — окремо.`:`Черга ${key.slice(3)}: є лише прогноз на тиждень; підтвердженого добового розкладу немає.`;
+ return {status:hasAny?(stale?'stale':'mirror'):'unavailable',checkedAt:now.toISOString(),source:'Baskerville42/outage-data-ua (неофіційне дзеркало)',sourceUpdatedAt:new Date(updated).toISOString(),group:key,days,weeklyDays,intervals:stale?[]:intervals,message};
 }
 async function fetchMirror(group,fetcher=fetch,now=new Date()){
  if(!normalizeGroup(group))throw new Error('Укажи чергу ДТЕК 1.1–6.2');

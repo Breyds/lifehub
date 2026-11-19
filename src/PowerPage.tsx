@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {CalendarDays,CheckCircle2,ChevronDown,Clock3,ExternalLink,Info,MapPin,Pencil,RefreshCw,Save,ShieldAlert,TriangleAlert,Zap} from 'lucide-react';
 import type {PowerLive,Snapshot} from './types';
 import {hourText,hourView,kyivToday,nextDay,statusName,summaryFor,timeRange} from './power-grid';
-import type {PowerDay,PowerStatus} from './power-grid';
+import type {PowerDay} from './power-grid';
 import './power-studio.css';
 
 type Address={settlement:string;street:string;house:string};
@@ -90,7 +90,7 @@ export function PowerPage({snapshot,refresh,report}:Props){
  }
  async function saveGroup(){setQueueSaving(true);try{await window.lifehub.savePowerGroup(manualQueue);await refresh();report('Резервну чергу збережено. Перевір її відповідність адресі на ДТЕК.');}catch(e){report(String(e instanceof Error?e.message:e));}finally{setQueueSaving(false);}}
  function openOfficial(){void window.lifehub.openLink(DTEK_URL).catch(e=>report(String(e)));}
- return <div className="lh-power-studio">
+ return <div className="hub-workspace lh-power-studio">
   <header className="lh-power-hero"><div><span className="lh-power-eyebrow"><Zap size={15}/> LIFEHUB / POWER MONITOR</span><h1>Світло під контролем.</h1><p>Графік відключень за адресою. Швидкий перегляд по годинах без зайвих переходів.</p></div>
    <div className="lh-power-hero-actions"><button className="lh-power-refresh" type="button" disabled={!saved.house||fetching||saving} onClick={()=>void fetchSchedule()}><RefreshCw size={17} className={fetching?'spin':''}/>{fetching?'Оновлення…':'Оновити графік'}</button><button className="lh-power-official" type="button" onClick={openOfficial}><ExternalLink size={15}/> ДТЕК</button></div>
   </header>

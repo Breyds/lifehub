@@ -1,0 +1,161 @@
+
+/* LifeHub 0.7.0 – Project Studio. Scoped to avoid affecting existing modules. */
+.app .lh-project-studio{--pj-accent:var(--hub-accent,#9f86f5);color:#edf2ee;max-width:1440px;display:flex;flex-direction:column;gap:20px;animation:hub-entry .2s ease}
+.app .lh-proj-kicker{display:inline-block;font-size:11px;font-weight:850;letter-spacing:1.6px;color:#b0a0fc}
+.app .lh-proj-page-head{display:flex;justify-content:space-between;align-items:end;gap:24px;padding:12px 0 5px}
+.app .lh-proj-page-head h1{font-size:35px;letter-spacing:-1.2px;margin:8px 0 5px}
+.app .lh-proj-page-head p{margin:0;color:#9eafa5;font-size:13px}
+.app .lh-proj-main-button{border:0;border-radius:11px;background:#ae9aff;color:#141323;font-weight:850;font-size:13px;padding:13px 18px;display:inline-flex;gap:9px;align-items:center;justify-content:center;min-height:42px;cursor:pointer;white-space:nowrap}
+.app .lh-proj-main-button:hover{background:#c7baff;transform:translateY(-1px)}
+.app .lh-proj-main-button:disabled{opacity:.5;cursor:wait;transform:none}
+.app .lh-proj-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.app .lh-proj-overview>div{display:grid;grid-template-columns:32px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;background:linear-gradient(128deg,#252d27,#202324);border:1px solid #38463c;border-radius:14px;padding:17px 20px}
+.app .lh-proj-overview svg{grid-row:span 2;color:#ac9bff;background:#343448;padding:7px;border-radius:9px;width:32px;height:32px}
+.app .lh-proj-overview strong{font-size:26px;line-height:1.1}
+.app .lh-proj-overview span{font-size:11px;color:#aab9ae}
+.app .lh-proj-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+.app .lh-proj-card{background:linear-gradient(155deg,#222925 0%,#1c1f20 85%);border:1px solid #3a473f;border-radius:17px;padding:23px 25px;display:flex;flex-direction:column;gap:16px;min-height:265px;cursor:pointer;transition:background .15s,border-color .15s,transform .15s,box-shadow .15s}
+.app .lh-proj-card:hover,.app .lh-proj-card:focus-visible{border-color:#b1a1f5;box-shadow:0 10px 32px #0005;transform:translateY(-2px);outline:none}
+.app .lh-proj-card-top{display:flex;gap:11px;align-items:center}
+.app .lh-proj-card-top>svg:last-child{margin-left:auto;color:#aeb4ac}
+.app .lh-proj-emblem{display:grid;place-items:center;width:46px;height:46px;border-radius:13px;background:#45416c;color:#c9baff}
+.app .lh-proj-status{font-size:11px;font-weight:800;border-radius:7px;padding:7px 11px;background:#2a4935;color:#b7e5c6;display:inline-flex;align-items:center}
+.app .lh-status-done{background:#294c52;color:#b9eff4}
+.app .lh-status-paused{background:#544832;color:#f8d8a0}
+.app .lh-proj-card h2{font-size:23px;letter-spacing:-.5px;line-height:1.3;margin:0;overflow-wrap:anywhere}
+.app .lh-proj-card>p{min-height:40px;line-height:1.55;color:#aebbaf;font-size:12px;margin:0;overflow-wrap:anywhere}
+.app .lh-proj-card-progress{margin-top:auto}
+.app .lh-proj-card-progress>div:first-child{display:flex;justify-content:space-between;align-items:center;color:#a9b8af;font-size:11px;margin:0 0 9px}
+.app .lh-proj-card-progress strong{font-size:13px;color:#d7caff}
+.app .lh-proj-progress-track{border-radius:99px;background:#45474b;height:9px;overflow:hidden}
+.app .lh-proj-progress-track>span{display:block;height:100%;background:linear-gradient(90deg,#83caa1,#a99aff);border-radius:inherit;transition:width .25s}
+.app .lh-proj-card-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;border-top:1px solid #3a453e;padding-top:13px}
+.app .lh-proj-card-footer span{display:flex;align-items:center;gap:6px;font-size:11px;color:#aabdaf}
+.app .lh-proj-card-footer span.late{color:#f39a94}
+.app .lh-proj-empty{border:1px dashed #49584c;border-radius:17px;background:#1d2520;padding:65px 30px;text-align:center;display:flex;align-items:center;flex-direction:column;gap:13px}
+.app .lh-proj-empty svg{color:#bbaaff}
+.app .lh-proj-empty h2{margin:0;font-size:23px}
+.app .lh-proj-empty p{color:#b1beb4;font-size:12px;max-width:500px}
+.app .lh-proj-empty button{border:0;color:#15121c;background:#ae9aff;padding:12px 19px;font-weight:800;border-radius:9px;display:flex;align-items:center;gap:8px}
+.app .lh-proj-detail-nav{display:flex;align-items:center;gap:11px;color:#9aaba0;font-size:12px}
+.app .lh-proj-detail-nav button{border:0;background:transparent;color:#b8dcc3;display:flex;align-items:center;gap:7px;font-weight:750;cursor:pointer;padding:6px}
+.app .lh-proj-detail-nav button:hover{color:white}
+.app .lh-proj-detail-hero{position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 240px;gap:15px;background:radial-gradient(circle at 95% 12%,#9a83f73b,transparent 42%),linear-gradient(130deg,#283a2d,#1b241f 70%,#1b1d21);border:1px solid #4c644f;border-radius:18px;padding:30px}
+.app .lh-proj-title-row{display:flex;align-items:center;flex-wrap:wrap;gap:15px;margin:10px 0}
+.app .lh-proj-title-row h1{font-size:32px;line-height:1.2;letter-spacing:-1px;margin:0;overflow-wrap:anywhere;max-width:670px}
+.app .lh-proj-detail-hero p{color:#bfccbf;line-height:1.6;font-size:13px;max-width:660px}
+.app .lh-proj-deadline{display:flex;gap:9px;align-items:center;color:#c8d8c9;font-size:12px}
+.app .lh-proj-deadline>span{color:#b2a3fb;font-weight:700}
+.app .lh-proj-detail-actions{position:absolute;right:25px;top:20px;display:flex;gap:8px}
+.app .lh-proj-detail-actions button{display:inline-flex;gap:6px;align-items:center;border:1px solid #647266;background:#2b392f;color:#deebe0;font-size:11px;font-weight:700;border-radius:9px;padding:10px;cursor:pointer}
+.app .lh-proj-detail-actions button:hover{background:#39523e}
+.app .lh-proj-hero-progress{grid-column:2;align-self:end;background:#ffffff0b;border:1px solid #ffffff1a;border-radius:13px;padding:17px}
+.app .lh-proj-hero-progress>div:first-child{display:flex;align-items:baseline;justify-content:space-between}
+.app .lh-proj-hero-progress strong{font-size:32px;color:#d3c6ff}
+.app .lh-proj-hero-progress span{font-size:10px;color:#b3c7b9}
+.app .lh-proj-hero-progress small{display:block;font-size:11px;color:#bfcec1;margin-top:10px}
+.app .lh-proj-detail-tabs{display:flex;gap:8px;flex-wrap:wrap;padding:5px 0}
+.app .lh-proj-detail-tabs button{border:1px solid #3a483f;background:#222a25;color:#a9b9ae;display:flex;gap:8px;align-items:center;border-radius:10px;font-weight:740;font-size:12px;padding:13px 15px;cursor:pointer}
+.app .lh-proj-detail-tabs button:hover{background:#2b3c30;color:#f4f5f1}
+.app .lh-proj-detail-tabs button.active{border-color:#ad9afc;background:#3a3454;color:#e3dcff}
+.app .lh-proj-tab-content{border:1px solid #38473e;background:#1c211e;border-radius:17px;padding:26px 29px;min-height:290px}
+.app .lh-proj-panel-head{display:flex;justify-content:space-between;align-items:start;gap:14px;margin:0 0 22px}
+.app .lh-proj-panel-head h2{margin:0 0 8px;font-size:21px;letter-spacing:-.5px}
+.app .lh-proj-panel-head p{margin:0;color:#a6b8ab;font-size:12px;line-height:1.6}
+.app .lh-proj-panel-head>svg{color:#b19dfc}
+.app .lh-proj-mini-badge{font-size:11px;border-radius:99px;background:#3a3c53;color:#c6b7ff;padding:8px 12px;white-space:nowrap}
+.app .lh-proj-stage-list{display:flex;flex-direction:column;gap:10px;margin-bottom:19px}
+.app .lh-proj-stage{border:1px solid #3f4c41;background:linear-gradient(115deg,#273028,#232827);border-radius:12px;padding:18px;display:flex;gap:15px;align-items:start}
+.app .lh-proj-stage-check{display:grid;place-items:center;width:31px;height:31px;flex-shrink:0;border:2px solid #7a907e;background:#1a241d;color:#506355;border-radius:10px;cursor:pointer}
+.app .lh-proj-stage-check.is-done{background:#76b890;border-color:#a5e8bc;color:#16301f}
+.app .lh-proj-stage-main{flex:1;min-width:0}
+.app .lh-proj-stage-heading{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:7px}
+.app .lh-proj-stage-heading strong{font-size:13px;overflow-wrap:anywhere}
+.app .lh-proj-stage-heading span{color:#c6b8ff;font-size:14px;font-weight:850}
+.app .lh-proj-stage-main p{font-size:11px;color:#abbbad;line-height:1.55}
+.app .lh-proj-stage .lh-proj-progress-track{height:6px;margin-top:10px}
+.app .lh-proj-stage-controls{display:flex;align-items:center;gap:9px;margin-top:12px;justify-content:flex-end}
+.app .lh-proj-stage-controls button,.app .lh-proj-stage-controls select{border-radius:7px;border:1px solid #4b5b4d;background:#29342d;color:#d5e2d8;font-size:11px;padding:7px 9px;cursor:pointer}
+.app .lh-proj-stage-controls label{font-size:11px;color:#aab9ab}
+.app .lh-proj-stage-controls .lh-proj-delete-small{color:#f4a4a1}
+.app .lh-proj-add-row,.app .lh-proj-new-stage{display:flex;gap:8px;align-items:center;margin-top:15px}
+.app .lh-proj-add-row input,.app .lh-proj-new-stage input{flex:1;min-width:0}
+.app .lh-proj-add-row button,.app .lh-proj-new-stage button,.app .lh-proj-link-form button,.app .lh-proj-log-form button{background:#414266;border:1px solid #756d9c;border-radius:9px;color:#e2daff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:7px;padding:12px 14px;cursor:pointer}
+.app .lh-proj-add-row button:hover,.app .lh-proj-new-stage button:hover{background:#575182}
+.app .lh-proj-add-row input,.app .lh-proj-new-stage input,.app .lh-proj-link-form input,.app .lh-proj-log-form textarea,.app .lh-proj-ai-prompt,.app .lh-proj-inline-editor input,.app .lh-proj-inline-editor textarea{background:#232b25;border:1px solid #526454;border-radius:9px;color:#f0f4ef;font-size:12px;padding:13px;width:100%;outline:none}
+.app .lh-proj-add-row input:focus,.app .lh-proj-new-stage input:focus,.app .lh-proj-link-form input:focus,.app .lh-proj-ai-prompt:focus{border-color:#b4a0ff}
+.app .lh-proj-empty-state{font-size:12px;color:#aab8ac}
+.app .lh-proj-inline-editor{background:#28332a;padding:16px;border:1px solid #536957;border-radius:11px;display:grid;gap:8px;margin-bottom:14px}
+.app .lh-proj-inline-editor>div{display:flex;justify-content:flex-end;gap:10px}
+.app .lh-proj-inline-editor button{background:#414b42;color:#e8efe8;border:0;padding:10px 14px;border-radius:7px}
+.app .lh-proj-inline-editor button:last-child{background:#a997fa;color:#18141f;font-weight:800}
+.app .lh-proj-link-form{display:grid;grid-template-columns:1fr 1.2fr;gap:9px}
+.app .lh-proj-link-form input:nth-child(3){grid-column:1/3}
+.app .lh-proj-link-form button{grid-column:1/3}
+.app .lh-proj-list{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.app .lh-proj-list-item{display:flex;align-items:center;gap:12px;background:#273029;border:1px solid #435245;border-radius:10px;padding:13px 16px}
+.app .lh-proj-list-item>svg{flex-shrink:0;color:#b6a1ff}
+.app .lh-proj-list-item>div{min-width:0;flex:1}
+.app .lh-proj-list-item strong{font-size:13px;overflow-wrap:anywhere}
+.app .lh-proj-list-item p{flex:1;font-size:12px;line-height:1.5;overflow-wrap:anywhere;margin:0;color:#bbc6bc}
+.app .lh-proj-list-item div p{color:#9faea0;margin-top:4px}
+.app .lh-proj-list-item button{border:1px solid #526254;background:#344036;color:#d6e4d8;border-radius:8px;padding:7px;cursor:pointer;display:grid;place-items:center}
+.app .lh-proj-list-item.resolved{opacity:.55}
+.app .lh-proj-list-item.resolved p{text-decoration:line-through}
+.app .lh-proj-ai-mode{display:flex;background:#28312b;padding:4px;border:1px solid #526151;border-radius:9px;width:max-content;margin-bottom:14px;max-width:100%}
+.app .lh-proj-ai-mode button{border:0;background:transparent;color:#b9c9bb;padding:10px 14px;font-size:12px;border-radius:7px;cursor:pointer}
+.app .lh-proj-ai-mode button.active{background:#57517f;color:#f2ebff}
+.app .lh-proj-ai-prompt{display:block;width:100%;margin-bottom:14px;resize:vertical}
+.app .lh-proj-ai-response{background:#252d27;border:1px solid #5a6659;border-radius:12px;padding:18px 20px;margin-top:23px}
+.app .lh-proj-ai-response h3{color:#cfbfff;font-size:16px;margin:0 0 12px}
+.app .lh-proj-ai-response h4{font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:#b2cbb7;margin:20px 0 10px}
+.app .lh-proj-ai-response p{font-size:12px;line-height:1.7;color:#d0d9d0}
+.app .lh-proj-ai-response small{color:#9cba9c;font-size:10px}
+.app .lh-proj-ai-suggestion{display:flex;gap:13px;justify-content:space-between;align-items:center;padding:12px;margin-top:7px;background:#333a32;border-radius:10px;border:1px solid #4b5a4a}
+.app .lh-proj-ai-suggestion strong,.app .lh-proj-ai-suggestion span{font-size:12px}
+.app .lh-proj-ai-suggestion p{margin:5px 0 0;color:#b8c7ba}
+.app .lh-proj-ai-suggestion button{border:0;background:#a99af5;color:#1a1725;border-radius:8px;padding:10px 13px;font-weight:800;font-size:11px;cursor:pointer;flex-shrink:0}
+.app .lh-proj-field{display:flex;flex-direction:column;gap:8px;color:#c4d2c4;font-size:12px;font-weight:700;margin-bottom:15px}
+.app .lh-proj-field input,.app .lh-proj-field textarea,.app .lh-proj-field select{width:100%;border-radius:10px;background:#242b26;color:#e8f2e9;border:1px solid #4b5c4e;padding:13px 14px;resize:vertical;outline:none;font-size:13px}
+.app .lh-proj-field input:focus,.app .lh-proj-field textarea:focus{border-color:#b0a0fc}
+.app .lh-proj-log-form{display:grid;gap:10px}
+.app .lh-proj-log-form button{justify-self:end}
+.app .lh-proj-log-list{display:grid;gap:11px;margin-top:22px}
+.app .lh-proj-log-list>div{position:relative;background:#272f29;border-left:3px solid #9f90dd;border-radius:9px;padding:16px 42px 16px 16px}
+.app .lh-proj-log-list span{display:flex;gap:7px;align-items:center;font-size:11px;color:#aca3d9}
+.app .lh-proj-log-list p{font-size:13px;line-height:1.6;color:#d9e7db;white-space:pre-wrap;overflow-wrap:anywhere}
+.app .lh-proj-log-list button{position:absolute;right:11px;top:11px;border:0;background:transparent;color:#b0b9ae;cursor:pointer}
+.app .lh-project-shade{background:#080e0bcf;backdrop-filter:blur(8px)}
+.app .lh-project-form{max-height:90vh;overflow-y:auto;width:min(750px,calc(100vw - 32px));background:#1d2320;border:1px solid #566a57;border-radius:20px;box-shadow:0 35px 95px #000a}
+.app .lh-project-form>header{display:flex;gap:16px;align-items:flex-start;padding:28px 30px 23px;background:linear-gradient(115deg,#2a4331,#242b28);border-bottom:1px solid #4d6352}
+.app .lh-project-form h2{font-size:23px;letter-spacing:-.5px;margin:6px 0}
+.app .lh-project-form p{font-size:12px;color:#acbdae;line-height:1.6;margin:0}
+.app .lh-project-form-icon{display:grid;place-items:center;width:46px;height:46px;background:#514d7b;color:#d3c4ff;border-radius:13px;flex-shrink:0}
+.app .lh-project-form>header>div:nth-child(2){flex:1}
+.app .lh-project-form>header>button{background:transparent;border:0;color:#c3d1c7;padding:5px;cursor:pointer}
+.app .lh-project-form form{padding:25px 30px 30px;display:flex;flex-direction:column;gap:15px}
+.app .lh-proj-form-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.app .lh-proj-date-input{display:flex;flex-direction:column;gap:7px}
+.app .lh-proj-clear-date{align-self:flex-start;border:0;background:transparent;color:#b5a4ff;font-size:11px;padding:0;cursor:pointer}
+.app .lh-proj-form-section{border:1px solid #425848;border-radius:12px;padding:17px;background:#222c25;display:flex;flex-direction:column;gap:8px}
+.app .lh-proj-form-subhead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.app .lh-proj-form-subhead strong{display:flex;gap:8px;align-items:center;font-size:13px}
+.app .lh-proj-form-subhead span{font-size:11px;color:#b4c6b8}
+.app .lh-proj-form-stage{display:flex;gap:8px;align-items:center}
+.app .lh-proj-form-stage>span{font-size:12px;color:#b9c3b8;width:19px}
+.app .lh-proj-form-stage input{flex:1;min-width:0;background:#29332c;border-radius:7px;border:1px solid #4b5d4d;color:#eaf4e9;padding:9px 10px}
+.app .lh-proj-form-stage button{border:0;background:#333e36;border-radius:7px;color:#dd9e9d;padding:9px;cursor:pointer}
+.app .lh-proj-error{font-size:12px!important;color:#ffb0ae!important}
+.app .lh-project-form footer{display:flex;justify-content:flex-end;gap:10px;padding-top:15px;border-top:1px solid #425048}
+.app .lh-project-form footer button,.app .lh-proj-delete-dialog button{border:1px solid #4b574d;background:#344039;color:#e6f0e8;border-radius:10px;padding:12px 17px;font-size:12px;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:8px}
+.app .lh-project-form footer button:last-child{background:#aa97ff;border-color:#aa97ff;color:#161222}
+.app .lh-project-form footer button:disabled{opacity:.5;cursor:wait}
+.app .lh-proj-delete-dialog{width:min(460px,calc(100vw - 40px));padding:28px 30px;background:#232725;border:1px solid #694848;border-radius:16px;box-shadow:0 25px 70px #000c}
+.app .lh-proj-delete-dialog>svg{color:#f2a0a0}
+.app .lh-proj-delete-dialog h2{margin:12px 0;font-size:20px}
+.app .lh-proj-delete-dialog p{font-size:13px;line-height:1.6;color:#c6ccc6}
+.app .lh-proj-delete-dialog>div{display:flex;gap:10px;justify-content:flex-end;margin-top:25px}
+.app .lh-proj-delete-dialog>div button:last-child{background:#ae5a5a;color:white}
+@media(max-width:1150px){.app .lh-proj-detail-hero{grid-template-columns:1fr}.app .lh-proj-hero-progress{grid-column:1;max-width:320px}.app .lh-proj-detail-actions{position:static;justify-content:flex-end}}
+@media(max-width:900px){.app .lh-proj-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.app .lh-proj-card-grid{grid-template-columns:1fr}.app .lh-proj-title-row h1{font-size:27px}}
+@media(max-width:660px){.app .lh-proj-page-head{flex-direction:column;align-items:stretch}.app .lh-proj-tab-content{padding:17px}.app .lh-proj-overview>div{padding:12px}.app .lh-proj-form-pair{grid-template-columns:1fr}.app .lh-project-form form{padding:20px}.app .lh-project-form>header{padding:20px}.app .lh-proj-link-form{grid-template-columns:1fr}.app .lh-proj-link-form input:nth-child(3),.app .lh-proj-link-form button{grid-column:1}.app .lh-proj-stage-controls{flex-wrap:wrap}}

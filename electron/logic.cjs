@@ -8,6 +8,7 @@ function validDate(x) {
   const d = new Date(x + 'T12:00:00Z');
   return Number.isFinite(d.valueOf()) && d.toISOString().slice(0,10) === x;
 }
+function validPlanningDate(x){return validDate(x)&&Number(x.slice(0,4))>=2000&&Number(x.slice(0,4))<=2100;}
 function validTime(x) { return typeof x === 'string' && (x === '' || /^([01]\d|2[0-3]):[0-5]\d$/.test(x)); }
 function dayDiff(a,b){ const aMs=Date.parse(a+'T12:00:00Z'); const bMs=Date.parse(b+'T12:00:00Z'); return Math.round((bMs-aMs)/86400000); }
 function occurs(t, date) {
@@ -39,7 +40,7 @@ function cleanTask(payload, id=crypto.randomUUID()) {
   const title = String(payload.title||'').trim().slice(0,120);
   if (!title) throw new Error('Додай назву завдання');
   const dueDate=String(payload.dueDate||'');
-  if(!validDate(dueDate)) throw new Error('Некоректна дата');
+  if(!validPlanningDate(dueDate)) throw new Error('Дата справи має бути від 2000 до 2100 року');
   const time=String(payload.time||'');
   if(!validTime(time)) throw new Error('Некоректний час');
   const category=CATEGORIES.includes(payload.category)?payload.category:'personal';
@@ -56,7 +57,7 @@ function cleanTask(payload, id=crypto.randomUUID()) {
 }
 function validateProposal(p,tasks) {
   if (!p || !['create','reschedule'].includes(p.action)) return null;
-  if(!validDate(p.date) || !validTime(p.time))return null;
+  if(!validPlanningDate(p.date) || !validTime(p.time))return null;
   if(p.action==='create'){
     try{return {action:'create',task:cleanTask({title:p.title,dueDate:p.date,time:p.time,category:p.category,recurrence:p.recurrence,note:p.note})};}catch{return null;}
   }
@@ -81,4 +82,4 @@ function updateProgress(t,date,delta){
   if(t.progress[key]>=cap)t.completions.push(key);
   return t.progress[key];
 }
-module.exports={CATEGORIES,RECURRENCES,PRIORITIES,validDate,validTime,dayDiff,occurs,scheduledOccurs,occurrenceKey,complete,cleanTask,validateProposal,progressFor,taskDone,updateProgress};
+module.exports={CATEGORIES,RECURRENCES,PRIORITIES,validDate,validPlanningDate,validTime,dayDiff,occurs,scheduledOccurs,occurrenceKey,complete,cleanTask,validateProposal,progressFor,taskDone,updateProgress};

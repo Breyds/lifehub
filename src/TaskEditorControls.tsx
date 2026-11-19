@@ -6,20 +6,21 @@ const pad=(v:number)=>String(v).padStart(2,'0');
 const dateString=(d:Date)=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const ukMonth=new Intl.DateTimeFormat('uk-UA',{month:'long',year:'numeric'});
 const ukDate=new Intl.DateTimeFormat('uk-UA',{day:'numeric',month:'long',year:'numeric'});
+const allowed=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&value>='2000-01-01'&&value<='2100-12-31';
 
 /** Self-contained date picker, never relies on Windows native controls or remote scripts. */
 export function LifeDatePicker({value,onChange}:{value:string;onChange:(date:string)=>void}){
- const parsed=new Date((/^\d{4}-\d{2}-\d{2}$/.test(value)?value:dateString(new Date()))+'T12:00:00');
+ const parsed=new Date((allowed(value)?value:dateString(new Date()))+'T12:00:00');
  const [open,setOpen]=useState(false),[month,setMonth]=useState(()=>new Date(parsed.getFullYear(),parsed.getMonth(),1));
  const root=useRef<HTMLDivElement>(null);
  useEffect(()=>{if(!open)return;const handler=(e:PointerEvent)=>{if(!root.current?.contains(e.target as Node))setOpen(false);};document.addEventListener('pointerdown',handler);return()=>document.removeEventListener('pointerdown',handler);},[open]);
- function move(n:number){setMonth(m=>new Date(m.getFullYear(),m.getMonth()+n,1));}
+ function move(n:number){setMonth(m=>{const next=new Date(m.getFullYear(),m.getMonth()+n,1);return next.getFullYear()<2000||next.getFullYear()>2100?m:next;});}
  const cells=useMemo(()=>{const start=new Date(month.getFullYear(),month.getMonth(),1);const monday=(start.getDay()+6)%7;return Array.from({length:42},(_,i)=>new Date(month.getFullYear(),month.getMonth(),i-monday+1));},[month]);
  return <div className="lh-date-control" ref={root}>
   <button type="button" className="lh-date-trigger" aria-expanded={open} onClick={()=>{setMonth(new Date(parsed.getFullYear(),parsed.getMonth(),1));setOpen(o=>!o);}}><CalendarDays size={17}/>{ukDate.format(parsed)}<ChevronDown size={15}/></button>
   {open&&<div className="lh-datepicker-popup" role="dialog" aria-label="Вибір дати">
-   <div className="lh-cal-head"><button type="button" aria-label="Попередній місяць" onClick={()=>move(-1)}><ChevronLeft size={18}/></button><strong>{ukMonth.format(month)}</strong><button type="button" aria-label="Наступний місяць" onClick={()=>move(1)}><ChevronRight size={18}/></button></div>
-   <div className="lh-cal-grid">{['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(d=><span className="lh-cal-weekday" key={d}>{d}</span>)}{cells.map((d,i)=>{const v=dateString(d);return <button type="button" key={i} className={`lh-cal-day ${v===value?'selected':''} ${d.getMonth()!==month.getMonth()?'outside':''} ${v===dateString(new Date())?'is-today':''}`} onClick={()=>{onChange(v);setOpen(false);}}>{d.getDate()}</button>;})}</div>
+   <div className="lh-cal-head"><button type="button" aria-label="Попередній місяць" disabled={month.getFullYear()<=2000&&month.getMonth()===0} onClick={()=>move(-1)}><ChevronLeft size={18}/></button><strong>{ukMonth.format(month)}</strong><button type="button" aria-label="Наступний місяць" disabled={month.getFullYear()>=2100&&month.getMonth()===11} onClick={()=>move(1)}><ChevronRight size={18}/></button></div>
+   <div className="lh-cal-grid">{['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].map(d=><span className="lh-cal-weekday" key={d}>{d}</span>)}{cells.map((d,i)=>{const v=dateString(d);return <button type="button" key={i} disabled={!allowed(v)} className={`lh-cal-day ${v===value?'selected':''} ${d.getMonth()!==month.getMonth()?'outside':''} ${v===dateString(new Date())?'is-today':''}`} onClick={()=>{onChange(v);setOpen(false);}}>{d.getDate()}</button>;})}</div>
    <button type="button" className="lh-cal-today" onClick={()=>{onChange(dateString(new Date()));setOpen(false);}}>Перейти на сьогодні</button>
   </div>}
  </div>;

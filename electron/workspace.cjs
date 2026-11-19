@@ -45,7 +45,12 @@ function validateItem(kind,raw,original){
  return x;
 }
 function addItem(w,kind,raw){if(!KINDS.includes(kind))throw new Error('Невідомий тип');if(w[kind].length>=MAX_ITEMS)throw new Error('Досягнуто ліміту записів');const item=validateItem(kind,raw);w[kind].unshift(item);return item;}
-function updateItem(w,kind,id,raw){if(!KINDS.includes(kind))throw new Error('Невідомий тип');const i=w[kind].findIndex(x=>x.id===id);if(i<0)throw new Error('Запис не знайдено');const item=validateItem(kind,{...w[kind][i],...raw},w[kind][i]);w[kind][i]=item;return item;}
+function updateItem(w,kind,id,raw){if(!KINDS.includes(kind))throw new Error('Невідомий тип');const i=w[kind].findIndex(x=>x.id===id);if(i<0)throw new Error('Запис не знайдено');const incoming=raw&&typeof raw==='object'?raw:{};const merged={...w[kind][i],...incoming};if(kind==='projects'){
+  if(Object.prototype.hasOwnProperty.call(incoming,'steps')&&!Object.prototype.hasOwnProperty.call(incoming,'stages'))delete merged.stages;
+  if(Object.prototype.hasOwnProperty.call(incoming,'progress')&&!Object.prototype.hasOwnProperty.call(incoming,'stages')&&!Object.prototype.hasOwnProperty.call(incoming,'steps')&&Array.isArray(merged.stages)){
+    const pct=num(incoming.progress,100);if(pct===null)throw new Error('Прогрес має бути від 0 до 100%');merged.stages=merged.stages.map(x=>({...x,progress:pct}));
+  }
+ }const item=validateItem(kind,merged,w[kind][i]);w[kind][i]=item;return item;}
 function deleteItem(w,kind,id){if(!KINDS.includes(kind))throw new Error('Невідомий тип');const i=w[kind].findIndex(x=>x.id===id);if(i<0)return false;w[kind].splice(i,1);return true;}
 function defaultPreferences(){return {nickname:'Мій LifeHub',avatarData:'',tiktokCollectionUrl:'',cs2Targets:{dmKills:500,botKills:1000,matches:5,minutes:120},accent:'green',density:'comfortable',language:'uk',newsAutoRefresh:true,newsCategories:['anime','games','internet','world','tech'],fitness:{goal:'general',experience:'beginner',constraints:'',height:null,currentWeight:null,age:null,activity:'moderate',weeklyDays:3,homeEquipment:'Доріжка'},fridayReminder:true};}
 function safePreferences(x){const d=defaultPreferences();if(!x||typeof x!=='object')return d;

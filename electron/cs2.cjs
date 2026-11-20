@@ -26,7 +26,7 @@ function mapBreakdown(logs,faceitMatches=[]){
  for(const row of logs.map(x=>({...x,source:'manual'})).concat(faceitMatches.map(x=>({...x,source:'faceit'})))){
   const map=MAPS.includes(row.map)?row.map:'Other';
   const a=by.get(map)||{map,sessions:0,kills:0,deaths:0,faceitMatches:0,wins:0,hsPercent:null,hsSamples:0};
-  a.sessions++;a.kills+=Number(row.kills||0);a.deaths+=Number(row.deaths||0);
+  if(row.source==='manual')a.sessions++;a.kills+=Number(row.kills||0);a.deaths+=Number(row.deaths||0);
   if(row.source==='faceit'){a.faceitMatches++;a.wins+=row.win===true?1:0;}
   if(Number.isFinite(Number(row.hsPercent))&&row.hsPercent!==null){a.hsPercent=(a.hsPercent||0)+Number(row.hsPercent);a.hsSamples++;}
   by.set(map,a);

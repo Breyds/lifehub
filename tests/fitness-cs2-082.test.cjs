@@ -42,6 +42,6 @@ test('Fitness onboarding preferences sanitize days and keep legacy data',()=>{
 });
 test('Generic CSNades carousel does not masquerade as fresh pro utility',()=>{
  const c=fs.readFileSync(path.join(__dirname,'../src/CS2Page.tsx'),'utf8');
- assert.doesNotMatch(c,/const curated:|guideUrl\\(c\\.map\\)/);
+ assert.doesNotMatch(c,/const curated:|csnades\.gg/i);
  assert.match(c,/Utility Radar/);
 });

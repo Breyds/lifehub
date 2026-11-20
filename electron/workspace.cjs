@@ -35,8 +35,17 @@ function validateItem(kind,raw,original){
   Object.assign(x,{title:string(raw.title,130),description:string(raw.description,2500),deadline:dateField(raw.deadline),status:['active','paused','done'].includes(raw.status)?raw.status:'active',steps,stages,completedSteps,progress,note:string(raw.note,3500),resources,ideas,blockers,journal,nextAction:string(raw.nextAction,500),weeklyFocus:string(raw.weeklyFocus,500)});
  }
  if(['gym','cardio','cs2logs'].includes(kind)&&raw.duration!==null&&raw.duration!==undefined&&raw.duration!==''&&(!Number.isFinite(Number(raw.duration))||Number(raw.duration)<0||Number(raw.duration)>600))throw new Error('Тривалість тренування має бути від 0 до 600 хвилин');
- if(kind==='gym')Object.assign(x,{title:string(raw.title,130),date:dateField(raw.date),exercises:string(raw.exercises,3000),duration:num(raw.duration,600),note:string(raw.note,1500),setting:string(raw.setting,100)||'home'});
- if(kind==='cardio')Object.assign(x,{title:string(raw.title,130)||'Ходьба на доріжці',date:dateField(raw.date),duration:num(raw.duration,600),distance:num(raw.distance,1000),speed:num(raw.speed,35),incline:num(raw.incline,40),note:string(raw.note,1500)});
+ if(kind==='gym'){
+  const exerciseLogs=Array.isArray(raw.exerciseLogs)?raw.exerciseLogs.slice(0,32).map((entry,i)=>({
+   id:string(entry?.id,90)||'exercise-'+i,title:string(entry?.title,130),
+   sets:(Array.isArray(entry?.sets)?entry.sets:[]).slice(0,15).map(set=>({
+    reps:num(set?.reps,1000),kg:num(set?.kg,500),seconds:num(set?.seconds,3600),done:set?.done===true
+   }))
+  })).filter(v=>v.title):[];
+  const mediaId=/^[a-f0-9-]{36}$/.test(String(raw.mediaId||''))?String(raw.mediaId):'';
+  Object.assign(x,{title:string(raw.title,130),date:dateField(raw.date),exercises:string(raw.exercises,3000),duration:num(raw.duration,600),note:string(raw.note,1500),setting:string(raw.setting,100)||'home',exerciseLogs,mediaId,mediaTitle:mediaId?string(raw.mediaTitle,180):''});
+ }
+ if(kind==='cardio')Object.assign(x,{title:string(raw.title,130)||'Ходьба на доріжці',date:dateField(raw.date),duration:num(raw.duration,600),distance:num(raw.distance,1000),speed:num(raw.speed,35),incline:num(raw.incline,40),calories:num(raw.calories,3000),heartRate:num(raw.heartRate,230),steps:num(raw.steps,50000),source:['manual','fitshow-manual','csv'].includes(raw.source)?raw.source:'manual',note:string(raw.note,1500)});
  if(kind==='cs2logs')Object.assign(x,{title:string(raw.title,130)||'CS2 · тренування',...cleanResult(raw),note:string(raw.note||raw.notes,1500),demoFile:string(raw.demoFile,200)});
  if(kind==='weight')Object.assign(x,{title:string(raw.title,130)||'Контроль ваги',date:dateField(raw.date),kg:num(raw.kg,500),waist:num(raw.waist,300),note:string(raw.note,1000)});
  if(kind==='meals')Object.assign(x,{title:string(raw.title,130),date:dateField(raw.date),calories:num(raw.calories,10000),protein:num(raw.protein,500),note:string(raw.note,1500),photoData:typeof raw.photoData==='string'&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(raw.photoData)&&raw.photoData.length<500000?raw.photoData:''});

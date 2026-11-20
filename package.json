@@ -1,6 +1,6 @@
 {
   "name": "lifehub-personal",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "private": true,
   "description": "LifeHub — локальний планувальник із прогресом, домашніми тренуваннями, медіа, новинами та AI",
   "main": "electron/main.cjs",

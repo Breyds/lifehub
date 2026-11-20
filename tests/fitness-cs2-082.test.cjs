@@ -37,7 +37,7 @@ test('Fitness onboarding preferences sanitize days and keep legacy data',()=>{
  assert.equal(saved.fitness.goal,'muscle');
  assert.equal(saved.fitness.currentWeight,72);
  assert.deepEqual(saved.fitness.availableWeekdays,[1,3,5]);
- assert.equal(saved.fitness.sessionMinutes,120);
+ assert.equal(saved.fitness.sessionMinutes,30); // invalid >120 falls back to safe default
  assert.equal(saved.fitness.onboardedAt,'2026-11-20');
 });
 test('Generic CSNades carousel does not masquerade as fresh pro utility',()=>{

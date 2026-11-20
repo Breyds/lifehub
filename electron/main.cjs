@@ -144,7 +144,7 @@ function makeWindow(){windowRef=new BrowserWindow({width:1280,height:850,minWidt
  if(process.env.VITE_DEV_SERVER_URL)windowRef.loadURL(process.env.VITE_DEV_SERVER_URL);else windowRef.loadFile(path.join(__dirname,'../dist/index.html'));
  windowRef.on('closed',()=>{windowRef=null;});
 }
-app.whenReady().then(()=>{load();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
+app.whenReady().then(()=>{load();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('before-quit',()=>{if(notifyTimer)clearInterval(notifyTimer);if(telegramTimer)clearInterval(telegramTimer);if(updateTimer)clearInterval(updateTimer);if(newsTimer)clearInterval(newsTimer);});
 ipcMain.handle('data:load',()=>cleanSnapshot());
@@ -335,6 +335,14 @@ ipcMain.handle('cs2:faceit-key',(_event,key)=>{
  db.cs2.faceitApiKeyEncrypted=safeStorage.encryptString(key.trim()).toString('base64');save();return true;
 });
 ipcMain.handle('cs2:faceit-disconnect',()=>{db.cs2.faceitApiKeyEncrypted='';db.cs2.faceitNickname='';db.cs2.faceitData=null;save();return true;});
+async function refreshFaceitDaily(){
+ if(!db.cs2?.faceitApiKeyEncrypted||!db.cs2.faceitNickname)return;
+ const time=Date.parse(db.cs2.faceitData?.checkedAt||'');
+ if(Number.isFinite(time)&&Date.now()-time<24*60*60*1000)return;
+ try{const stats=await getFaceit(db.cs2.faceitNickname,cs2EncryptedKey());db.cs2.faceitData=stats;save();}
+ catch(e){/* offline/quotas are normal: retain old dated snapshot without inventing new matches */}
+}
+
 ipcMain.handle('cs2:faceit-sync',async(_event,nickname)=>{
  const nick=String(nickname||db.cs2.faceitNickname||'').trim();if(!/^[A-Za-z0-9_-]{2,40}$/.test(nick))throw new Error('Вкажи свій нік FACEIT');
  const last=Date.parse(db.cs2.faceitData?.checkedAt||'');if(db.cs2.faceitNickname===nick&&Number.isFinite(last)&&Date.now()-last<10*60*1000)return db.cs2.faceitData;

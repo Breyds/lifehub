@@ -376,6 +376,22 @@ ipcMain.handle('cs2:faceit-sync',async(_event,nickname)=>{
  const last=Date.parse(db.cs2.faceitData?.checkedAt||'');if(db.cs2.faceitNickname===nick&&Number.isFinite(last)&&Date.now()-last<10*60*1000)return db.cs2.faceitData;
  const data=await getFaceit(nick,cs2EncryptedKey());db.cs2.faceitNickname=nick;db.cs2.faceitData=data;save();return data;
 });
+ipcMain.handle('cs2:preview-lineup',async(_event,raw)=>{
+ if(typeof raw!=='string'||raw.length>500)throw new Error('Некоректне посилання');
+ let parsed;
+ try{parsed=new URL(raw);}catch{throw new Error('Некоректний URL');}
+ const safeHost=(u)=>u.protocol==='https:'&&['nades.ai','nadeiq.app','www.nades.ai','www.nadeiq.app'].includes(u.hostname);
+ if(!safeHost(parsed))throw new Error('Перегляд дозволено лише з джерел про-розкидок');
+ const preview=new BrowserWindow({
+  parent:windowRef,modal:true,width:1150,height:820,minWidth:850,minHeight:600,
+  backgroundColor:'#131313',title:'LifeHub · CS2 Pro Nade Viewer',show:false,
+  webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webviewTag:false,partition:'temp:lifehub-pro-preview'}
+ });
+ preview.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+ preview.webContents.on('will-navigate',(event,url)=>{try{if(!safeHost(new URL(url)))event.preventDefault();}catch{event.preventDefault();}});
+ preview.webContents.on('will-redirect',(event,url)=>{try{if(!safeHost(new URL(url)))event.preventDefault();}catch{event.preventDefault();}});
+ try{await preview.loadURL(parsed.toString());preview.show();return true;}catch(e){if(!preview.isDestroyed())preview.destroy();throw new Error('Не вдалося завантажити відео в LifeHub. Спробуй «Відкрити зовні»: '+String(e?.message||e).slice(0,120));}
+});
 ipcMain.handle('cs2:pro-picks',async(_event,force=false)=>{
  const existing=db.cs2.proPicks?.items?.length?db.cs2.proPicks:starterProPicks();
  const age=Date.now()-Date.parse(existing.fetchedAt||'');

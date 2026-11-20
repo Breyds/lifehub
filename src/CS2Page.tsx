@@ -1,4 +1,4 @@
-import {useEffect,useMemo,useState} from 'react';
+import {useMemo,useState} from 'react';
 import {Activity,BarChart3,BookOpen,CalendarDays,Camera,Check,CheckCircle2,ChevronDown,Clock3,Crosshair,ExternalLink,FileVideo,Flag,Flame,Gamepad2,Image as ImageIcon,Info,KeyRound,Link2,LoaderCircle,Plus,RefreshCw,Save,ShieldAlert,Sparkles,Target,Trash2,Upload,Users,X} from 'lucide-react';
 import type {CS2Goals,CS2Utility,Snapshot,WorkspaceItem} from './types';
 import './cs2-studio.css';

@@ -50,7 +50,7 @@ test('Pro lineup picks are editorial source links, not bulk scraped media',()=>{
 });
 test('LifeHub exposes manual workouts, local clip import and editorial picks in the UI',()=>{
  const ui=read('src/FitnessStudio.tsx'),workout=read('src/FitnessWorkoutTracker.tsx'),cs2=read('src/CS2Page.tsx'),main=read('electron/main.cjs'),preload=read('electron/preload.cjs');
- assert.match(ui,/Записати результат доріжки/);
+ assert.match(ui,/Зберегти результат доріжки/);
  assert.match(ui,/FitnessWorkoutTracker/);
  assert.match(workout,/exerciseLogs/);
  assert.match(workout,/fitnessImportVideo/);

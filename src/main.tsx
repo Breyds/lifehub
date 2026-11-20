@@ -1,5 +1,6 @@
 import {Zap, Droplets, CalendarClock, Timer, ChevronDown, Coffee, CheckCircle2} from 'lucide-react';
 import {PowerPage} from './PowerPage';
+import {CS2Page} from './CS2Page';
 import {AllTasksPage} from './AllTasksPage';
 import {LifeDatePicker,LifeTimeWheel} from './TaskEditorControls';
 import {PersonalImportPanel} from './PersonalImportPanel';
@@ -180,7 +181,7 @@ function App(){
     {page==='planner'&&<PlannerPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
     {page==='projects'&&<ProjectsPage snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='fitness'&&<FitnessPage kind="fitness" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'sport',d,title||'')}/>}
-    {page==='cs2train'&&<FitnessPage kind="cs2" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'cs2',d,title||'')}/>}
+    {page==='cs2train'&&<CS2Page snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='youtube'&&<YoutubePage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'rankdaily',d,title||'')}/>}
     {page==='streams'&&<StreamsPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'twitch',d,title||'')}/>}
     {page==='news'&&<NewsPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')}/>}

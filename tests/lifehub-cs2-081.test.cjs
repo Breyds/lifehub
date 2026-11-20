@@ -41,6 +41,8 @@ test('FACEIT mapper reads real nested match player data and handles unavailable 
  const stats=cs2.parseMatchStats({rounds:[{round_stats:{Map:'de_mirage'},teams:[{players:[{player_id:'other',player_stats:{Kills:'99'}},{player_id:'own',player_stats:{Kills:'19',Deaths:'15',Assists:'6','Headshots %':'58',Result:'1'}}]}]}]},'own','match-123',1770000000);
  assert.equal(stats.length,1);assert.equal(stats[0].map,'Mirage');assert.equal(stats[0].kills,19);assert.equal(stats[0].win,true);
  assert.equal(stats[0].headshots,null);
+ const noResult=cs2.parseMatchStats({rounds:[{round_stats:{Map:'de_ancient'},teams:[{players:[{player_id:'own',player_stats:{Kills:'8'}}]}]}]},'own','match2',1770000000);
+ assert.equal(noResult[0].win,null);
 });
 test('FACEIT client makes only public official Data API calls with Bearer authorization',async()=>{
  let requests=[];

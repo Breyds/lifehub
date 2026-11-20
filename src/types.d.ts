@@ -81,6 +81,7 @@ declare global {
     cs2SaveFaceitKey:(key:string)=>Promise<boolean>;
     cs2SyncFaceit:(nickname:string)=>Promise<CS2FaceitData>;
     cs2DisconnectFaceit:()=>Promise<boolean>;
+    cs2PreviewLineup:(url:string)=>Promise<boolean>;
     cs2FetchProPicks:(force:boolean)=>Promise<CS2ProPicks>;
     cs2FetchUtilityRadar:(force:boolean)=>Promise<CS2UtilityRadar>;
     cs2SaveUtility:(data:Partial<CS2Utility>)=>Promise<CS2Utility>;

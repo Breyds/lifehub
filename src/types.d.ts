@@ -71,6 +71,8 @@ declare global {
     checkTikTok:(url:string)=>Promise<{status:'invalid'|'short'|'video'|'collection'|'unknown'|'unavailable';message:string;url:string;title:string;author:string;videos?:{url:string;title:string;author:string;sound:string}[]}>;
     aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number}>;
     projectReview:(id:string,evidence:string,mode:'review'|'plan')=>Promise<{summary:string;updates:{index:number;progress:number;reason:string}[];suggestedStages:string[];nextActions:string[];risks:string[];spent:number}>;
+    fitnessImportVideo:()=>Promise<{id:string;title:string;bytes:number}|null>;
+    fitnessOpenVideo:(id:string)=>Promise<boolean>;
     cs2ImportImage:()=>Promise<{id:string;preview:string}|null>;
     cs2ReadImage:(id:string)=>Promise<string>;
     cs2AnalyzeImage:(id:string)=>Promise<CS2PhotoDraft>;

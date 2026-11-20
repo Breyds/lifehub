@@ -285,6 +285,32 @@ ipcMain.handle('workspace:add',(_event,kind,data)=>{const item=addItem(db.worksp
 ipcMain.handle('workspace:update',(_event,kind,id,data)=>{const item=updateItem(db.workspace,kind,id,data);save();return item;});
 ipcMain.handle('workspace:delete',(_event,kind,id)=>{const ok=deleteItem(db.workspace,kind,id);if(ok)save();return ok;});
 
+const fitnessVideoDir=()=>path.join(app.getPath('userData'),'fitness-videos');
+// User-selected clips remain on this Windows device. Never upload them to an AI API.
+ipcMain.handle('fitness:video-import',async()=>{
+ const selected=await dialog.showOpenDialog(windowRef,{title:'LifeHub · відео техніки вправ',properties:['openFile'],filters:[{name:'Відео',extensions:['mp4','webm','mov']}]});
+ if(selected.canceled||!selected.filePaths[0])return null;
+ const source=selected.filePaths[0],ext=path.extname(source).toLowerCase();
+ if(!['.mp4','.webm','.mov'].includes(ext))throw new Error('Оберіть MP4, WebM або MOV');
+ const stat=fs.statSync(source);
+ if(!stat.isFile()||stat.size<32||stat.size>250*1024*1024)throw new Error('Відео повинно бути від 32 байтів до 250 МБ');
+ const descriptor=fs.openSync(source,'r');let header;
+ try{header=Buffer.alloc(16);fs.readSync(descriptor,header,0,16,0);}finally{fs.closeSync(descriptor);}
+ const containerValid=(ext==='.webm'&&header.subarray(0,4).equals(Buffer.from([0x1a,0x45,0xdf,0xa3])))||((ext==='.mp4'||ext==='.mov')&&header.subarray(4,8).toString('ascii')==='ftyp');
+ if(!containerValid)throw new Error('Файл не схожий на підтримуваний відеоформат');
+ const id=crypto.randomUUID();
+ fs.mkdirSync(fitnessVideoDir(),{recursive:true});
+ fs.copyFileSync(source,path.join(fitnessVideoDir(),id+ext),fs.constants.COPYFILE_EXCL);
+ return {id,title:path.basename(source).slice(0,180),bytes:stat.size};
+});
+ipcMain.handle('fitness:video-open',async(_event,id)=>{
+ if(!/^[a-f0-9-]{36}$/.test(String(id||'')))throw new Error('Невірний ID відео');
+ const matched=['.mp4','.webm','.mov'].map(ext=>path.join(fitnessVideoDir(),id+ext)).find(p=>fs.existsSync(p));
+ if(!matched)throw new Error('Локальне відео не знайдено');
+ const error=await shell.openPath(matched);
+ if(error)throw new Error('Не вдалося відкрити відео: '+error);
+ return true;
+});
 const cs2MediaDir=()=>path.join(app.getPath('userData'),'cs2-media');
 const cs2DemoDir=()=>path.join(app.getPath('userData'),'cs2-demos');
 function cs2EncryptedKey(){

@@ -62,3 +62,14 @@ test('LifeHub exposes manual workouts, local clip import and editorial picks in 
  assert.match(preload,/fitnessOpenVideo/);
  assert.match(preload,/cs2FetchProPicks/);
 });
+
+test('Pro video opens in a sandboxed LifeHub child window, not an unrestricted app webview',()=>{
+ const main=read('electron/main.cjs'),preload=read('electron/preload.cjs'),ui=read('src/CS2Page.tsx');
+ assert.match(main,/ipcMain.handle\('cs2:preview-lineup'/);
+ assert.match(main,/sandbox:true/);
+ assert.match(main,/nodeIntegration:false/);
+ assert.match(main,/contextIsolation:true/);
+ assert.match(main,/safeHost\(parsed\)/);
+ assert.match(preload,/cs2PreviewLineup/);
+ assert.match(ui,/cs2PreviewLineup\(p.url\)/);
+});

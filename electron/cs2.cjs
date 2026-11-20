@@ -55,7 +55,7 @@ function parseMatchStats(raw,playerId,matchId,startedAt){
    const p=player.player_stats||{},value=(...keys)=>{for(const k of keys)if(p[k]!==undefined&&p[k]!==null)return p[k];return null;};
    const kills=int(value('Kills','kills'),100),deaths=int(value('Deaths','deaths'),100);
    const hsPercent=dec(value('Headshots %','Headshots % ','HS %'),100);
-   const win=Number(value('Result','Win'))===1;
+   const rawWin=value('Result','Win');const win=rawWin===null?null:Number(rawWin)===1;
    stats.push({id:matchId,map,kills,deaths,assists:int(value('Assists'),100),hsPercent,headshots:int(value('Headshots'),100),rating:dec(value('Rating','FACEIT Rating'),5),win,startedAt,source:'FACEIT Data API'});
   }
  }

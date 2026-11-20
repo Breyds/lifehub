@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('lifehub', {
   checkTikTok:(url)=>ipcRenderer.invoke('music:tiktok-check',url),
   aiInsight:(kind,query)=>ipcRenderer.invoke('ai:insight',kind,query),
   projectReview:(id,evidence,mode)=>ipcRenderer.invoke('projects:ai-review',id,evidence,mode),
+  fitnessImportVideo:()=>ipcRenderer.invoke('fitness:video-import'),
+  fitnessOpenVideo:(id)=>ipcRenderer.invoke('fitness:video-open',id),
   cs2ImportImage:()=>ipcRenderer.invoke('cs2:image-import'),
   cs2ReadImage:(id)=>ipcRenderer.invoke('cs2:image-read',id),
   cs2AnalyzeImage:(id)=>ipcRenderer.invoke('cs2:image-analyze',id),

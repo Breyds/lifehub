@@ -21,6 +21,7 @@ const {normalizeGroup,fetchMirror}=require('./dtek-mirror.cjs');
 const {fetchYoutubeTrends}=require('./youtube-trends.cjs');
 const {cleanUtility,getFaceit,weeklyStart,summarize,mapBreakdown}=require('./cs2.cjs');
 const {fetchCS2UtilityRadar}=require('./cs2-utility-radar.cjs');
+const {fetchProPicks,starter:starterProPicks}=require('./cs2-pro-feed.cjs');
 const crypto=require('node:crypto');
 const path=require('node:path');
 const fs=require('node:fs');
@@ -30,13 +31,13 @@ const PRICE_IN=0.25,PRICE_OUT=2.00; // USD per million tokens, recheck if tariff
 const LIMIT_USD=5;
 let windowRef=null,db,aiBusy=false,notifyTimer=null,updateTimer=null,newsTimer=null,telegramTimer=null,telegramPolling=false,captureArmedUntil=0,chatCandidates=[],personalImportCandidates=[],newsBusy=false,musicBusy=false;
 let updateState={status:'not-configured',version:app.getVersion(),message:'Публікацію оновлень ще не налаштовано.'};
-function initial(){return {version:2,tasks:[],apiKeyEncrypted:'',usage:{},autostart:false,evening:true,notified:[],eveningShown:[],videoDrafts:{},workspace:blankWorkspace(),preferences:safePreferences({}),news:{items:[],fetchedAt:'',errors:0,totalSources:0},music:{markets:{},errors:[],fetchedAt:'',source:''},newsFeedback:{},newsDismissed:{},newsSaved:[],newsIllustrations:{},newsImageCount:{},musicReminderShown:[],audDTokenEncrypted:'',telegram:{tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0},powerAddress:{settlement:'',street:'',house:''},powerGroup:'',powerGroupOrigin:'',blackoutSchedule:'',powerLive:{status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Натисни «Отримати графік ДТЕК».'},youtubeApiKeyEncrypted:'',youtubeTrends:{videos:[],fetchedAt:'',topics:[]},cs2:{faceitApiKeyEncrypted:'',faceitNickname:'',faceitData:null,utilities:[],demos:[],reminders:false,reminderDays:[],utilityRadar:{items:[],fetchedAt:'',status:'not-checked',message:''}}};}
+function initial(){return {version:2,tasks:[],apiKeyEncrypted:'',usage:{},autostart:false,evening:true,notified:[],eveningShown:[],videoDrafts:{},workspace:blankWorkspace(),preferences:safePreferences({}),news:{items:[],fetchedAt:'',errors:0,totalSources:0},music:{markets:{},errors:[],fetchedAt:'',source:''},newsFeedback:{},newsDismissed:{},newsSaved:[],newsIllustrations:{},newsImageCount:{},musicReminderShown:[],audDTokenEncrypted:'',telegram:{tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0},powerAddress:{settlement:'',street:'',house:''},powerGroup:'',powerGroupOrigin:'',blackoutSchedule:'',powerLive:{status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Натисни «Отримати графік ДТЕК».'},youtubeApiKeyEncrypted:'',youtubeTrends:{videos:[],fetchedAt:'',topics:[]},cs2:{faceitApiKeyEncrypted:'',faceitNickname:'',faceitData:null,utilities:[],demos:[],reminders:false,reminderDays:[],utilityRadar:{items:[],fetchedAt:'',status:'not-checked',message:''},proPicks:starterProPicks()}};}
 const storePath=()=>path.join(app.getPath('userData'),'lifehub.json');
 function save(){const p=storePath();fs.mkdirSync(path.dirname(p),{recursive:true});const temp=p+'.tmp';fs.writeFileSync(temp,JSON.stringify(db,null,2),'utf8');fs.renameSync(temp,p);if(windowRef&&!windowRef.isDestroyed())windowRef.webContents.send('data:changed');}
-function load(){const p=storePath();if(!fs.existsSync(p)){db=initial();save();return;}db={...initial(),...JSON.parse(fs.readFileSync(p,'utf8'))};if(!Array.isArray(db.tasks))throw new Error('Пошкоджено локальну базу завдань');if(!db.videoDrafts||typeof db.videoDrafts!=='object')db.videoDrafts={};db.workspace=safeWorkspace(db.workspace);db.preferences=safePreferences(db.preferences);if(!db.news||!Array.isArray(db.news.items))db.news={items:[],fetchedAt:'',errors:0,totalSources:0};if(!db.music||typeof db.music!=='object'||!db.music.markets)db.music={markets:{},errors:[],fetchedAt:'',source:''};if(!db.newsFeedback||typeof db.newsFeedback!=='object')db.newsFeedback={};if(!db.newsDismissed||typeof db.newsDismissed!=='object')db.newsDismissed={};if(!Array.isArray(db.newsSaved))db.newsSaved=[];if(!db.newsIllustrations||typeof db.newsIllustrations!=='object')db.newsIllustrations={};if(!db.newsImageCount||typeof db.newsImageCount!=='object')db.newsImageCount={};if(!Array.isArray(db.musicReminderShown))db.musicReminderShown=[];db.version=2;if(!db.cs2||typeof db.cs2!=='object')db.cs2=initial().cs2;db.cs2={...initial().cs2,...db.cs2};if(!Array.isArray(db.cs2.utilities))db.cs2.utilities=[];if(!Array.isArray(db.cs2.demos))db.cs2.demos=[];if(!Array.isArray(db.cs2.reminderDays))db.cs2.reminderDays=[];if(!db.cs2.utilityRadar||!Array.isArray(db.cs2.utilityRadar.items))db.cs2.utilityRadar=initial().cs2.utilityRadar;if(!db.telegram||typeof db.telegram!=='object')db.telegram={tokenEncrypted:'',chatId:'',enabled:false};if(db.telegram?.tokenEncrypted&&db.telegram.chatId&&!Number.isSafeInteger(db.telegram.offset)){db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();}if(typeof db.blackoutSchedule!=='string')db.blackoutSchedule='';db.powerAddress=cleanPowerAddress(db.powerAddress);db.powerGroup=normalizeGroup(db.powerGroup);db.powerGroupOrigin=db.powerGroup?(db.powerGroupOrigin==='official'?'official':'manual'):'';if(!db.powerLive||!Array.isArray(db.powerLive.intervals))db.powerLive={status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Ще не перевіряли графік.'};if(!db.youtubeTrends||!Array.isArray(db.youtubeTrends.videos))db.youtubeTrends={videos:[],fetchedAt:'',topics:[]};}
+function load(){const p=storePath();if(!fs.existsSync(p)){db=initial();save();return;}db={...initial(),...JSON.parse(fs.readFileSync(p,'utf8'))};if(!Array.isArray(db.tasks))throw new Error('Пошкоджено локальну базу завдань');if(!db.videoDrafts||typeof db.videoDrafts!=='object')db.videoDrafts={};db.workspace=safeWorkspace(db.workspace);db.preferences=safePreferences(db.preferences);if(!db.news||!Array.isArray(db.news.items))db.news={items:[],fetchedAt:'',errors:0,totalSources:0};if(!db.music||typeof db.music!=='object'||!db.music.markets)db.music={markets:{},errors:[],fetchedAt:'',source:''};if(!db.newsFeedback||typeof db.newsFeedback!=='object')db.newsFeedback={};if(!db.newsDismissed||typeof db.newsDismissed!=='object')db.newsDismissed={};if(!Array.isArray(db.newsSaved))db.newsSaved=[];if(!db.newsIllustrations||typeof db.newsIllustrations!=='object')db.newsIllustrations={};if(!db.newsImageCount||typeof db.newsImageCount!=='object')db.newsImageCount={};if(!Array.isArray(db.musicReminderShown))db.musicReminderShown=[];db.version=2;if(!db.cs2||typeof db.cs2!=='object')db.cs2=initial().cs2;db.cs2={...initial().cs2,...db.cs2};if(!Array.isArray(db.cs2.utilities))db.cs2.utilities=[];if(!Array.isArray(db.cs2.demos))db.cs2.demos=[];if(!Array.isArray(db.cs2.reminderDays))db.cs2.reminderDays=[];if(!db.cs2.utilityRadar||!Array.isArray(db.cs2.utilityRadar.items))db.cs2.utilityRadar=initial().cs2.utilityRadar;if(!db.cs2.proPicks||!Array.isArray(db.cs2.proPicks.items))db.cs2.proPicks=starterProPicks();if(!db.telegram||typeof db.telegram!=='object')db.telegram={tokenEncrypted:'',chatId:'',enabled:false};if(db.telegram?.tokenEncrypted&&db.telegram.chatId&&!Number.isSafeInteger(db.telegram.offset)){db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();}if(typeof db.blackoutSchedule!=='string')db.blackoutSchedule='';db.powerAddress=cleanPowerAddress(db.powerAddress);db.powerGroup=normalizeGroup(db.powerGroup);db.powerGroupOrigin=db.powerGroup?(db.powerGroupOrigin==='official'?'official':'manual'):'';if(!db.powerLive||!Array.isArray(db.powerLive.intervals))db.powerLive={status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Ще не перевіряли графік.'};if(!db.youtubeTrends||!Array.isArray(db.youtubeTrends.videos))db.youtubeTrends={videos:[],fetchedAt:'',topics:[]};}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function month(){return todayLocal().slice(0,7);}
-function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:db.news,music:db.music,newsFeedback:db.newsFeedback,newsSaved:db.newsSaved,newsIllustrations:db.newsIllustrations,audDConnected:!!db.audDTokenEncrypted,telegram:{connected:!!db.telegram?.tokenEncrypted&&!!db.telegram?.chatId,enabled:!!db.telegram?.enabled,pendingCode:db.telegram?.pendingCode||''},cs2:{faceitConnected:!!db.cs2.faceitApiKeyEncrypted,faceitNickname:db.cs2.faceitNickname||'',faceitData:db.cs2.faceitData,utilities:db.cs2.utilities,demos:db.cs2.demos,reminders:db.cs2.reminders===true,utilityRadar:db.cs2.utilityRadar},powerAddress:db.powerAddress,powerGroup:db.powerGroup,powerGroupOrigin:db.powerGroupOrigin,blackoutSchedule:db.blackoutSchedule,powerLive:db.powerLive.status==='verified'&&Date.now()-Date.parse(db.powerLive.checkedAt)>6*60*60*1000?{...db.powerLive,status:'stale',message:'Попередній графік застарів. Онови дані ДТЕК.'}:db.powerLive,youtubeConnected:!!db.youtubeApiKeyEncrypted,youtubeTrends:db.youtubeTrends};}
+function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:db.news,music:db.music,newsFeedback:db.newsFeedback,newsSaved:db.newsSaved,newsIllustrations:db.newsIllustrations,audDConnected:!!db.audDTokenEncrypted,telegram:{connected:!!db.telegram?.tokenEncrypted&&!!db.telegram?.chatId,enabled:!!db.telegram?.enabled,pendingCode:db.telegram?.pendingCode||''},cs2:{faceitConnected:!!db.cs2.faceitApiKeyEncrypted,faceitNickname:db.cs2.faceitNickname||'',faceitData:db.cs2.faceitData,utilities:db.cs2.utilities,demos:db.cs2.demos,reminders:db.cs2.reminders===true,utilityRadar:db.cs2.utilityRadar,proPicks:db.cs2.proPicks},powerAddress:db.powerAddress,powerGroup:db.powerGroup,powerGroupOrigin:db.powerGroupOrigin,blackoutSchedule:db.blackoutSchedule,powerLive:db.powerLive.status==='verified'&&Date.now()-Date.parse(db.powerLive.checkedAt)>6*60*60*1000?{...db.powerLive,status:'stale',message:'Попередній графік застарів. Онови дані ДТЕК.'}:db.powerLive,youtubeConnected:!!db.youtubeApiKeyEncrypted,youtubeTrends:db.youtubeTrends};}
 function idFind(id){return db.tasks.find(t=>t.id===id);}
 async function notifyTelegram(text){
  if(!db.telegram?.enabled||!db.telegram.tokenEncrypted||!db.telegram.chatId)return;
@@ -285,6 +286,32 @@ ipcMain.handle('workspace:add',(_event,kind,data)=>{const item=addItem(db.worksp
 ipcMain.handle('workspace:update',(_event,kind,id,data)=>{const item=updateItem(db.workspace,kind,id,data);save();return item;});
 ipcMain.handle('workspace:delete',(_event,kind,id)=>{const ok=deleteItem(db.workspace,kind,id);if(ok)save();return ok;});
 
+const fitnessVideoDir=()=>path.join(app.getPath('userData'),'fitness-videos');
+// User-selected clips remain on this Windows device. Never upload them to an AI API.
+ipcMain.handle('fitness:video-import',async()=>{
+ const selected=await dialog.showOpenDialog(windowRef,{title:'LifeHub · відео техніки вправ',properties:['openFile'],filters:[{name:'Відео',extensions:['mp4','webm','mov']}]});
+ if(selected.canceled||!selected.filePaths[0])return null;
+ const source=selected.filePaths[0],ext=path.extname(source).toLowerCase();
+ if(!['.mp4','.webm','.mov'].includes(ext))throw new Error('Оберіть MP4, WebM або MOV');
+ const stat=fs.statSync(source);
+ if(!stat.isFile()||stat.size<32||stat.size>250*1024*1024)throw new Error('Відео повинно бути від 32 байтів до 250 МБ');
+ const descriptor=fs.openSync(source,'r');let header;
+ try{header=Buffer.alloc(16);fs.readSync(descriptor,header,0,16,0);}finally{fs.closeSync(descriptor);}
+ const containerValid=(ext==='.webm'&&header.subarray(0,4).equals(Buffer.from([0x1a,0x45,0xdf,0xa3])))||((ext==='.mp4'||ext==='.mov')&&header.subarray(4,8).toString('ascii')==='ftyp');
+ if(!containerValid)throw new Error('Файл не схожий на підтримуваний відеоформат');
+ const id=crypto.randomUUID();
+ fs.mkdirSync(fitnessVideoDir(),{recursive:true});
+ fs.copyFileSync(source,path.join(fitnessVideoDir(),id+ext),fs.constants.COPYFILE_EXCL);
+ return {id,title:path.basename(source).slice(0,180),bytes:stat.size};
+});
+ipcMain.handle('fitness:video-open',async(_event,id)=>{
+ if(!/^[a-f0-9-]{36}$/.test(String(id||'')))throw new Error('Невірний ID відео');
+ const matched=['.mp4','.webm','.mov'].map(ext=>path.join(fitnessVideoDir(),id+ext)).find(p=>fs.existsSync(p));
+ if(!matched)throw new Error('Локальне відео не знайдено');
+ const error=await shell.openPath(matched);
+ if(error)throw new Error('Не вдалося відкрити відео: '+error);
+ return true;
+});
 const cs2MediaDir=()=>path.join(app.getPath('userData'),'cs2-media');
 const cs2DemoDir=()=>path.join(app.getPath('userData'),'cs2-demos');
 function cs2EncryptedKey(){
@@ -348,6 +375,34 @@ ipcMain.handle('cs2:faceit-sync',async(_event,nickname)=>{
  const nick=String(nickname||db.cs2.faceitNickname||'').trim();if(!/^[A-Za-z0-9_-]{2,40}$/.test(nick))throw new Error('Вкажи свій нік FACEIT');
  const last=Date.parse(db.cs2.faceitData?.checkedAt||'');if(db.cs2.faceitNickname===nick&&Number.isFinite(last)&&Date.now()-last<10*60*1000)return db.cs2.faceitData;
  const data=await getFaceit(nick,cs2EncryptedKey());db.cs2.faceitNickname=nick;db.cs2.faceitData=data;save();return data;
+});
+ipcMain.handle('cs2:preview-lineup',async(_event,raw)=>{
+ if(typeof raw!=='string'||raw.length>500)throw new Error('Некоректне посилання');
+ let parsed;
+ try{parsed=new URL(raw);}catch{throw new Error('Некоректний URL');}
+ const safeHost=(u)=>u.protocol==='https:'&&['nades.ai','nadeiq.app','www.nades.ai','www.nadeiq.app'].includes(u.hostname);
+ if(!safeHost(parsed))throw new Error('Перегляд дозволено лише з джерел про-розкидок');
+ const preview=new BrowserWindow({
+  parent:windowRef,modal:true,width:1150,height:820,minWidth:850,minHeight:600,
+  backgroundColor:'#131313',title:'LifeHub · CS2 Pro Nade Viewer',show:false,
+  webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webviewTag:false,partition:'temp:lifehub-pro-preview'}
+ });
+ preview.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+ preview.webContents.on('will-navigate',(event,url)=>{try{if(!safeHost(new URL(url)))event.preventDefault();}catch{event.preventDefault();}});
+ preview.webContents.on('will-redirect',(event,url)=>{try{if(!safeHost(new URL(url)))event.preventDefault();}catch{event.preventDefault();}});
+ try{await preview.loadURL(parsed.toString());preview.show();return true;}catch(e){if(!preview.isDestroyed())preview.destroy();throw new Error('Не вдалося завантажити відео в LifeHub. Спробуй «Відкрити зовні»: '+String(e?.message||e).slice(0,120));}
+});
+ipcMain.handle('cs2:pro-picks',async(_event,force=false)=>{
+ const existing=db.cs2.proPicks?.items?.length?db.cs2.proPicks:starterProPicks();
+ const age=Date.now()-Date.parse(existing.fetchedAt||'');
+ if(!force&&existing.status==='ok'&&Number.isFinite(age)&&age>=0&&age<7*86400000)return existing;
+ try{
+  const next=await fetchProPicks();
+  db.cs2.proPicks={...next,status:'ok'};
+  save();return db.cs2.proPicks;
+ }catch(e){
+  return {...existing,status:'offline',notice:'Остання перевірена редакційна добірка. Онлайн-оновлення недоступне: '+String(e?.message||e).slice(0,130)};
+ }
 });
 ipcMain.handle('cs2:utility-radar',async(_event,force=false)=>{
  const existing=db.cs2.utilityRadar||{items:[],fetchedAt:'',status:'not-checked',message:''};

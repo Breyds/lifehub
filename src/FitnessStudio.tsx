@@ -5,13 +5,14 @@ import type {Snapshot,WorkspaceItem,Task} from './types';
 import {addDays,applicable,exercises,localISO,monday,programs,routineText,safeRoutine,weeklySchedule} from './fitness-data';
 import type {FitnessGoal,FitnessProgram,Level,Routine} from './fitness-data';
 import './fitness-studio.css';
+import {FitnessWorkoutTracker} from './FitnessWorkoutTracker';
 
-type Tab='overview'|'week'|'library'|'programs'|'nutrition'|'cardio'|'progress'|'coach';
+type Tab='overview'|'week'|'workout'|'library'|'programs'|'nutrition'|'cardio'|'progress'|'coach';
 type Props={snapshot:Snapshot;refresh:()=>Promise<void>;report:(message:string)=>void};
 const today=()=>localISO(new Date());
 const days=['Пн','Вт','Ср','Чт','Пт','Сб','Нд'];
 const tabs:{id:Tab;label:string;icon:typeof Activity}[]=[
- {id:'overview',label:'Огляд',icon:Home},{id:'week',label:'Мій тиждень',icon:CalendarDays},
+ {id:'overview',label:'Огляд',icon:Home},{id:'week',label:'Мій тиждень',icon:CalendarDays},{id:'workout',label:'Записати тренування',icon:Dumbbell},
  {id:'library',label:'Вправи',icon:Dumbbell},{id:'programs',label:'Програми',icon:BookOpen},
  {id:'nutrition',label:'Харчування',icon:Utensils},{id:'cardio',label:'Кардіо',icon:Activity},
  {id:'progress',label:'Прогрес',icon:TrendingUp},{id:'coach',label:'AI-тренер',icon:Sparkles}
@@ -49,14 +50,16 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
  const [search,setSearch]=useState('');
  const [filter,setFilter]=useState('all');
  const [opened,setOpened]=useState<string|null>(null);
- const [workout,setWorkout]=useState<Routine|null>(null);
- const [workoutNote,setWorkoutNote]=useState('');
- const [workoutDate,setWorkoutDate]=useState(today());
+ const [workoutLaunch,setWorkoutLaunch]=useState<{id:string;title:string;date:string}|null>(null);
  const [mealTitle,setMealTitle]=useState('');
  const [calories,setCalories]=useState('');
  const [protein,setProtein]=useState('');
  const [mealNote,setMealNote]=useState('');
  const [photo,setPhoto]=useState<{title:string;calories:number|null;protein:number|null;note:string;photoData:string}|null>(null);
+ const [cardioDate,setCardioDate]=useState(today());
+ const [cardioCalories,setCardioCalories]=useState('');
+ const [cardioHeart,setCardioHeart]=useState('');
+ const [cardioSteps,setCardioSteps]=useState('');
  const [cardioMinutes,setCardioMinutes]=useState('');
  const [cardioKm,setCardioKm]=useState('');
  const [cardioSpeed,setCardioSpeed]=useState('');
@@ -111,10 +114,10 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
    setTab('week');
   });
  }
- async function completeTask(t:Task){await run(isComplete(t,t.dueDate)?'Позначку знято':'Тренування виконано',()=>window.lifehub.toggleTask(t.id,t.dueDate));}
- async function saveWorkout(){
-  if(!workout){report('Вибери тренування.');return;}
-  await run('Тренування записане у журнал',async()=>{await window.lifehub.addWorkspace('gym',{title:workout.title,date:workoutDate,duration:workout.duration,setting:'home',exercises:routineText(workout),note:workoutNote});setWorkout(null);setWorkoutNote('');});
+ function openWorkout(t?:Task){setWorkoutLaunch(t?{id:t.id,title:t.title,date:t.dueDate}:null);setTab('workout');}
+ async function afterWorkout(){
+  if(workoutLaunch){const task=snapshot.tasks.find(x=>x.id===workoutLaunch.id);if(task&&!isComplete(task,workoutLaunch.date))await window.lifehub.toggleTask(task.id,workoutLaunch.date);}
+  await refresh();setWorkoutLaunch(null);setTab('week');
  }
  async function scanMeal(){setBusy(true);try{const result=await window.lifehub.analyzeFoodPhoto();if(result)setPhoto(result);await refresh();}catch(e){report(String(e));}finally{setBusy(false);}}
  async function saveScannedMeal(){if(!photo)return;await run('Страву збережено у харчовий журнал',async()=>{await window.lifehub.addWorkspace('meals',{title:photo.title,date:today(),calories:photo.calories,protein:photo.protein,note:photo.note,photoData:photo.photoData});setPhoto(null);});}
@@ -124,7 +127,7 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
  }
  async function saveCardio(){
   if(!num(cardioMinutes)||Number(cardioMinutes)<=0){report('Введи тривалість заняття');return;}
-  await run('Кардіо записано',async()=>{await window.lifehub.addWorkspace('cardio',{title:'Доріжка / кардіо',date:today(),duration:num(cardioMinutes),distance:num(cardioKm),speed:num(cardioSpeed),incline:num(cardioIncline),note:'Ручний запис · FitShow / доріжка'});setCardioMinutes('');setCardioKm('');setCardioSpeed('');setCardioIncline('');});
+  const minutes=num(cardioMinutes),distance=num(cardioKm),speed=num(cardioSpeed),incline=num(cardioIncline),kcal=num(cardioCalories),heart=num(cardioHeart),steps=num(cardioSteps); if(!minutes||minutes<=0||minutes>600||distance!==null&&(distance<0||distance>1000)||speed!==null&&(speed<0||speed>35)||incline!==null&&(incline<0||incline>40)||kcal!==null&&(kcal<0||kcal>3000)||heart!==null&&(heart<0||heart>230)||steps!==null&&(steps<0||steps>50000)){report('Перевір параметри доріжки');return;} await run('Результат доріжки збережено',async()=>{await window.lifehub.addWorkspace('cardio',{title:'Моя доріжка · FitShow',date:cardioDate,duration:minutes,distance,speed:speed??(distance?Number((distance*60/minutes).toFixed(2)):null),incline,calories:kcal,heartRate:heart,steps,source:'fitshow-manual',note:'Записано вручну за результатом на доріжці або в FitShow'});setCardioMinutes('');setCardioKm('');setCardioSpeed('');setCardioIncline('');setCardioCalories('');setCardioHeart('');setCardioSteps('');});
  }
  async function importCSV(e:ChangeEvent<HTMLInputElement>){
   const file=e.target.files?.[0];if(!file)return;e.target.value='';
@@ -204,8 +207,8 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
    {tab==='overview'&&<div className="fs-grid-layout">
     <section className="fs-panel fs-span">
      <div className="fs-panel-head"><div><span className="fs-eyebrow">YOUR WEEK</span><h2>План на цей тиждень</h2><p>{formatDate(start)} — {formatDate(end)} · {goalLabels[f.goal as FitnessGoal]} · {levelText}</p></div><button className="fs-btn ghost" onClick={()=>setTab('week')}>Переглянути <ArrowRight size={15}/></button></div>
-     <div className="fs-kpis"><Focus label="Заплановано" number={String(weekly.length)} detail="Занять на цей тиждень"/><Focus label="Виконано" number={String(completed)} detail="З підтвердженням"/><Focus label="Записи" number={String(gyms.length+cardio.length)} detail="Тренувань і кардіо"/><Focus label="Вага" number={unit(num(weights[0]?.kg)??f.currentWeight,'кг')} detail="Останній замір"/></div>
-     {weekly.length?<div className="fs-week-mini">{weekly.slice(0,5).map(t=><button key={t.id} className={isComplete(t,t.dueDate)?'done':''} onClick={()=>void completeTask(t)}><span>{formatDate(t.dueDate)}</span><strong>{t.title}</strong>{isComplete(t,t.dueDate)?<CheckCircle2 size={18}/>:<span className="fs-empty-check"/>}</button>)}</div>:<div className="fs-empty"><CalendarDays size={30}/><strong>Поки немає розписаного тижня</strong><p>Вибери програму — LifeHub розкладе вправи по датах.</p><button className="fs-btn primary" onClick={()=>setTab('programs')}>Вибрати програму <ArrowRight size={16}/></button></div>}
+     <div className="fs-kpis"><Focus label="Заплановано" number={String(weekly.length)} detail="Занять на цей тиждень"/><Focus label="Виконано" number={String(completed)} detail="З підтвердженням"/><Focus label="Записи" number={String(gyms.length+cardio.length)} detail="Тренувань і кардіо"/><Focus label="Вага" number={unit(num(weights[0]?.kg)??f.currentWeight,'кг')} detail="Останній замір"/></div><div className="fs-quick-actions"><button className="fs-btn primary" onClick={()=>openWorkout()}><Dumbbell size={17}/> Записати тренування</button><button className="fs-btn ghost" onClick={()=>setTab('cardio')}><Activity size={17}/> Записати доріжку</button></div>
+     {weekly.length?<div className="fs-week-mini">{weekly.slice(0,5).map(t=><button key={t.id} className={isComplete(t,t.dueDate)?'done':''} onClick={()=>openWorkout(t)}><span>{formatDate(t.dueDate)}</span><strong>{t.title}</strong>{isComplete(t,t.dueDate)?<CheckCircle2 size={18}/>:<span className="fs-empty-check"/>}</button>)}</div>:<div className="fs-empty"><CalendarDays size={30}/><strong>Поки немає розписаного тижня</strong><p>Вибери програму — LifeHub розкладе вправи по датах.</p><button className="fs-btn primary" onClick={()=>setTab('programs')}>Вибрати програму <ArrowRight size={16}/></button></div>}
     </section>
     <section className="fs-panel">
      <div className="fs-panel-head"><div><h2>Перевірка прогресу</h2><p>Без тиску: коротка оцінка раз на тиждень.</p></div><Weight size={21}/></div>
@@ -218,18 +221,13 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
      <button className="fs-btn primary" onClick={()=>setTab('coach')}>AI-тренер <ArrowRight size={16}/></button>
     </section>
    </div>}
+   {tab==='workout'&&<section className="fs-panel"><FitnessWorkoutTracker key={workoutLaunch?.id||'manual'} gear={myGear} history={gyms} report={report} refresh={refresh} initialTitle={workoutLaunch?.title} initialDate={workoutLaunch?.date} onSaved={afterWorkout}/></section>}
    {tab==='week'&&<div className="fs-stack">
     <section className="fs-panel"><div className="fs-panel-head"><div><span className="fs-eyebrow">WEEKLY SCHEDULE</span><h2>Мій тижневий план</h2><p>Заняття з бібліотеки потрапляють у «Сьогодні» і звичайний планувальник LifeHub.</p></div><button className="fs-btn primary" onClick={()=>setTab('programs')}><Plus size={16}/> Додати програму</button></div>
-     <div className="fs-calendar">{days.map((d,i)=>{const date=addDays(start,i);const rows=weekly.filter(t=>t.dueDate===date);return <div key={d} className={'fs-calendar-day '+(date===now?'current':'')}><span>{d}<strong>{formatDate(date)}</strong></span>{rows.map(t=><button key={t.id} onClick={()=>void completeTask(t)} className={isComplete(t,date)?'done':''}><span>{t.title}</span><small>{t.durationMin||30} хв</small>{isComplete(t,date)?<Check size={16}/>:<span className="fs-empty-check"/>}</button>)}{!rows.length&&<em>Відновлення / вільний день</em>}</div>;})}</div>
+     <div className="fs-calendar">{days.map((d,i)=>{const date=addDays(start,i);const rows=weekly.filter(t=>t.dueDate===date);return <div key={d} className={'fs-calendar-day '+(date===now?'current':'')}><span>{d}<strong>{formatDate(date)}</strong></span>{rows.map(t=><button key={t.id} onClick={()=>openWorkout(t)} className={isComplete(t,date)?'done':''}><span>{t.title}</span><small>{t.durationMin||30} хв</small>{isComplete(t,date)?<Check size={16}/>:<span className="fs-empty-check"/>}</button>)}{!rows.length&&<em>Відновлення / вільний день</em>}</div>;})}</div>
      <Notice>Позначай виконання лише після заняття. Пропущений день можна скоригувати в загальному планувальнику, без штрафів.</Notice>
     </section>
-    <section className="fs-panel"><h2>Записати фактичне тренування</h2><p>План — це намір, а журнал — те, що реально зроблено.</p>
-     <div className="fs-form-grid"><Field label="Тренування"><select value={workout?.title||''} onChange={e=>{const found=programs.flatMap(p=>p.routines).find(r=>r.title===e.target.value)||null;setWorkout(found);}}><option value="">Вибери шаблон</option>{programs.flatMap(p=>p.routines).map((r,i)=><option key={r.title+i} value={r.title}>{r.title}</option>)}</select></Field><Field label="Дата"><input type="date" value={workoutDate} onChange={e=>setWorkoutDate(e.target.value)}/></Field></div>
-     {workout&&<div className="fs-log-preview">{exerciseContent(safeRoutine(workout,myGear))}</div>}
-     <Field label="Результат, відчуття, фактичні повтори, вага"><textarea rows={3} value={workoutNote} onChange={e=>setWorkoutNote(e.target.value)} placeholder="Наприклад: 3×10, останній підхід важко, дискомфорту немає"/></Field>
-     <button disabled={!workout||busy} className="fs-btn primary" onClick={()=>void saveWorkout()}><Save size={16}/> Записати у журнал</button>
-     {gyms.length>0&&<div className="fs-history"><h3>Нещодавні силові</h3>{gyms.slice(0,5).map(x=><div key={x.id}><strong>{String(x.title)}</strong><small>{formatDate(String(x.date||now))} · {unit(num(x.duration),'хв')}</small></div>)}</div>}
-    </section>
+    <section className="fs-panel"><div className="fs-panel-head"><div><h2>Ти вже потренувався?</h2><p>Записуй кожен фактичний підхід, повторення, вагу і відео техніки.</p></div><button className="fs-btn primary" onClick={()=>openWorkout()}><Plus size={16}/> Записати виконане</button></div></section>
    </div>}
    {tab==='library'&&<section className="fs-panel"><div className="fs-panel-head"><div><span className="fs-eyebrow">EXERCISE LIBRARY</span><h2>Каталог вправ</h2><p>Детальна техніка, рівень, інвентар і відеопошук за назвою вправи.</p></div><span className="fs-count">{exercises.length} вправ</span></div>
     <div className="fs-filter-row"><label className="fs-search"><Search size={16}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Знайти вправу або м’язи"/></label><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Усі категорії</option><option value="bodyweight">Без інвентарю</option><option value="mat">Килимок</option><option value="dumbbells">Гантелі</option><option value="bands">Еспандери</option><option value="treadmill">Доріжка</option><option value="chair">Опора / платформа</option></select></div>
@@ -248,11 +246,24 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
     <h3>Записати вручну</h3><div className="fs-form-grid"><Field label="Страва"><input value={mealTitle} onChange={e=>setMealTitle(e.target.value)} placeholder="Наприклад, рис та курка"/></Field><Field label="Калорійність (необов’язково)"><input type="number" min="0" value={calories} onChange={e=>setCalories(e.target.value)}/></Field><Field label="Білок (г)"><input type="number" min="0" value={protein} onChange={e=>setProtein(e.target.value)}/></Field><Field label="Склад / порція"><input value={mealNote} onChange={e=>setMealNote(e.target.value)}/></Field></div><button disabled={busy} className="fs-btn ghost" onClick={()=>void saveMeal()}><Plus size={16}/> У журнал</button>
     </section><section className="fs-panel"><h2>Порада до раціону</h2><p>AI враховує твій профіль і записи, але не накладає безумовних заборон на продукти.</p><button className="fs-btn primary" onClick={()=>{setTab('coach');setAiQuestion('Порадь збалансоване харчування під мою мету, з огляду на мій журнал. Що можна практично покращити без крайнощів?');}}>Запитати AI <Sparkles size={16}/></button></section>
     <section className="fs-panel"><h2>Останні страви</h2>{meals.slice(0,8).map(m=><div className="fs-simple-row" key={m.id}><div><strong>{String(m.title)}</strong><small>{formatDate(String(m.date||now))}</small></div><span>{unit(num(m.calories),'ккал')}</span></div>)}{!meals.length&&<p>Поки немає записів.</p>}</section></div>}
-   {tab==='cardio'&&<div className="fs-stack"><section className="fs-panel"><div className="fs-panel-head"><div><span className="fs-eyebrow">CARDIO / FITSHOW</span><h2>Доріжка та витривалість</h2><p>Плануй кардіо разом із силовими днями, фіксуй дистанцію та швидкість.</p></div><Activity size={24}/></div>
-    <div className="fs-form-grid"><Field label="Тривалість, хв"><input type="number" min="1" max="600" value={cardioMinutes} onChange={e=>setCardioMinutes(e.target.value)}/></Field><Field label="Дистанція, км"><input type="number" min="0" step=".01" value={cardioKm} onChange={e=>setCardioKm(e.target.value)}/></Field><Field label="Швидкість, км/год"><input type="number" min="0" step=".1" value={cardioSpeed} onChange={e=>setCardioSpeed(e.target.value)}/></Field><Field label="Нахил, %"><input type="number" min="0" value={cardioIncline} onChange={e=>setCardioIncline(e.target.value)}/></Field></div>
-    <button className="fs-btn primary" disabled={busy} onClick={()=>void saveCardio()}><Save size={16}/> Зберегти кардіо</button>
-    <div className="fs-integration"><strong>FitShow: імпорт результатів</strong><p>Прямий доступ до акаунта FitShow з Windows поки не підтверджено. Можеш зберігати результати вручну або імпортувати CSV, якщо твоя версія застосунку дозволяє експортувати історію.</p><label className="fs-btn ghost"><Download size={16}/> Імпортувати CSV<input hidden type="file" accept=".csv,text/csv" onChange={e=>void importCSV(e)}/></label><small>Підтримуються стовпці date, duration, distance, speed. Інші формати ще не підключені.</small></div>
-    </section><section className="fs-panel"><h2>Історія кардіо</h2>{cardio.slice(0,15).map(c=><div className="fs-simple-row" key={c.id}><div><strong>{String(c.title)}</strong><small>{formatDate(String(c.date||now))}</small></div><span>{unit(num(c.duration),'хв')} · {unit(num(c.distance),'км')}</span></div>)}{!cardio.length&&<p>Поки немає записів.</p>}</section></div>}
+   {tab==='cardio'&&<div className="fs-stack"><section className="fs-panel"><div className="fs-panel-head"><div><span className="fs-eyebrow">CARDIO / FITSHOW</span><h2>Записати те, що показала доріжка</h2><p>Зроби тренування, подивись цифри на екрані доріжки або в FitShow і просто впиши їх тут. Без CSV, без файлів, без підключення акаунта.</p></div><Activity size={24}/></div>
+    <div className="fs-cardio-guide"><strong>Після тренування: 3 прості дії</strong><span>1. Подивись час і кілометри</span><span>2. Запиши цифри нижче</span><span>3. Натисни «Зберегти» — LifeHub побудує прогрес</span></div>
+    <div className="fs-form-grid">
+     <Field label="Дата тренування"><input type="date" value={cardioDate} onChange={e=>setCardioDate(e.target.value)}/></Field>
+     <Field label="Час на доріжці, хв *"><input type="number" min="1" max="600" placeholder="30" value={cardioMinutes} onChange={e=>setCardioMinutes(e.target.value)}/></Field>
+     <Field label="Дистанція, км"><input type="number" min="0" step=".01" placeholder="2.50" value={cardioKm} onChange={e=>setCardioKm(e.target.value)}/></Field>
+     <Field label="Середня швидкість, км/год"><input type="number" min="0" step=".1" placeholder="Автоматично, якщо є км та час" value={cardioSpeed} onChange={e=>setCardioSpeed(e.target.value)}/></Field>
+     <Field label="Нахил, %"><input type="number" min="0" max="40" step=".5" placeholder="0" value={cardioIncline} onChange={e=>setCardioIncline(e.target.value)}/></Field>
+     <Field label="Калорії з екрана (необов’язково)"><input type="number" min="0" max="3000" placeholder="220" value={cardioCalories} onChange={e=>setCardioCalories(e.target.value)}/></Field>
+     <Field label="Середній пульс (якщо відомий)"><input type="number" min="0" max="230" placeholder="120" value={cardioHeart} onChange={e=>setCardioHeart(e.target.value)}/></Field>
+     <Field label="Кроки (якщо є)"><input type="number" min="0" max="50000" placeholder="3500" value={cardioSteps} onChange={e=>setCardioSteps(e.target.value)}/></Field>
+    </div>
+    {num(cardioMinutes)!==null&&num(cardioKm)!==null&&Number(cardioMinutes)>0&&<div className="fs-cardio-result"><span>Розрахована середня швидкість</span><strong>{(Number(cardioKm)*60/Number(cardioMinutes)).toFixed(2)} км/год</strong><small>За дистанцією та часом, якщо не введено окреме значення.</small></div>}
+    <button className="fs-btn primary" disabled={busy||!Number(cardioMinutes)} onClick={()=>void saveCardio()}><Save size={16}/> Зберегти результат доріжки</button>
+    <details className="fs-optional"><summary>Додатково: імпорт CSV, якщо він колись знадобиться</summary><div className="fs-integration"><p>Автоматичного доступу до FitShow немає. Якщо маєш сумісний CSV-експорт, можеш імпортувати історію. Це не потрібно для ручного запису.</p><label className="fs-btn ghost"><Download size={16}/> Імпортувати CSV<input hidden type="file" accept=".csv,text/csv" onChange={e=>void importCSV(e)}/></label></div></details>
+    </section><section className="fs-panel"><h2>Мої результати на доріжці</h2><p>Усі записи зберігаються локально. Без примусової синхронізації з FitShow.</p>
+    <div className="fs-kpis"><Focus label="Занять" number={String(cardio.length)} detail="Записано вручну або імпортовано"/><Focus label="Загальна дистанція" number={cardio.reduce((a,x)=>a+(num(x.distance)||0),0).toFixed(1)+' км'} detail="За наявними даними"/><Focus label="Хвилин" number={String(cardio.reduce((a,x)=>a+(num(x.duration)||0),0))} detail="Усього кардіо"/><Focus label="Останній результат" number={cardio[0]?unit(num(cardio[0].distance),'км'):'—'} detail={cardio[0]?formatDate(String(cardio[0].date||now)):'Ще немає'}/></div>
+    {cardio.slice(0,15).map(c=><div className="fs-simple-row" key={c.id}><div><strong>{String(c.title)}</strong><small>{formatDate(String(c.date||now))}</small></div><span>{unit(num(c.duration),'хв')} · {unit(num(c.distance),'км')} · {unit(num(c.speed),'км/год')}</span></div>)}{!cardio.length&&<p>Запиши перше заняття вище.</p>}</section></div>}
    {tab==='progress'&&<div className="fs-grid-layout"><section className="fs-panel fs-span"><div className="fs-panel-head"><div><span className="fs-eyebrow">PROGRESS TRACKING</span><h2>Вага, заміри, регулярність</h2><p>Раз на тиждень занеси результат, щоб бачити загальну тенденцію.</p></div><TrendingUp size={22}/></div><div className="fs-kpis"><Focus label="Остання вага" number={unit(num(weights[0]?.kg)??f.currentWeight,'кг')} detail="Збережений замір"/><Focus label="Силових" number={String(gyms.length)} detail="Всього записів"/><Focus label="Кардіо" number={String(cardio.length)} detail="Всього записів"/><Focus label="План тижня" number={weekly.length?Math.round(100*completed/weekly.length)+'%':'—'} detail="За позначками"/></div>
     {!weighedThisWeek&&<p className="fs-highlight"><Weight size={17}/> Новий тиждень — можна зробити короткий замір.</p>}
     <div className="fs-form-grid"><Field label="Вага (кг)"><input type="number" step=".1" min="25" max="500" value={measureKg} onChange={e=>setMeasureKg(e.target.value)}/></Field><Field label="Талія (см, необов’язково)"><input type="number" step=".1" min="0" value={measureWaist} onChange={e=>setMeasureWaist(e.target.value)}/></Field></div><button className="fs-btn primary" disabled={busy} onClick={()=>void saveWeight()}><Save size={16}/> Зберегти замір</button>

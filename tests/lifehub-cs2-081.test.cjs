@@ -74,7 +74,7 @@ test('CS2 preferences migrate old daily goals while adding weekly goals',()=>{
 });
 test('CS2 UI and secure IPC handlers are present and image analysis requires explicit user request',()=>{
  const ui=read('src/CS2Page.tsx'),main=read('electron/main.cjs'),preload=read('electron/preload.cjs');
- for(const key of ['FACEIT','Розпізнати AI','Підключити','Демки','Відеогіди','Карта','Цей тиждень'])assert.match(ui,new RegExp(key));
+ for(const key of ['FACEIT','Розпізнати AI','Підключити','Демки','Utility Radar','Карта','Цей тиждень'])assert.match(ui,new RegExp(key));
  assert.match(ui,/cs2AnalyzeImage\(form.imageId\)/);
  assert.match(ui,/cs2SaveFaceitKey/);
  assert.match(main,/safeStorage\.encryptString\(key\.trim\(\)\)/);

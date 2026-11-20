@@ -18,7 +18,8 @@ import './style.css';
 import './studio.css';
 import {ChatImportPage,RankStudioPage,UpdatesPanel} from './ExtraPages';
 import {SmartSettings} from './SmartSettings';
-import {PlannerPage,ProjectsPage,FitnessPage,YoutubePage,StreamsPage,NewsPage,MusicPage,WorkspaceSettings} from './WorkspacePages';
+import {PlannerPage,ProjectsPage,YoutubePage,StreamsPage,NewsPage,MusicPage,WorkspaceSettings} from './WorkspacePages';
+import {FitnessStudio} from './FitnessStudio';
 const categories:{id:Category;title:string;short:string;icon:ComponentType<{size?:number}>;tone:string}[]=[
   {id:'personal',title:'Особисте',short:'Життя',icon:Home,tone:'slate'},
   {id:'rankdaily',title:'Rank Daily',short:'Контент',icon:Video,tone:'purple'},
@@ -180,7 +181,7 @@ function App(){
     {page==='study'&&<PlannerPage categoryFilter="study" heading="Навчання та дедлайни" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d)=>showAdd('study',d)} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
     {page==='planner'&&<PlannerPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
     {page==='projects'&&<ProjectsPage snapshot={snapshot} refresh={refresh} report={setToast}/>}
-    {page==='fitness'&&<FitnessPage kind="fitness" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'sport',d,title||'')}/>}
+    {page==='fitness'&&<FitnessStudio snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='cs2train'&&<CS2Page snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='youtube'&&<YoutubePage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'rankdaily',d,title||'')}/>}
     {page==='streams'&&<StreamsPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'twitch',d,title||'')}/>}

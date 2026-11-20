@@ -13,17 +13,24 @@ export type VideoDraft={file:string;size:number;modifiedAt:string;title?:string;
 export type VideoInbox={inbox:string;videos:VideoDraft[]};
 export type WorkspaceKind='projects'|'gym'|'cardio'|'cs2logs'|'weight'|'meals'|'channels'|'ideas'|'streams'|'songs'|'programs';
 export type WorkspaceItem={id:string;title:string;createdAt:string;updatedAt:string;[key:string]:unknown};
-export type Preferences={nickname:string;avatarData:string;tiktokCollectionUrl:string;cs2Targets:{dmKills:number;botKills:number;matches:number;minutes:number};accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null;age:number|null;activity:string;weeklyDays:number;homeEquipment:string};fridayReminder:boolean};
+export type Preferences={nickname:string;avatarData:string;tiktokCollectionUrl:string;cs2Targets:CS2Goals;cs2WeeklyTargets:CS2Goals;accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null;age:number|null;activity:string;weeklyDays:number;homeEquipment:string};fridayReminder:boolean};
 export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string;imageUrl?:string;imageCreditUrl?:string;imageCaption?:string;region?:string};
 export type NewsState={items:NewsEntry[];fetchedAt:string;errors:number;totalSources:number;lastAttemptAt?:string};
 export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;title?:string;at:string}>;
 export type MusicTrack={id:string;title:string;artist:string;url:string;artworkUrl:string;releaseDate:string;market:string;rank:number;source?:'chart'|'new-album';album?:string};
 export type MusicCharts={markets:Record<string,MusicTrack[]>;freshReleases?:Record<string,MusicTrack[]>;freshErrors?:string[];errors:string[];fetchedAt:string;source:string;method?:string;lastAttemptAt?:string};
+export type CS2Goals={dmKills:number;botKills:number;matches:number;minutes:number};
+export type CS2PhotoDraft={mode:'dm'|'bots'|'aim'|'match'|'utility'|'other';map:string;kills:number|null;deaths:number|null;headshots:number|null;hsPercent:number|null;accuracy:number|null;assists:number|null;rating:number|null;duration:number|null;matches:number|null;note:string;confidence:'low'|'medium'|'high';spent:number};
+export type CS2FaceitMatch={id:string;map:string;kills:number|null;deaths:number|null;headshots:number|null;assists:number|null;hsPercent:number|null;rating:number|null;win:boolean|null;startedAt:number;source:string};
+export type CS2FaceitData={player:{id:string;nickname:string;avatar:string;url:string;elo:number|null;level:number|null;region:string};matches:CS2FaceitMatch[];historyCount:number;overview:Record<string,unknown>;checkedAt:string;note:string};
+export type CS2Utility={id:string;map:string;type:'smoke'|'flash'|'molotov'|'he';title:string;url:string;note:string;learned:boolean;reps:number;updatedAt:string};
+export type CS2Demo={id:string;title:string;format:string;bytes:number;addedAt:string;status:string;note:string;moments:{id:string;text:string;at:string}[]};
+export type CS2State={faceitConnected:boolean;faceitNickname:string;faceitData:CS2FaceitData|null;utilities:CS2Utility[];demos:CS2Demo[];reminders:boolean};
 export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
 export type YouTubeTrend={id:string;category:string;subtopic:string;title:string;channel:string;channelUrl?:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
 export type YoutubeTrendsState={videos:YouTubeTrend[];fetchedAt:string;topics:{id:string;label:string}[];method?:string};
 export type PowerLive={status:string;checkedAt:string;source:string;message:string;group?:string;groupSource?:string;sourceUpdatedAt?:string;forecastSource?:string;forecastUpdatedAt?:string;forecastStale?:boolean;lastAttemptAt?:string;intervals:{date:string;start:string;end:string;status:string}[];days?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[];weeklyDays?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[]};
-export type Snapshot={powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type Snapshot={cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -62,6 +69,18 @@ declare global {
     checkTikTok:(url:string)=>Promise<{status:'invalid'|'short'|'video'|'collection'|'unknown'|'unavailable';message:string;url:string;title:string;author:string;videos?:{url:string;title:string;author:string;sound:string}[]}>;
     aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number}>;
     projectReview:(id:string,evidence:string,mode:'review'|'plan')=>Promise<{summary:string;updates:{index:number;progress:number;reason:string}[];suggestedStages:string[];nextActions:string[];risks:string[];spent:number}>;
+    cs2ImportImage:()=>Promise<{id:string;preview:string}|null>;
+    cs2ReadImage:(id:string)=>Promise<string>;
+    cs2AnalyzeImage:(id:string)=>Promise<CS2PhotoDraft>;
+    cs2SaveFaceitKey:(key:string)=>Promise<boolean>;
+    cs2SyncFaceit:(nickname:string)=>Promise<CS2FaceitData>;
+    cs2DisconnectFaceit:()=>Promise<boolean>;
+    cs2SaveUtility:(data:Partial<CS2Utility>)=>Promise<CS2Utility>;
+    cs2DeleteUtility:(id:string)=>Promise<boolean>;
+    cs2SetReminders:(enabled:boolean)=>Promise<boolean>;
+    cs2ImportDemo:()=>Promise<CS2Demo|null>;
+    cs2DemoNote:(id:string,note:string)=>Promise<CS2Demo>;
+    cs2Coach:(question:string)=>Promise<{text:string;spent:number}>;
 
     addTask:(task:TaskInput)=>Promise<Task>;
     advanceTask:(id:string,date:string,delta:number)=>Promise<number>;

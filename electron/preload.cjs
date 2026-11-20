@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   cs2SaveFaceitKey:(key)=>ipcRenderer.invoke('cs2:faceit-key',key),
   cs2SyncFaceit:(nickname)=>ipcRenderer.invoke('cs2:faceit-sync',nickname),
   cs2DisconnectFaceit:()=>ipcRenderer.invoke('cs2:faceit-disconnect'),
+  cs2FetchProPicks:(force)=>ipcRenderer.invoke('cs2:pro-picks',!!force),
   cs2FetchUtilityRadar:(force)=>ipcRenderer.invoke('cs2:utility-radar',!!force),
   cs2SaveUtility:(item)=>ipcRenderer.invoke('cs2:utility-save',item),
   cs2DeleteUtility:(id)=>ipcRenderer.invoke('cs2:utility-delete',id),

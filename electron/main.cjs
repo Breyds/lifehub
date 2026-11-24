@@ -527,7 +527,10 @@ async function refreshPersonalMusic(force=false){
   const refreshToken=safeStorage.decryptString(Buffer.from(profile.refreshEncrypted,'base64'));
   const token=await spotifyPersonal.tokenRequest({grant_type:'refresh_token',refresh_token:refreshToken,client_id:profile.clientId});
   if(token.refresh_token)profile.refreshEncrypted=safeStorage.encryptString(token.refresh_token).toString('base64');
-  const taste=await spotifyPersonal.readTaste(token.access_token);
+  const baseTaste=await spotifyPersonal.readTaste(token.access_token);
+  let playlists={tracks:[],readable:0,examined:0};
+  try{playlists=await spotifyPersonal.readPlaylistTaste(token.access_token,profile.radarPlaylist||'');}catch{}
+  const taste=[...new Map([...baseTaste,...playlists.tracks].map(t=>[t.id,t])).values()];
   const music=await refreshMusic(false);
   let discovered,mode='catalog';
   if(profile.radarPlaylist){
@@ -542,7 +545,7 @@ async function refreshPersonalMusic(force=false){
   const chartRanks=new Map(Object.values(music.markets||{}).flat().map(t=>[(t.artist+'|'+t.title).toLowerCase(),t.rank]));
   const matches=spotifyPersonal.recommend(taste,{spotify:unsaved.map(t=>({...t,rank:chartRanks.get((t.artist+'|'+t.title).toLowerCase())??t.rank}))},prior,mode==='radar-copy');
   profile.items=matches;profile.regions=spotifyPersonal.regionalPicks(taste,music.markets||{},matches,window);profile.schema=3;profile.week=week;profile.mode=mode;profile.window=window;
-  profile.message='Релізи '+window.from+' — '+window.to+'. '+matches.length+' новинок за точними датами релізу альбому або синглу. '+(mode==='radar-copy'?'Джерело: твоя власна копія Release Radar.':'Джерело: пошук свіжих релізів виконавців зі Spotify, не оригінальний Release Radar.');
+  profile.message='Релізи '+window.from+' — '+window.to+'. '+matches.length+' новинок за точними датами релізу альбому або синглу. '+(mode==='radar-copy'?'Джерело: твоя власна копія Release Radar.':'Джерело: пошук свіжих релізів виконавців зі Spotify, не оригінальний Release Radar.')+' Доступних плейлистів перевірено: '+playlists.readable+'/'+playlists.examined+'.';
   if(mode==='radar-copy')profile.radarMessage='';
  }catch(e){profile.message=String(e?.message||e).slice(0,200);if(profile.schema!==3||profile.week!==week){profile.items=[];profile.regions={us:[],regional:[]};}}
  finally{spotifyBusy=false;save();}

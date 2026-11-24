@@ -37,10 +37,15 @@ export type PowerLive={status:string;checkedAt:string;source:string;message:stri
 export type TikTokCachedVideo={url:string;title:string;author:string;sound:string;recognized?:{title:string;artist:string;spotifyUrl:string}};
 export type SpotifyPick=MusicTrack&{reason:string};
 export type SpotifyPersonal={feedback:Record<string,'like'|'dislike'>;connected:boolean;week:string;items:SpotifyPick[];regions:{us:SpotifyPick[];regional:SpotifyPick[]};message:string;radarPlaylist:string;radarMessage:string;mode:string;window:{from:string;to:string}|null};
-export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsMutedSources:string[];newsImageUsage:number;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsMutedSources:string[];newsImageUsage:number;newsCoverError:string;newsCoverPauseUntil:number;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
+    streamImportMaterial:(id:string)=>Promise<StreamMaterial|null>;
+    streamRemoveMaterial:(id:string,material:string)=>Promise<boolean>;
+    streamObsCheck:(port:number,password:string,test?:boolean)=>Promise<ObsSnapshot>;
+    streamAiReview:(id:string,request:string,metrics:ObsSnapshot|null)=>Promise<{text:string;spent:number}>;
+    newsCoverMissing:(id:string)=>Promise<boolean>;
     addWorkspace:(kind:WorkspaceKind,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
     editWorkspace:(kind:WorkspaceKind,id:string,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
     deleteWorkspace:(kind:WorkspaceKind,id:string)=>Promise<boolean>;
@@ -131,3 +136,6 @@ declare global {
     onChanged:(cb:()=>void)=>()=>void;
   } }
 }
+
+export type StreamMaterial={id:string;name:string;kind:string;bytes:number;entries:number;questions:number;warnings:string[];summary:string;sample?:string[]};
+export type ObsSnapshot={sample?:{seconds:number;renderSkipped:number|null;renderTotal:number|null;outputSkipped:number|null;outputTotal:number|null;networkSkipped:number|null;networkTotal:number|null};checkedAt:string;currentScene:string;scenes:string[];sources:{scene:string;items:{name:string;enabled:boolean}[]}[];inputs:{name:string;kind:string}[];cpu:number|null;memory:number|null;fps:number|null;renderSkipped:number|null;renderTotal:number|null;outputSkipped:number|null;outputTotal:number|null;streamActive:boolean|null;networkSkipped:number|null;networkTotal:number|null;recording:boolean|null;width:number|null;height:number|null};

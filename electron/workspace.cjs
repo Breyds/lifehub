@@ -1,5 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
+const {cleanStudio}=require('./stream-studio.cjs');
 const {cleanResult,weekGoals}=require('./cs2.cjs');
 const {validDate,assertScheduledDate}=require('./logic.cjs');
 const KINDS=['projects','gym','cardio','cs2logs','weight','meals','channels','ideas','streams','songs','programs'];
@@ -51,7 +52,7 @@ function validateItem(kind,raw,original){
  if(kind==='meals')Object.assign(x,{title:string(raw.title,130),date:dateField(raw.date),calories:num(raw.calories,10000),protein:num(raw.protein,500),note:string(raw.note,1500),photoData:typeof raw.photoData==='string'&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(raw.photoData)&&raw.photoData.length<500000?raw.photoData:''});
  if(kind==='channels')Object.assign(x,{title:string(raw.title,130),url:urlField(raw.url),focus:string(raw.focus,350),uploadTime:timeField(raw.uploadTime)});
  if(kind==='ideas')Object.assign(x,{title:string(raw.title,130),channelId:string(raw.channelId,100),status:['idea','script','editing','ready','published'].includes(raw.status)?raw.status:'idea',date:dateField(raw.date),url:urlField(raw.url),note:string(raw.note,1800)});
- if(kind==='streams')Object.assign(x,{title:string(raw.title,130),date:dateField(raw.date),time:timeField(raw.time),endTime:timeField(raw.endTime),projectId:string(raw.projectId,100),status:['planned','done','cancelled'].includes(raw.status)?raw.status:'planned',note:string(raw.note,2500)});
+ if(kind==='streams')Object.assign(x,{title:string(raw.title,130),date:dateField(raw.date),time:timeField(raw.time),endTime:timeField(raw.endTime),projectId:string(raw.projectId,100),status:['planned','preparing','ready','live','done','cancelled'].includes(raw.status)?raw.status:'planned',note:string(raw.note,2500),studio:cleanStudio(raw.studio)});
  if(kind==='songs')Object.assign(x,{title:string(raw.title,130),artist:string(raw.artist,100),url:urlField(raw.url),note:string(raw.note,1000),status:['queued','added'].includes(raw.status)?raw.status:'queued',week:dateField(raw.week)});
  if(kind==='programs')Object.assign(x,{title:string(raw.title,130),content:string(raw.content,10000),date:dateField(raw.date),focus:['gym','cardio','nutrition','general'].includes(raw.focus)?raw.focus:'general'});
  if(!x.title)throw new Error('Додай назву');

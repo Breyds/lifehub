@@ -34,7 +34,9 @@ export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
 export type YouTubeTrend={id:string;category:string;subtopic:string;title:string;channel:string;channelUrl?:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
 export type YoutubeTrendsState={videos:YouTubeTrend[];fetchedAt:string;topics:{id:string;label:string}[];method?:string};
 export type PowerLive={status:string;checkedAt:string;source:string;message:string;group?:string;groupSource?:string;sourceUpdatedAt?:string;forecastSource?:string;forecastUpdatedAt?:string;forecastStale?:boolean;lastAttemptAt?:string;intervals:{date:string;start:string;end:string;status:string}[];days?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[];weeklyDays?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[]};
-export type Snapshot={cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type TikTokCachedVideo={url:string;title:string;author:string;sound:string};
+export type SpotifyPersonal={connected:boolean;week:string;items:(MusicTrack&{reason:string})[];message:string};
+export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -54,6 +56,12 @@ declare global {
     saveAudDToken:(token:string)=>Promise<boolean>;
     removeAudDToken:()=>Promise<boolean>;
     armAudioCapture:()=>Promise<boolean>;
+    musicPlayPreview:(url:string)=>Promise<boolean>;
+    musicStopPreview:()=>Promise<boolean>;
+    spotifyConnect:(id:string)=>Promise<boolean>;
+    spotifyRefresh:()=>Promise<boolean>;
+    spotifyDisconnect:()=>Promise<boolean>;
+    tiktokLogin:(url:string)=>Promise<{status:string;message:string;url:string;title:string;author:string;videos?:TikTokCachedVideo[]}>;
     recognizeCapturedAudio:(bytes:Uint8Array)=>Promise<{found:boolean;title?:string;artist?:string;album?:string;spotifyUrl?:string;message:string}>;
     recognizeAudio:()=>Promise<{found:boolean;title?:string;artist?:string;album?:string;spotifyUrl?:string;message:string}|null>;
     connectTelegram:(token:string)=>Promise<string>;

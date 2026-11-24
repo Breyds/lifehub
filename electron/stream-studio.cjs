@@ -6,6 +6,7 @@ const checklist=[
 ];
 const text=(v,n=200)=>String(v??'').trim().slice(0,n);
 function cleanStudio(raw={}){
+ if(!raw||typeof raw!=='object')raw={};
  const check=Object.fromEntries(checklist.map(([id])=>[id,raw.check?.[id]===true]));
  return {platform:['Twitch','YouTube','Kick','Інше'].includes(raw.platform)?raw.platform:'Twitch',format:['quiz','gaming','talk','study','reaction','custom'].includes(raw.format)?raw.format:'custom',category:text(raw.category,100),description:text(raw.description,1500),plan:text(raw.plan,4000),obsPlan:text(raw.obsPlan,4000),post:text(raw.post,3000),check,materials:Array.isArray(raw.materials)?raw.materials.slice(0,20).filter(m=>m&&/^[a-f0-9-]{36}$/.test(m.id)).map(m=>({id:m.id,name:text(m.name,180),bytes:Math.max(0,Math.min(MAX_FILE,Number(m.bytes)||0)),kind:text(m.kind,20),entries:Math.max(0,Math.min(10000,Number(m.entries)||0)),questions:Math.max(0,Math.min(100000,Number(m.questions)||0)),warnings:Array.isArray(m.warnings)?m.warnings.slice(0,15).map(x=>text(x,240)):[],summary:text(m.summary,600),sample:Array.isArray(m.sample)?m.sample.slice(0,8).map(x=>text(x,220)):[]})):[]};
 }
@@ -81,4 +82,14 @@ async function obsSnapshot(port=4455,password='',WS=globalThis.WebSocket){
   });
  });
 }
-module.exports={cleanStudio,checklist,inspectZip,inspectFile,obsSnapshot};
+function obsDelta(before,after){
+ const delta=k=>Number.isFinite(before[k])&&Number.isFinite(after[k])&&after[k]>=before[k]?after[k]-before[k]:null;
+ return {seconds:Math.max(0,(Date.parse(after.checkedAt)-Date.parse(before.checkedAt))/1000),renderSkipped:delta('renderSkipped'),renderTotal:delta('renderTotal'),outputSkipped:delta('outputSkipped'),outputTotal:delta('outputTotal'),networkSkipped:before.streamActive&&after.streamActive?delta('networkSkipped'):null,networkTotal:before.streamActive&&after.streamActive?delta('networkTotal'):null};
+}
+async function obsTest(port,password){
+ const before=await obsSnapshot(port,password);
+ await new Promise(resolve=>setTimeout(resolve,10000));
+ const after=await obsSnapshot(port,password);
+ return {...after,sample:obsDelta(before,after)};
+}
+module.exports={cleanStudio,checklist,inspectZip,inspectFile,obsSnapshot,obsDelta,obsTest};

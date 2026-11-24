@@ -19,7 +19,7 @@ function parseChart(body,market){
   url:httpsUrl(x.url),
   artworkUrl:httpsUrl(x.artworkUrl100),
   releaseDate:dateOnly(x.releaseDate),
-  market,rank:i+1
+  market,rank:i+1,genres:(Array.isArray(x.genres)?x.genres:[]).map(g=>String(g?.name||'').trim().slice(0,80)).filter(Boolean).slice(0,8)
  })).filter(x=>x.title&&x.url);
 }
 // A separate verified source for recently released songs: tracks from top album releases.

@@ -18,7 +18,7 @@ function normalizePick(raw){
 }
 function normalizeFeed(feed){
  const reviewedAt=/^\d{4}-\d{2}-\d{2}$/.test(String(feed?.reviewedAt||''))?feed.reviewedAt:'';
- const records=Array.isArray(feed?.items)?feed.items.slice(0,24):[];
+ const records=Array.isArray(feed?.items)?feed.items.slice(0,120):[];
  const seen=new Set(),items=[];
  for(const raw of records){const pick=normalizePick(raw);if(pick&&!seen.has(pick.id)){seen.add(pick.id);items.push(pick);}}
  return {reviewedAt,items,notice:str(feed?.notice,450),source:'LifeHub editorial'};

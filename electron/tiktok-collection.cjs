@@ -28,30 +28,30 @@ const SCAN_JS=`(async()=>{
      if(!found.has(href))found.set(href,{url:href,title,sound});
    }
  };
- for(let i=0;i<9;i++){
+ for(let i=0;i<4;i++){
    remember();window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'});
-   await new Promise(resolve=>setTimeout(resolve,650));
+   await new Promise(resolve=>setTimeout(resolve,400));
  }
  remember();
  return {count:found.size,videos:[...found.values()].slice(0,100),pageTitle:document.title||''};
 })()`;
-async function scanCollectionInWindow(raw,BrowserWindow,owner){
+async function scanCollectionInWindow(raw,BrowserWindow,owner,interactive=false){
  const parsed=classifyTikTokUrl(raw);if(!canScanUrl(raw))throw new Error('Потрібне посилання на TikTok-колекцію');const url=parsed.url;
- const win=activeWindow&&!activeWindow.isDestroyed()?activeWindow:new BrowserWindow({width:1100,height:790,parent:owner||undefined,title:'TikTok · перегляд колекції LifeHub',autoHideMenuBar:true,show:true,webPreferences:{partition:'persist:lifehub-tiktok',nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
- activeWindow=win;win.on('closed',()=>{if(activeWindow===win)activeWindow=null;});
+ const win=activeWindow&&!activeWindow.isDestroyed()?activeWindow:new BrowserWindow({width:1100,height:790,parent:owner||undefined,title:'TikTok · перегляд колекції LifeHub',autoHideMenuBar:true,show:interactive,webPreferences:{partition:'persist:lifehub-tiktok',nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true}});
+ if(interactive)win.show();activeWindow=win;win.on('closed',()=>{if(activeWindow===win)activeWindow=null;});
  win.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  let current=url;
  win.webContents.on('will-navigate',(e,target)=>{try{const u=new URL(target);if(u.protocol!=='https:'||!(u.hostname==='tiktok.com'||u.hostname.endsWith('.tiktok.com')))e.preventDefault();}catch{e.preventDefault();}});
  try{
-  if(win.webContents.getURL()!==url&&win.webContents.getURL()&&parsed.kind!=='short')await win.loadURL(url);
+  if(win.webContents.getURL()!==url&&win.webContents.getURL()&&parsed.kind!=='short')await Promise.race([win.loadURL(url),new Promise((_,reject)=>setTimeout(()=>reject(new Error('TikTok не відповідає')),15000))]);
   else if(!win.webContents.getURL())await Promise.race([win.loadURL(url),new Promise((_,reject)=>setTimeout(()=>reject(new Error('TikTok не відповідає')),22000))]);
-  await new Promise(resolve=>setTimeout(resolve,2600));
+  await new Promise(resolve=>setTimeout(resolve,1000));
   const resolved=classifyTikTokUrl(win.webContents.getURL());
   if(resolved.kind!=='collection'){if(!win.isDestroyed())win.close();return {status:resolved.kind==='short'?'short':'unknown',url:resolved.url||url,title:'',author:'',videos:[],message:'Коротке посилання не перенаправило на доступну колекцію. Відкрий його у звичайному браузері й скопіюй повну адресу TikTok-колекції.'};}
   let rawList=await win.webContents.executeJavaScript(SCAN_JS,true);
   let videos=dedupeVideos(rawList?.videos||[]);
   // TikTok may ask to log in. Keep the restricted browser open; user can log in there and retry.
-  if(!videos.length){return {status:'collection',url,message:'Сторінку відкрито, але відео не вдалося прочитати. Якщо TikTok просить увійти, авторизуйся у відкритому вікні та знову натисни «Перевірити». Ніякі паролі не передаються LifeHub.',title:'',author:'',videos:[]};}
+  if(!videos.length){if(!interactive&&!win.isDestroyed())win.close();return {status:'collection',url,message:'Сторінку відкрито, але відео не вдалося прочитати. Якщо потрібен вхід, скористайся окремою кнопкою авторизації. Ніякі паролі не передаються LifeHub.',title:'',author:'',videos:[]};}
   win.close();
   return {status:'collection',url,message:`Знайдено ${videos.length} доступних відео. Це ще не означає ${videos.length} розпізнаних пісень: для частини роликів TikTok не показує назву аудіо.`,title:'',author:'',videos};
  }catch(e){if(!win.isDestroyed())win.close();return {status:'unavailable',url,message:'Не вдалося прочитати TikTok-колекцію: '+String(e.message||e).slice(0,180),title:'',author:'',videos:[]};}

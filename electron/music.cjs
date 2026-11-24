@@ -44,22 +44,28 @@ async function fetchFreshAlbumTracks(market,fetcher=fetch,now=new Date()){
  }));
  return arrays.filter(x=>x.status==='fulfilled').flatMap(x=>x.value).slice(0,90);
 }
+// Only tracks with their own chart position and release date qualify as ranked new hits.
+// Albums do not confer popularity on every individual song.
+function selectFreshHits(markets,now=new Date()){
+ const cutoff=new Date(now.getTime()-7*86400000).toISOString().slice(0,10),end=now.toISOString().slice(0,10);
+ const groups={};
+ for(const [market,items] of Object.entries(markets||{})){
+  const seen=new Set();
+  groups[market]=(items||[]).filter(t=>t.releaseDate>=cutoff&&t.releaseDate<=end&&t.source!=='new-album').sort((a,b)=>a.rank-b.rank).filter(t=>{const k=(t.title+'|'+t.artist).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;}).slice(0,35);
+ }
+ return groups;
+}
 async function fetchMusicCharts(fetcher=fetch){
  const requests=Object.keys(CHART_MARKETS);
  const responses=await Promise.allSettled(requests.map(async market=>{
-  const url=`https://rss.applemarketingtools.com/api/v2/${market}/music/most-played/100/songs.json`;
-  const res=await fetcher(url,{signal:AbortSignal.timeout(14000)});
-  if(!res.ok)throw new Error(`Apple RSS ${market}: ${res.status}`);
-  const body=await res.text();if(body.length>1_500_000)throw new Error('Надто великий RSS');
+  const url='https://rss.applemarketingtools.com/api/v2/'+market+'/music/most-played/100/songs.json';
+  const res=await fetcher(url,{signal:AbortSignal.timeout(10000)});
+  if(!res.ok)throw new Error('Apple RSS '+market+': '+res.status);
+  const body=await res.text();if(body.length>1500000)throw new Error('Надто великий RSS');
   return parseChart(body,market);
  }));
- const freshReleases={},freshErrors=[];
- // The new-release feed is separate from chart hits and may be unavailable in some markets.
- // This extra request costs no OpenAI tokens; it uses Apple's public catalog data.
- await Promise.all(requests.map(async market=>{try{freshReleases[market]=await fetchFreshAlbumTracks(market,fetcher);}catch{freshReleases[market]=[];freshErrors.push(market);}}));
  const markets={},errors=[];
- responses.forEach((r,i)=>{const market=requests[i];if(r.status==='fulfilled')markets[market]=r.value;
-   else{markets[market]=[];errors.push(market);}});
- return {markets,freshReleases,errors,freshErrors,fetchedAt:new Date().toISOString(),source:'Apple Music — top 100 songs + top albums',method:'Новинки: підтверджені релізи із топ-100 пісень і треки з альбомів, що вийшли за останні 7 днів'};
+ responses.forEach((r,i)=>{const market=requests[i];if(r.status==='fulfilled')markets[market]=r.value;else{markets[market]=[];errors.push(market);}});
+ return {markets,freshReleases:selectFreshHits(markets),errors,freshErrors:[],fetchedAt:new Date().toISOString(),source:'Apple Music — top 100 songs',method:'Популярні новинки: лише треки у чартах із власною датою релізу за останні 7 днів.',schema:2};
 }
-module.exports={CHART_MARKETS,parseChart,fetchMusicCharts,fetchFreshAlbumTracks};
+module.exports={CHART_MARKETS,parseChart,fetchMusicCharts,fetchFreshAlbumTracks,selectFreshHits};

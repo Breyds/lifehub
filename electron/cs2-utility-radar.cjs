@@ -29,22 +29,24 @@ function normalizeVideoResults(responses,now=Date.now()){
    out.push({id:videoId,title,channel:String(s.channelTitle||'').slice(0,110),publishedAt,map:inferMap(title+' '+description),type:inferType(title),url:'https://www.youtube.com/watch?v='+videoId,source:'YouTube',verified:false});
   }
  }
- return out.sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt)).slice(0,20);
+ return MAPS.flatMap(map=>out.filter(x=>x.map===map).sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt)).slice(0,8)).concat(out.filter(x=>x.map==='Other').slice(0,5));
 }
 async function fetchCS2UtilityRadar(key,options={}){
  if(typeof key!=='string'||key.length<20)throw new Error('Потрібен YouTube Data API key');
  const clock=Number.isFinite(options.now)?options.now:Date.now();
  const publishedAfter=new Date(clock-8*86400000).toISOString();
- const queries=['CS2 pro smoke flash new lineup tournament','Counter Strike 2 new pro utility molotov grenades'];
+ const queries=MAPS.filter(m=>!['Train','Vertigo'].includes(m)).map(m=>'CS2 '+m+' pro smoke flash molotov lineup tournament');
  const responses=[];
- for(const query of queries){
+ const results=await Promise.allSettled(queries.map(async query=>{
   const url=new URL('https://www.googleapis.com/youtube/v3/search');
   url.searchParams.set('part','snippet');url.searchParams.set('type','video');url.searchParams.set('order','date');url.searchParams.set('maxResults','20');
   url.searchParams.set('publishedAfter',publishedAfter);url.searchParams.set('q',query);url.searchParams.set('key',key);
   const response=await fetch(url.toString(),{signal:AbortSignal.timeout(12000)});
   if(!response.ok)throw new Error('YouTube Data API повернув статус '+response.status+'. Перевір ключ та квоту.');
-  responses.push(await response.json());
- }
- return {items:normalizeVideoResults(responses,clock),fetchedAt:new Date(clock).toISOString(),status:'ok',message:'Кандидати з YouTube за останні 8 днів. Не перевірені як про-розкидки — відтворюй у грі перед додаванням.'};
+  return response.json();
+ }));
+ for(const result of results)if(result.status==='fulfilled')responses.push(result.value);
+ if(!responses.length)throw Error('YouTube API: усі запити недоступні. Перевір ключ і квоту.');
+ return {items:normalizeVideoResults(responses,clock),fetchedAt:new Date(clock).toISOString(),status:'ok',message:'Щотижневий пошук по 8 картах. Це нові відео-кандидати, не підтверджені про-розкидки. Кількість залежить від джерела.'};
 }
 module.exports={fetchCS2UtilityRadar,normalizeVideoResults,inferMap,inferType};

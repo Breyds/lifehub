@@ -137,5 +137,5 @@ declare global {
   } }
 }
 
-export type StreamMaterial={id:string;name:string;kind:string;bytes:number;entries:number;questions:number;warnings:string[];summary:string};
+export type StreamMaterial={id:string;name:string;kind:string;bytes:number;entries:number;questions:number;warnings:string[];summary:string;sample?:string[]};
 export type ObsSnapshot={checkedAt:string;currentScene:string;scenes:string[];sources:{scene:string;items:{name:string;enabled:boolean}[]}[];inputs:{name:string;kind:string}[];cpu:number|null;memory:number|null;fps:number|null;renderSkipped:number|null;renderTotal:number|null;outputSkipped:number|null;outputTotal:number|null;streamActive:boolean|null;networkSkipped:number|null;networkTotal:number|null;recording:boolean|null;width:number|null;height:number|null};

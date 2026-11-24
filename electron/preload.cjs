@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   musicStopPreview:()=>ipcRenderer.invoke('music:preview-stop'),
   spotifyConnect:(id)=>ipcRenderer.invoke('music:spotify-connect',id),
   spotifyRefresh:()=>ipcRenderer.invoke('music:spotify-refresh'),
+  spotifyRadarCopy:(url)=>ipcRenderer.invoke('music:spotify-radar-copy',url),
   spotifyDisconnect:()=>ipcRenderer.invoke('music:spotify-disconnect'),
   tiktokLogin:(url)=>ipcRenderer.invoke('music:tiktok-login',url),
   saveAudDToken:(token)=>ipcRenderer.invoke('music:audd-save',token),

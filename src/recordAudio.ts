@@ -19,14 +19,12 @@ export async function recordPlayingAudio(tiktokUrl:string):Promise<Uint8Array>{
    recorder.onerror=()=>reject(new Error('Помилка запису звуку'));
    recorder.onstop=()=>{new Blob(chunks,{type:mime}).arrayBuffer().then(b=>resolve(new Uint8Array(b)),reject);};
   });
+  if(tiktokUrl)await window.lifehub.musicPlayPreview(tiktokUrl);
   recorder.start(1000);
-  // TikTok opens only after the local audio capture is active.
-  // If autoplay is blocked, the user presses Play in the browser.
-  await window.lifehub.openLink(tiktokUrl);
-  await new Promise(resolve=>setTimeout(resolve,16000));
+  await new Promise(resolve=>setTimeout(resolve,12000));
   if(recorder.state!=='inactive')recorder.stop();
   const bytes=await recorded;
   if(bytes.byteLength<1000)throw new Error('Звуку не записано — перевір, що TikTok відтворювався');
   return bytes;
- }finally{if(activeRecorder && activeRecorder.state!=='inactive')activeRecorder.stop();stream?.getTracks().forEach(t=>t.stop());}
+ }finally{if(tiktokUrl)void window.lifehub.musicStopPreview().catch(()=>{});if(activeRecorder && activeRecorder.state!=='inactive')activeRecorder.stop();stream?.getTracks().forEach(t=>t.stop());}
 }

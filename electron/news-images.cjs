@@ -2,6 +2,8 @@
 // Prefer the image published WITH the article. Wikipedia fallback is permitted only
 // for an explicitly named subject and must be labeled as an illustration.
 const NAMED_TOPICS=[
+ {words:[/\bthe apothecary diaries\b/i],article:'The_Apothecary_Diaries'},
+ {words:[/\bpsyren\b/i],article:'Psyren'},
  {words:[/jujutsu\s*kaisen/i,/магічн.{0,12}битв/i,/магическ.{0,12}битв/i],article:'Jujutsu_Kaisen'},
  {words:[/grand\s*theft\s*auto\s*(?:vi|6)/i,/\bgta\s*(?:vi|6)\b/i],article:'Grand_Theft_Auto_VI'},
  {words:[/crimean\s+(?:road\s+)?bridge/i,/kerch\s+(?:strait\s+)?bridge/i,/кримськ.{0,12}мост/i,/крымск.{0,12}мост/i],article:'Crimean_Bridge'},
@@ -43,7 +45,7 @@ function extractOGImage(html,pageUrl){
  }
  return '';
 }
-const TRUSTED_HOSTS=new Set(['bbc.com','bbc.co.uk','reuters.com','aljazeera.com','mashable.com','cbr.com','comicbook.com','techrepublic.com','theverge.com','ign.com','apnews.com','adobe.com','techcrunch.com','polygon.com','gamespot.com','billboard.com','engadget.com','wired.com','variety.com','animenewsnetwork.com','crunchyroll.com','anitrendz.com','gamerant.com','animecorner.me']);
+const TRUSTED_HOSTS=new Set(['bbc.com','bbc.co.uk','reuters.com','aljazeera.com','mashable.com','cbr.com','comicbook.com','techrepublic.com','theverge.com','ign.com','apnews.com','adobe.com','techcrunch.com','polygon.com','gamespot.com','billboard.com','engadget.com','wired.com','variety.com','animenewsnetwork.com','crunchyroll.com','anitrendz.com','gamerant.com','animecorner.me','pravda.com.ua','suspilne.media','epravda.com.ua','itc.ua','astanatimes.com','themoscowtimes.com','africanews.com','japantimes.co.jp','euronews.com','npr.org','arstechnica.com','pcgamer.com','tubefilter.com']);
 function trustedArticle(url){try{const u=new URL(url);const name=u.hostname.toLowerCase().replace(/^www\./,'');return u.protocol==='https:'&&[...TRUSTED_HOSTS].some(h=>name===h||name.endsWith('.'+h))&&!u.username&&!u.password;}catch{return false;}}
 function googleNewsArticle(url){try{const u=new URL(url);return u.protocol==='https:'&&u.hostname==='news.google.com'&&u.pathname.startsWith('/rss/articles/');}catch{return false;}}
 async function fetchOriginalImage(url,fetcher=fetch){
@@ -66,12 +68,30 @@ async function fetchWikiImage(article,fetcher=fetch){
  return {imageUrl:img.slice(0,1000),imageCreditUrl:typeof data.content_urls?.desktop?.page==='string'&&data.content_urls.desktop.page.startsWith('https://en.wikipedia.org/')?data.content_urls.desktop.page:'',imageCaption:`Ілюстрація теми: ${String(data.title||article).slice(0,80)} (Wikipedia; не фото події)`};
  }catch{return null;}
 }
+function selectImageCandidates(items,limit=36){
+ const groups=new Map(),seen=new Set();
+ for(const x of items||[]){
+  if(seen.has(x.id)||(!trustedArticle(x.url)&&!googleNewsArticle(x.url)))continue;
+  seen.add(x.id);const k=x.category||'other';if(!groups.has(k))groups.set(k,[]);groups.get(k).push(x);
+ }
+ for(const rows of groups.values())rows.sort((a,b)=>Number(trustedArticle(b.url))-Number(trustedArticle(a.url))||String(b.publishedAt).localeCompare(String(a.publishedAt)));
+ const out=[];
+ while(out.length<limit&&[...groups.values()].some(x=>x.length)){
+  for(const rows of groups.values()){if(rows.length&&out.length<limit)out.push(rows.shift());}
+ }
+ return out;
+}
 async function enrichNewsImages(items,fetcher=fetch){
  const missing=(items||[]).filter(x=>!x.imageUrl);
  // Only a bounded number of trusted source pages, to avoid hammering websites on refresh.
- const originalLoaded=new Map(await Promise.all(missing.filter(x=>trustedArticle(x.url)||googleNewsArticle(x.url)).sort((a,b)=>Number(trustedArticle(b.url))-Number(trustedArticle(a.url))).slice(0,28).map(async x=>[x.id,await fetchOriginalImage(x.url,fetcher)])));
+ const candidates=selectImageCandidates(missing,36);
+ const originalLoaded=new Map();
+ for(let i=0;i<candidates.length;i+=9){
+  const batch=await Promise.all(candidates.slice(i,i+9).map(async x=>[x.id,await fetchOriginalImage(x.url,fetcher)]));
+  for(const [id,img] of batch)originalLoaded.set(id,img);
+ }
  const subjects=[...new Set(missing.filter(x=>!originalLoaded.get(x.id)).map(x=>matchArticle(x.title)).filter(Boolean))].slice(0,18);
  const wikiLoaded=new Map(await Promise.all(subjects.map(async name=>[name,await fetchWikiImage(name,fetcher)])));
  return (items||[]).map(x=>{if(x.imageUrl)return x;const y=originalLoaded.get(x.id)||wikiLoaded.get(matchArticle(x.title));return y?{...x,...y}:x;});
 }
-module.exports={matchArticle,safeImageUrl,extractOGImage,trustedArticle,fetchOriginalImage,fetchWikiImage,enrichNewsImages};
+module.exports={matchArticle,safeImageUrl,extractOGImage,trustedArticle,fetchOriginalImage,fetchWikiImage,enrichNewsImages,selectImageCandidates};

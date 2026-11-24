@@ -24,7 +24,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   removeAudDToken:()=>ipcRenderer.invoke('music:audd-remove'),
   recognizeAudio:()=>ipcRenderer.invoke('music:recognize-file'),
   armAudioCapture:()=>ipcRenderer.invoke('music:arm-capture'),
-  recognizeCapturedAudio:(bytes)=>ipcRenderer.invoke('music:recognize-captured',bytes),
+  recognizeCapturedAudio:(bytes,source)=>ipcRenderer.invoke('music:recognize-captured',bytes,source),
   connectTelegram:(token)=>ipcRenderer.invoke('telegram:connect',token),
   testTelegram:()=>ipcRenderer.invoke('telegram:test'),
   checkTelegramPair:()=>ipcRenderer.invoke('telegram:pair-check'),

@@ -7,14 +7,14 @@ const checklist=[
 const text=(v,n=200)=>String(v??'').trim().slice(0,n);
 function cleanStudio(raw={}){
  const check=Object.fromEntries(checklist.map(([id])=>[id,raw.check?.[id]===true]));
- return {platform:['Twitch','YouTube','Kick','Інше'].includes(raw.platform)?raw.platform:'Twitch',format:['quiz','gaming','talk','study','reaction','custom'].includes(raw.format)?raw.format:'custom',category:text(raw.category,100),description:text(raw.description,1500),plan:text(raw.plan,4000),obsPlan:text(raw.obsPlan,4000),post:text(raw.post,3000),check,materials:Array.isArray(raw.materials)?raw.materials.slice(0,20).filter(m=>m&&/^[a-f0-9-]{36}$/.test(m.id)).map(m=>({id:m.id,name:text(m.name,180),bytes:Math.max(0,Math.min(MAX_FILE,Number(m.bytes)||0)),kind:text(m.kind,20),entries:Math.max(0,Math.min(10000,Number(m.entries)||0)),questions:Math.max(0,Math.min(100000,Number(m.questions)||0)),warnings:Array.isArray(m.warnings)?m.warnings.slice(0,15).map(x=>text(x,240)):[],summary:text(m.summary,600)})):[]};
+ return {platform:['Twitch','YouTube','Kick','Інше'].includes(raw.platform)?raw.platform:'Twitch',format:['quiz','gaming','talk','study','reaction','custom'].includes(raw.format)?raw.format:'custom',category:text(raw.category,100),description:text(raw.description,1500),plan:text(raw.plan,4000),obsPlan:text(raw.obsPlan,4000),post:text(raw.post,3000),check,materials:Array.isArray(raw.materials)?raw.materials.slice(0,20).filter(m=>m&&/^[a-f0-9-]{36}$/.test(m.id)).map(m=>({id:m.id,name:text(m.name,180),bytes:Math.max(0,Math.min(MAX_FILE,Number(m.bytes)||0)),kind:text(m.kind,20),entries:Math.max(0,Math.min(10000,Number(m.entries)||0)),questions:Math.max(0,Math.min(100000,Number(m.questions)||0)),warnings:Array.isArray(m.warnings)?m.warnings.slice(0,15).map(x=>text(x,240)):[],summary:text(m.summary,600),sample:Array.isArray(m.sample)?m.sample.slice(0,8).map(x=>text(x,220)):[]})):[]};
 }
 function inspectZip(buf){
  let e=-1;for(let i=buf.length-22;i>=Math.max(0,buf.length-65557);i--)if(buf.readUInt32LE(i)===0x06054b50&&i+22+buf.readUInt16LE(i+20)===buf.length){e=i;break;}
  if(e<0)throw Error('ZIP: не знайдено центральний каталог');
  const count=buf.readUInt16LE(e+10),size=buf.readUInt32LE(e+12),offset=buf.readUInt32LE(e+16);
  if(buf.readUInt16LE(e+4)||buf.readUInt16LE(e+6)||buf.readUInt16LE(e+8)!==count||count>10000||offset+size>e)throw Error('ZIP64, багатотомні або пошкоджені архіви не підтримуються');
- let p=offset,expanded=0,empty=0,dupes=0,unsafe=0,encrypted=0,questions=0,xmlFound=false;const seen=new Set(),warnings=[];
+ let p=offset,expanded=0,empty=0,dupes=0,unsafe=0,encrypted=0,questions=0,xmlFound=false;const seen=new Set(),warnings=[],sample=[];
  for(let i=0;i<count;i++){
   if(p+46>offset+size||buf.readUInt32LE(p)!==0x02014b50)throw Error('Пошкоджений каталог ZIP');
   const flags=buf.readUInt16LE(p+8),method=buf.readUInt16LE(p+10),compressed=buf.readUInt32LE(p+20),uncompressed=buf.readUInt32LE(p+24),n=buf.readUInt16LE(p+28),extra=buf.readUInt16LE(p+30),comment=buf.readUInt16LE(p+32),local=buf.readUInt32LE(p+42);
@@ -33,7 +33,7 @@ function inspectZip(buf){
    const bytes=buf.subarray(start,start+compressed);
    const xml=(method===0?bytes:zlib.inflateRawSync(bytes,{maxOutputLength:MAX_XML})).toString('utf8');
    if(/<!DOCTYPE|<!ENTITY/i.test(xml))warnings.push('XML містить DTD/ENTITY; не обробляємо його як документ');
-   else{questions=(xml.match(/<(?:[\w-]+:)?question(?=[\s>\/])/gi)||[]).length;if(!questions)warnings.push('Не знайдено тегів question у content.xml');}
+   else{questions=(xml.match(/<(?:[\w-]+:)?question(?=[\s>\/])/gi)||[]).length;if(!questions)warnings.push('Не знайдено тегів question у content.xml');const seenQuestions=new Set();let repeated=0;for(const match of xml.matchAll(/<question(?=[\s>])[^>]*>([\s\S]*?)<\/question\s*>/gi)){const block=match[1];const scenario=block.match(/<(?:scenario|questionText)(?:\s[^>]*)?>([\s\S]*?)<\/(?:scenario|questionText)>/i)?.[1]||'';const plain=scenario.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();if(plain){const k=plain.toLowerCase();if(seenQuestions.has(k))repeated++;seenQuestions.add(k);if(sample.length<8)sample.push(plain.slice(0,220));}}if(repeated)warnings.push('Повторюваних текстових сценаріїв: '+repeated);}
   }
  }
  if(!xmlFound)warnings.push('content.xml відсутній (це може бути звичайний ZIP, а не SIGame)');
@@ -41,13 +41,13 @@ function inspectZip(buf){
  if(dupes)warnings.push('Повторюваних імен: '+dupes);
  if(unsafe)warnings.push('Небезпечних шляхів: '+unsafe+'; архів не розпаковується');
  if(encrypted)warnings.push('Зашифрованих записів: '+encrypted);
- return {entries:count,questions,warnings,summary:'Каталог ZIP перевірено без розпакування. Питання — кількість XML-тегів; повна коректність медіа, відповідей та імпорт у SIGame не перевірені.'};
+ return {entries:count,questions,warnings,sample,summary:'Каталог ZIP перевірено без розпакування. Питання — кількість XML-тегів; повна коректність медіа, відповідей та імпорт у SIGame не перевірені.'};
 }
 function inspectFile(file){
  const s=fs.statSync(file);if(!s.isFile()||s.size<1||s.size>MAX_FILE)throw Error('Файл має бути від 1 байта до 100 МБ');
  const ext=path.extname(file).toLowerCase();
  if(!['.siq','.zip','.txt','.md','.pdf','.png','.jpg','.jpeg','.webp','.mp3','.wav','.ogg','.mp4','.webm'].includes(ext))throw Error('Непідтримуваний формат. RAR спочатку перетвори на ZIP.');
- const base={kind:ext.slice(1),bytes:s.size,entries:0,questions:0,warnings:[],summary:'Файл існує й має допустимий розмір. Вміст медіа/PDF не декодовано.'};
+ const base={kind:ext.slice(1),bytes:s.size,entries:0,questions:0,warnings:[],sample:[],summary:'Файл існує й має допустимий розмір. Вміст медіа/PDF не декодовано.'};
  if(ext==='.siq'||ext==='.zip')Object.assign(base,inspectZip(fs.readFileSync(file)));
  if(['.txt','.md'].includes(ext)){const buf=fs.readFileSync(file);if(buf.includes(0))base.warnings.push('Текст містить нульові байти');else base.summary='Текстовий файл: '+buf.toString('utf8').split(/\r?\n/).length+' рядків. Зміст не оцінено.';}
  return base;

@@ -540,11 +540,11 @@ async function refreshPersonalMusic(force=false){
   const unsaved=await spotifyPersonal.excludeSaved(token.access_token,discovered.filter(t=>spotifyPersonal.isFresh(t,window)));
   const prior=profile.week===week?[]:profile.items||[];
   const chartRanks=new Map(Object.values(music.markets||{}).flat().map(t=>[(t.artist+'|'+t.title).toLowerCase(),t.rank]));
-  const matches=spotifyPersonal.recommend(taste,{spotify:unsaved.map(t=>({...t,rank:chartRanks.get((t.artist+'|'+t.title).toLowerCase())??t.rank}))},prior);
-  profile.items=matches;profile.regions=spotifyPersonal.regionalPicks(taste,music.markets||{},matches);profile.schema=3;profile.week=week;profile.mode=mode;profile.window=window;
+  const matches=spotifyPersonal.recommend(taste,{spotify:unsaved.map(t=>({...t,rank:chartRanks.get((t.artist+'|'+t.title).toLowerCase())??t.rank}))},prior,mode==='radar-copy');
+  profile.items=matches;profile.regions=spotifyPersonal.regionalPicks(taste,music.markets||{},matches,window);profile.schema=3;profile.week=week;profile.mode=mode;profile.window=window;
   profile.message='Релізи '+window.from+' — '+window.to+'. '+matches.length+' новинок за точними датами релізу альбому або синглу. '+(mode==='radar-copy'?'Джерело: твоя власна копія Release Radar.':'Джерело: пошук свіжих релізів виконавців зі Spotify, не оригінальний Release Radar.');
   if(mode==='radar-copy')profile.radarMessage='';
- }catch(e){profile.message=String(e?.message||e).slice(0,200);if(profile.schema!==3){profile.items=[];profile.regions={us:[],regional:[]};}}
+ }catch(e){profile.message=String(e?.message||e).slice(0,200);if(profile.schema!==3||profile.week!==week){profile.items=[];profile.regions={us:[],regional:[]};}}
  finally{spotifyBusy=false;save();}
 }
 ipcMain.handle('music:spotify-radar-copy',async(_event,raw)=>{

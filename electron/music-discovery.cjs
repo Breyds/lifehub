@@ -46,8 +46,10 @@ function rankCandidates(rows,profile,window){
  }
  return [...best.values()].sort((a,b)=>b.score-a.score||a.rank-b.rank||key(a).localeCompare(key(b)));
 }
-function pick(rows,limit,exclude=new Set(),artistLimit=2){
+function pick(rows,limit,exclude=new Set(),artistLimit=2,initial=[]){
+ if(limit<=0)return [];
  const counts=new Map(),out=[],seen=new Set(exclude);
+ for(const t of initial)counts.set(artistKey(t),(counts.get(artistKey(t))||0)+1);
  for(const t of rows){const a=artistKey(t),k=key(t);if(seen.has(k)||(counts.get(a)||0)>=artistLimit)continue;
   seen.add(k);counts.set(a,(counts.get(a)||0)+1);out.push(t);if(out.length>=limit)break;
  }
@@ -63,7 +65,7 @@ function selectWeekly({taste,topArtists=[],markets={},catalog=[],chartTracks=[],
  const pool=rankCandidates(radar?catalog:[...catalog,...chartTracks],profile,window);
  // Reserve some fresh US-market discoveries when they exist, even if familiar artists dominate.
  const us=radar?[]:pick(pool.filter(t=>t.region==='us'),3);
- const items=[...us,...pick(pool,10-us.length,new Set(us.map(key)))].slice(0,10).sort((a,b)=>b.score-a.score);
+ const items=[...us,...pick(pool,10-us.length,new Set(us.map(key)),2,us)].slice(0,10).sort((a,b)=>b.score-a.score);
  return {items,regions:regional};
 }
 async function topArtists(token,fetcher=fetch){
@@ -105,8 +107,7 @@ async function discoverGenres(token,taste,artists,markets,window,feedback={},fet
 }
 async function generate({token,taste,markets,window,catalog=[],radar=false,feedback={},fetcher=fetch}){
  const artists=await topArtists(token,fetcher);
- const chartTracks=await matchChartTracks(token,markets,window,taste,feedback,fetcher);
- const extra=radar?[]:await discoverGenres(token,taste,artists,markets,window,feedback,fetcher);
+ const [chartTracks,extra]=await Promise.all([matchChartTracks(token,markets,window,taste,feedback,fetcher),radar?Promise.resolve([]):discoverGenres(token,taste,artists,markets,window,feedback,fetcher)]);
  const candidates=[...catalog,...extra,...chartTracks].filter(t=>isFresh(t,window));
  const unsaved=await excludeSaved(token,candidates,fetcher);
  const allowed=new Set(unsaved.map(t=>t.id));

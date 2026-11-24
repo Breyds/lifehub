@@ -36,7 +36,7 @@ export type YoutubeTrendsState={videos:YouTubeTrend[];fetchedAt:string;topics:{i
 export type PowerLive={status:string;checkedAt:string;source:string;message:string;group?:string;groupSource?:string;sourceUpdatedAt?:string;forecastSource?:string;forecastUpdatedAt?:string;forecastStale?:boolean;lastAttemptAt?:string;intervals:{date:string;start:string;end:string;status:string}[];days?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[];weeklyDays?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[]};
 export type TikTokCachedVideo={url:string;title:string;author:string;sound:string;recognized?:{title:string;artist:string;spotifyUrl:string}};
 export type SpotifyPick=MusicTrack&{reason:string};
-export type SpotifyPersonal={connected:boolean;week:string;items:SpotifyPick[];regions:{us:SpotifyPick[];regional:SpotifyPick[]};message:string;radarPlaylist:string;radarMessage:string;mode:string;window:{from:string;to:string}|null};
+export type SpotifyPersonal={feedback:Record<string,'like'|'dislike'>;connected:boolean;week:string;items:SpotifyPick[];regions:{us:SpotifyPick[];regional:SpotifyPick[]};message:string;radarPlaylist:string;radarMessage:string;mode:string;window:{from:string;to:string}|null};
 export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
@@ -61,6 +61,7 @@ declare global {
     musicStopPreview:()=>Promise<boolean>;
     spotifyConnect:(id:string)=>Promise<boolean>;
     spotifyRefresh:()=>Promise<boolean>;
+    spotifyFeedback:(id:string,vote:'like'|'dislike'|'none')=>Promise<boolean>;
     spotifyRadarCopy:(url:string)=>Promise<boolean>;
     spotifyDisconnect:()=>Promise<boolean>;
     tiktokLogin:(url:string)=>Promise<{status:string;message:string;url:string;title:string;author:string;videos?:TikTokCachedVideo[]}>;

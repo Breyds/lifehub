@@ -47,6 +47,17 @@ async function readTaste(token,fetcher=fetch){
  const [top,more]=await Promise.allSettled([spotifyGet(token,'me/top/tracks?limit=50&time_range=medium_term',fetcher),saved.next?spotifyGet(token,'me/tracks?limit=50&offset=50',fetcher):Promise.resolve({items:[]})]);
  return [...extractTracks(saved.items),...extractTracks(more.status==='fulfilled'?more.value.items:[]),...extractTracks(top.status==='fulfilled'?top.value.items:[])];
 }
+async function excludeSaved(token,tracks,fetcher=fetch){
+ const unique=[...new Map(tracks.filter(t=>/^[A-Za-z0-9]{22}$/.test(t.id)).map(t=>[t.id,t])).values()];
+ const out=[];
+ for(let i=0;i<unique.length;i+=40){
+  const batch=unique.slice(i,i+40);
+  const result=await spotifyGet(token,'me/library/contains?'+new URLSearchParams({uris:batch.map(t=>'spotify:track:'+t.id).join(',')}),fetcher);
+  if(!Array.isArray(result)||result.length!==batch.length||result.some(x=>typeof x!=='boolean'))throw Error('Spotify не підтвердив стан бібліотеки');
+  out.push(...batch.filter((_,j)=>!result[j]));
+ }
+ return out;
+}
 async function discoverArtistTracks(token,taste,fetcher=fetch){
  const weights=new Map();
  for(const t of taste)for(const a of t.artists||[t.artist])weights.set(a,(weights.get(a)||0)+1);
@@ -67,4 +78,4 @@ function recommend(taste,markets,previous=[]){
  for(const {t,affinity} of matching){const k=key(t.artist,t.title);if(seen.has(k)||(perArtist.get(t.artist.toLowerCase())||0)>=3)continue;seen.add(k);perArtist.set(t.artist.toLowerCase(),(perArtist.get(t.artist.toLowerCase())||0)+1);out.push({...t,reason:'Виконавець є у твоїй бібліотеці Spotify ('+affinity+' збігів)'});if(out.length===10)break;}
  return out;
 }
-module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks,discoverArtistTracks};
+module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks,discoverArtistTracks,excludeSaved};

@@ -147,7 +147,7 @@ function makeWindow(){windowRef=new BrowserWindow({width:1280,height:850,minWidt
  if(process.env.VITE_DEV_SERVER_URL)windowRef.loadURL(process.env.VITE_DEV_SERVER_URL);else windowRef.loadFile(path.join(__dirname,'../dist/index.html'));
  windowRef.on('closed',()=>{windowRef=null;});
 }
-app.whenReady().then(()=>{load();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void refreshPersonalMusic(false).catch(()=>{}),22000);setInterval(()=>void refreshPersonalMusic(false).catch(()=>{}),60*60*1000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
+app.whenReady().then(()=>{load();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void refreshPersonalMusic(false).catch(()=>{}),22000);setTimeout(()=>{void refreshUtilityRadar(false).catch(()=>{});void refreshProPicks(false).catch(()=>{});},35000);setInterval(()=>void refreshProPicks(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshUtilityRadar(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshPersonalMusic(false).catch(()=>{}),60*60*1000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('before-quit',()=>{if(notifyTimer)clearInterval(notifyTimer);if(telegramTimer)clearInterval(telegramTimer);if(updateTimer)clearInterval(updateTimer);if(newsTimer)clearInterval(newsTimer);});
 ipcMain.handle('data:load',()=>cleanSnapshot());
@@ -393,7 +393,7 @@ ipcMain.handle('cs2:preview-lineup',async(_event,raw)=>{
  preview.webContents.on('will-redirect',(event,url)=>{try{if(!safeHost(new URL(url)))event.preventDefault();}catch{event.preventDefault();}});
  try{await preview.loadURL(parsed.toString());preview.show();return true;}catch(e){if(!preview.isDestroyed())preview.destroy();throw new Error('Не вдалося завантажити відео в LifeHub. Спробуй «Відкрити зовні»: '+String(e?.message||e).slice(0,120));}
 });
-ipcMain.handle('cs2:pro-picks',async(_event,force=false)=>{
+async function refreshProPicks(force=false){
  const existing=db.cs2.proPicks?.items?.length?db.cs2.proPicks:starterProPicks();
  const age=Date.now()-Date.parse(existing.fetchedAt||'');
  if(!force&&existing.status==='ok'&&Number.isFinite(age)&&age>=0&&age<7*86400000)return existing;
@@ -404,13 +404,17 @@ ipcMain.handle('cs2:pro-picks',async(_event,force=false)=>{
  }catch(e){
   return {...existing,status:'offline',notice:'Остання перевірена редакційна добірка. Онлайн-оновлення недоступне: '+String(e?.message||e).slice(0,130)};
  }
-});
-ipcMain.handle('cs2:utility-radar',async(_event,force=false)=>{
+}
+ipcMain.handle('cs2:pro-picks',(_event,force=false)=>refreshProPicks(force));
+let radarRefreshBusy=false;
+async function refreshUtilityRadar(force=false){
+ if(radarRefreshBusy)return db.cs2.utilityRadar;
  const existing=db.cs2.utilityRadar||{items:[],fetchedAt:'',status:'not-checked',message:''};
  const age=Date.now()-Date.parse(existing.fetchedAt||'');
  if(Number.isFinite(age)&&age>=0&&age<(force?20*60*1000:7*86400000)&&existing.status==='ok')return existing;
  if(!db.youtubeApiKeyEncrypted)return {items:existing.items||[],fetchedAt:existing.fetchedAt||'',status:'needs-key',message:'Щоб збирати свіжі ролики щотижня, додай YouTube Data API key у налаштуваннях.'};
  if(!safeStorage.isEncryptionAvailable())return {...existing,status:'error',message:'Шифрування Windows недоступне'};
+ radarRefreshBusy=true;
  try{
   const key=safeStorage.decryptString(Buffer.from(db.youtubeApiKeyEncrypted,'base64'));
   const radar=await fetchCS2UtilityRadar(key);
@@ -418,8 +422,9 @@ ipcMain.handle('cs2:utility-radar',async(_event,force=false)=>{
  }catch(e){
   const error=String(e?.message||e).slice(0,180);
   return {...existing,status:'error',message:error};
- }
-});
+ }finally{radarRefreshBusy=false;}
+}
+ipcMain.handle('cs2:utility-radar',(_event,force=false)=>refreshUtilityRadar(force));
 ipcMain.handle('cs2:utility-save',(_event,raw)=>{
  const item=cleanUtility(raw);const index=db.cs2.utilities.findIndex(x=>x.id===item.id);
  if(index>=0)db.cs2.utilities[index]=item;else{if(db.cs2.utilities.length>=250)throw new Error('Максимум 250 записів');db.cs2.utilities.push(item);}

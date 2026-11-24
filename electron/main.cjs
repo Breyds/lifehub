@@ -530,8 +530,10 @@ async function refreshPersonalMusic(force=false){
   const taste=await spotifyPersonal.readTaste(token.access_token);
   const music=await refreshMusic(false);
   const prior=profile.week===week?[]:profile.items||[];
-  let matches=spotifyPersonal.recommend(taste,music.markets,prior);
-  if(matches.length<10){const discovered=await spotifyPersonal.discoverArtistTracks(token.access_token,taste);matches=spotifyPersonal.recommend(taste,{...music.markets,spotify:discovered},prior);}
+  const discovered=await spotifyPersonal.discoverArtistTracks(token.access_token,taste);
+  const unsaved=await spotifyPersonal.excludeSaved(token.access_token,discovered);
+  const chartRanks=new Map(Object.values(music.markets||{}).flat().map(t=>[(t.artist+'|'+t.title).toLowerCase(),t.rank]));
+  const matches=spotifyPersonal.recommend(taste,{spotify:unsaved.map(t=>({...t,rank:chartRanks.get((t.artist+'|'+t.title).toLowerCase())??t.rank}))},prior);
   profile.items=matches;profile.week=week;profile.message='Перевірено '+taste.length+' записів Spotify. '+matches.length+' рекомендацій зі збігом виконавців. Якщо збігів мало — не додаємо випадкові треки.';
  }catch(e){profile.message=String(e?.message||e).slice(0,200);}
  finally{spotifyBusy=false;save();}

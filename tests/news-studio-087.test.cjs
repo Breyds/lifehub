@@ -18,7 +18,7 @@ test('balanced category quotas preserve a small internet category and reject unr
 });
 test('news source errors do not erase successful categories and diagnostics are recorded',async()=>{
  const xml='<rss><channel><item><title>YouTube creator update</title><link>https://example.org/news</link><pubDate>'+new Date(now).toUTCString()+'</pubDate></item></channel></rss>';
- const r=await fetchNews(['internet','world'],async url=>({ok:!url.includes('bbc.co.uk'),status:503,text:async()=>xml}));
+ const r=await fetchNews(['internet','world'],async url=>({ok:!url.includes('bbci.co.uk'),status:503,text:async()=>xml}));
  assert.ok(r.categoryStats.internet.ok>0);assert.ok(r.categoryStats.world.failed>0);assert.ok(r.items.some(x=>x.category==='internet'));
 });
 test('negative feedback lowers related topic and source scores, likes boost them, old feedback decays',()=>{

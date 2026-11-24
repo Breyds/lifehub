@@ -41,6 +41,11 @@ export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;vi
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
+    streamImportMaterial:(id:string)=>Promise<StreamMaterial|null>;
+    streamRemoveMaterial:(id:string,material:string)=>Promise<boolean>;
+    streamObsCheck:(port:number,password:string)=>Promise<ObsSnapshot>;
+    streamAiReview:(id:string,request:string,metrics:ObsSnapshot|null)=>Promise<{text:string;spent:number}>;
+    newsCoverMissing:(id:string)=>Promise<boolean>;
     addWorkspace:(kind:WorkspaceKind,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
     editWorkspace:(kind:WorkspaceKind,id:string,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
     deleteWorkspace:(kind:WorkspaceKind,id:string)=>Promise<boolean>;
@@ -131,3 +136,6 @@ declare global {
     onChanged:(cb:()=>void)=>()=>void;
   } }
 }
+
+export type StreamMaterial={id:string;name:string;kind:string;bytes:number;entries:number;questions:number;warnings:string[];summary:string};
+export type ObsSnapshot={checkedAt:string;currentScene:string;scenes:string[];sources:{scene:string;items:{name:string;enabled:boolean}[]}[];inputs:{name:string;kind:string}[];cpu:number|null;memory:number|null;fps:number|null;renderSkipped:number|null;renderTotal:number|null;outputSkipped:number|null;outputTotal:number|null;streamActive:boolean|null;networkSkipped:number|null;networkTotal:number|null;recording:boolean|null;width:number|null;height:number|null};

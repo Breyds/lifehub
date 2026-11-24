@@ -19,7 +19,7 @@ function parseChart(body,market){
   url:httpsUrl(x.url),
   artworkUrl:httpsUrl(x.artworkUrl100),
   releaseDate:dateOnly(x.releaseDate),
-  market,rank:i+1
+  market,rank:i+1,genres:(Array.isArray(x.genres)?x.genres:[]).map(g=>String(g?.name||'').trim().slice(0,80)).filter(Boolean).slice(0,8)
  })).filter(x=>x.title&&x.url);
 }
 // A separate verified source for recently released songs: tracks from top album releases.
@@ -66,6 +66,6 @@ async function fetchMusicCharts(fetcher=fetch){
  }));
  const markets={},errors=[];
  responses.forEach((r,i)=>{const market=requests[i];if(r.status==='fulfilled')markets[market]=r.value;else{markets[market]=[];errors.push(market);}});
- return {markets,freshReleases:selectFreshHits(markets),errors,freshErrors:[],fetchedAt:new Date().toISOString(),source:'Apple Music — top 100 songs',method:'Популярні новинки: лише треки у чартах із власною датою релізу за останні 7 днів.',schema:2};
+ return {markets,freshReleases:selectFreshHits(markets),errors,freshErrors:[],fetchedAt:new Date().toISOString(),source:'Apple Music — top 100 songs',method:'Популярні новинки: лише треки у чартах із власною датою релізу за останні 7 днів.',schema:3};
 }
 module.exports={CHART_MARKETS,parseChart,fetchMusicCharts,fetchFreshAlbumTracks,selectFreshHits};

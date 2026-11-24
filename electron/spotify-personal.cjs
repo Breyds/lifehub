@@ -146,4 +146,4 @@ function recommend(taste,markets,previous=[],allowNewArtists=false){
  for(const {t,affinity} of matching){const k=key(t.artist,t.title);if(seen.has(k)||(perArtist.get(t.artist.toLowerCase())||0)>=3)continue;seen.add(k);perArtist.set(t.artist.toLowerCase(),(perArtist.get(t.artist.toLowerCase())||0)+1);out.push({...t,reason:affinity?'Виконавець є у твоїй бібліотеці Spotify ('+affinity+' збігів)':'Новий виконавець із твоєї копії Release Radar'});if(out.length===10)break;}
  return out;
 }
-module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks,discoverArtistTracks,excludeSaved,weekWindow,isFresh,readFreshArtists,readOwnedPlaylist,playlistId,regionalPicks,cover,readPlaylistTaste};
+module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks,discoverArtistTracks,excludeSaved,weekWindow,isFresh,readFreshArtists,readOwnedPlaylist,playlistId,regionalPicks,cover,readPlaylistTaste,spotifyGet};

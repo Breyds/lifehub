@@ -48,7 +48,7 @@ function balancedItems(items,categories,perCategory=45){
  for(const category of categories){
   const unique=new Map();
   for(const t of items.filter(t=>t.category===category)){
-   const k=normalizedTitle(t.title.replace(/\s+-\s+[^-]+$/,''));
+   const suffix=' - '+t.source;const k=normalizedTitle(t.title.toLowerCase().endsWith(suffix.toLowerCase())?t.title.slice(0,-suffix.length):t.title);
    const old=unique.get(k);
    if(!old||(!old.imageUrl&&t.imageUrl)||((!!old.imageUrl===!!t.imageUrl)&&t.publishedAt>old.publishedAt))unique.set(k,t);
   }

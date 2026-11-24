@@ -32,7 +32,7 @@ test('Music news categories removed from the news feeds',()=>{
 });
 test('News feed UI hides both reactions and supports separate bookmarks',()=>{
  const src=fs.readFileSync(path.join(__dirname,'../src/WorkspacePages.tsx'),'utf8');
- assert.match(src,/setHiddenNow\(prev=>new Set\(prev\)\.add\(id\)\)/);
+ assert.match(src,/await window\.lifehub\.rateNews\(id,kind\);await refresh\(\)/);
  assert.match(src,/window\.lifehub\.rateNews\(id,kind\)/);
  assert.match(src,/window\.lifehub\.saveNews\(id\)/);
  assert.match(src,/snapshot\.newsSaved/);

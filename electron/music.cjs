@@ -66,6 +66,6 @@ async function fetchMusicCharts(fetcher=fetch){
  }));
  const markets={},errors=[];
  responses.forEach((r,i)=>{const market=requests[i];if(r.status==='fulfilled')markets[market]=r.value;else{markets[market]=[];errors.push(market);}});
- return {markets,freshReleases:selectFreshHits(markets),errors,freshErrors:[],fetchedAt:new Date().toISOString(),source:'Apple Music — top 100 songs',method:'Популярні новинки: лише треки у чартах із власною датою релізу за останні 7 днів.',schema:2};
+ return {markets,freshReleases:selectFreshHits(markets),errors,freshErrors:[],fetchedAt:new Date().toISOString(),source:'Apple Music — top 100 songs',method:'Популярні новинки: лише треки у чартах із власною датою релізу за останні 7 днів.',schema:3};
 }
 module.exports={CHART_MARKETS,parseChart,fetchMusicCharts,fetchFreshAlbumTracks,selectFreshHits};

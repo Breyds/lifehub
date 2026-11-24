@@ -46,7 +46,13 @@ function isDeal(t){return /(?:знижк|розпродаж|чорн.{0,8}п.я�
 function balancedItems(items,categories,perCategory=45){
  const seen=new Set(),out=[];
  for(const category of categories){
-  const rows=items.filter(t=>t.category===category).sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt));
+  const unique=new Map();
+  for(const t of items.filter(t=>t.category===category)){
+   const suffix=' - '+t.source;const k=normalizedTitle(t.title.toLowerCase().endsWith(suffix.toLowerCase())?t.title.slice(0,-suffix.length):t.title);
+   const old=unique.get(k);
+   if(!old||(!old.imageUrl&&t.imageUrl)||((!!old.imageUrl===!!t.imageUrl)&&t.publishedAt>old.publishedAt))unique.set(k,t);
+  }
+  const rows=[...unique.values()].sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt));
   let count=0;
   for(const t of rows){
    const k=category+'|'+normalizedTitle(t.title);

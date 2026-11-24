@@ -47,13 +47,24 @@ async function readTaste(token,fetcher=fetch){
  const [top,more]=await Promise.allSettled([spotifyGet(token,'me/top/tracks?limit=50&time_range=medium_term',fetcher),saved.next?spotifyGet(token,'me/tracks?limit=50&offset=50',fetcher):Promise.resolve({items:[]})]);
  return [...extractTracks(saved.items),...extractTracks(more.status==='fulfilled'?more.value.items:[]),...extractTracks(top.status==='fulfilled'?top.value.items:[])];
 }
+async function discoverArtistTracks(token,taste,fetcher=fetch){
+ const weights=new Map();
+ for(const t of taste)for(const a of t.artists||[t.artist])weights.set(a,(weights.get(a)||0)+1);
+ const artists=[...weights.entries()].sort((a,b)=>b[1]-a[1]).slice(0,8).map(a=>a[0]);
+ const result=await Promise.allSettled(artists.map(async a=>{
+  const query=new URLSearchParams({q:'artist:"'+a.replace(/["\\]/g,'')+'"',type:'track',limit:'10'});
+  const response=await spotifyGet(token,'search?'+query,fetcher);
+  return extractTracks(response.tracks?.items).filter(t=>t.artists.some(v=>v.toLowerCase()===a.toLowerCase())).map((t,i)=>({...t,market:'spotify',rank:100+i+1,artworkUrl:'',source:'spotify-artist'}));
+ }));
+ return result.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
+}
 function recommend(taste,markets,previous=[]){
- const known=new Set(taste.map(t=>key(t.artist,t.title))),seen=new Set(),prior=new Set(previous.map(t=>key(t.artist,t.title))),counts=new Map();
+ const known=new Set(taste.map(t=>key(t.artist,t.title))),seen=new Set(),prior=new Set(previous.map(t=>key(t.artist,t.title))),counts=new Map(),perArtist=new Map();
  for(const t of taste)for(const artist of t.artists||[t.artist])counts.set(artist.toLowerCase(),(counts.get(artist.toLowerCase())||0)+1);
  const candidates=Object.values(markets||{}).flat().filter(t=>!known.has(key(t.artist,t.title))&&!prior.has(key(t.artist,t.title)));
  const matching=candidates.map(t=>({t,affinity:counts.get(t.artist.toLowerCase())||0})).filter(x=>x.affinity>0).sort((a,b)=>b.affinity-a.affinity||a.t.rank-b.t.rank);
  const out=[];
- for(const {t,affinity} of matching){const k=key(t.artist,t.title);if(seen.has(k))continue;seen.add(k);out.push({...t,reason:'Виконавець є у твоїй бібліотеці Spotify ('+affinity+' збігів)'});if(out.length===10)break;}
+ for(const {t,affinity} of matching){const k=key(t.artist,t.title);if(seen.has(k)||(perArtist.get(t.artist.toLowerCase())||0)>=3)continue;seen.add(k);perArtist.set(t.artist.toLowerCase(),(perArtist.get(t.artist.toLowerCase())||0)+1);out.push({...t,reason:'Виконавець є у твоїй бібліотеці Spotify ('+affinity+' збігів)'});if(out.length===10)break;}
  return out;
 }
-module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks};
+module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks,discoverArtistTracks};

@@ -31,9 +31,9 @@ test('DTEK does not infer that missing slots mean electricity is available',()=>
  const out=extractFactResponse({result:true,data:{'1':{sub_type_reason:['GPV2.1']}},fact:{data:{}}},'1');
  assert.equal(out.days.length,0);
 });
-test('News dislike discards article but not category or headline',()=>{
+test('News dislike hides article and retains local topic feedback',()=>{
  const db={news:{items:[{id:'abc',title:'One story',category:'games',url:'https://example.org'}]},newsFeedback:{},newsSaved:[],newsDismissed:{}};
- disposition(db,'abc','not');assert.equal(db.news.items.length,0);assert.deepEqual(db.newsFeedback,{});assert.equal(db.newsSaved.length,0);
+ disposition(db,'abc','not');assert.equal(db.news.items.length,0);assert.equal(db.newsFeedback.abc.vote,'not');assert.equal(db.newsFeedback.abc.title,'One story');assert.equal(db.newsSaved.length,0);
  assert.equal(filterIncoming([{id:'abc'}],db).length,0);
 });
 test('News like learns category but card disappears from feed',()=>{

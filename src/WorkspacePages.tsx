@@ -110,7 +110,7 @@ export function StreamsPage(props:WorkspaceActions){const {snapshot,refresh,repo
 }
 
 const newsCat:Record<string,string>={anime:'Аніме',games:'Ігри',internet:'Інтернет',world:'Світ',tech:'Технології',europe:'Європа',america:'Америка',asia:'Азія',africa:'Африка',cis:'СНД / регіон',ukraine:'Україна',deals:'Акції UA'};
-const shopLinks=[['ROZETKA','https://rozetka.com.ua/ua/news-articles-promotions/promotions/'],['COMFY','https://comfy.ua/ua/sale/'],['Black Friday · COMFY','https://comfy.ua/ua/black-friday/']];
+const shopLinks=[['ROZETKA','https://rozetka.com.ua/ua/news-articles-promotions/promotions/'],['COMFY','https://comfy.ua/ua/sale/'],['Black Friday · COMFY','https://comfy.ua/ua/black-friday/'],['Foxtrot','https://www.foxtrot.com.ua/uk/actions'],['TELEMART','https://telemart.ua/ua/promotions/'],['MOYO','https://www.moyo.ua/ua/actions.html'],['ALLO','https://allo.ua/ua/events-and-discounts/']];
 function NewsVisual({article,onMissing,auto,waiting}:{article:NewsEntry;onMissing:()=>void;auto:boolean;waiting:boolean}){
  const [broken,setBroken]=useState(false);
  useEffect(()=>{setBroken(false);},[article.imageUrl]);
@@ -163,7 +163,7 @@ export function NewsPage(props:WorkspaceActions){
   </aside></div>}
   <div className="ns-grid">{sorted.slice(0,visibleCount).map(a=>{
    const image=snapshot.newsIllustrations[a.id],display:NewsEntry=image?{...a,imageUrl:image,imageCaption:'AI-ілюстрація · не фото події',imageCreditUrl:''}:a;
-   return <article className="ns-card" key={a.id}><NewsVisual article={display} auto={auto&&!image} waiting={generating===a.id} onMissing={()=>enqueue(a.id)}/>
+   return <article className="ns-card" key={a.category+'-'+a.id}><NewsVisual article={display} auto={auto&&!image} waiting={generating===a.id} onMissing={()=>enqueue(a.id)}/>
     <div className="ns-body"><div className="ns-meta"><span>{newsCat[a.category]||a.category}</span><small>{a.source} · {new Date(a.publishedAt).toLocaleDateString('uk-UA')}</small></div>{a.reason&&tab!=='saved'&&<span className="ns-reason">{a.reason}</span>}<h2>{translations[a.id]||a.title}</h2>
     <div className="ns-actions">{tab==='saved'?<button className="hub-soft-button" onClick={()=>void window.lifehub.unsaveNews(a.id).then(refresh).catch(e=>report(String(e)))}>Прибрати</button>:<><button className="hub-soft-button" title="Цікаво · показувати більше схожого" onClick={()=>void act(a.id,'interesting')}><Heart size={15}/> Цікаво</button><button className="hub-soft-button is-danger" title="Не цікаво · показувати менше схожого" onClick={()=>void act(a.id,'not')}><HeartOff size={15}/> Не цікаво</button><button className="hub-soft-button" onClick={()=>void act(a.id,'save')}><Save size={15}/> Зберегти</button></>}
     <button className="hub-icon-button" title="Відкрити статтю" onClick={()=>void window.lifehub.openLink(a.url)}><ExternalLink size={16}/></button></div>

@@ -181,6 +181,28 @@ ipcMain.handle('settings:remove-key',()=>{db.apiKeyEncrypted='';save();return tr
 ipcMain.handle('music:audd-save',(_event,token)=>{if(typeof token!=='string'||token.trim().length<10||token.length>300)throw new Error('Вкажи токен AudD');if(!safeStorage.isEncryptionAvailable())throw new Error('Шифрування недоступне');db.audDTokenEncrypted=safeStorage.encryptString(token.trim()).toString('base64');save();return true;});
 ipcMain.handle('music:audd-remove',()=>{db.audDTokenEncrypted='';save();return true;});
 ipcMain.handle('music:recognize-file',async()=>{if(!db.audDTokenEncrypted)throw new Error('Спершу додай токен AudD у налаштуваннях');const result=await dialog.showOpenDialog(windowRef,{title:'Вибери 10–20 секунд аудіо з ролика',properties:['openFile'],filters:[{name:'Аудіо',extensions:['mp3','m4a','wav','ogg','flac']} ]});if(result.canceled||!result.filePaths[0])return null;const f=result.filePaths[0];const stat=fs.statSync(f);if(stat.size>12*1024*1024)throw new Error('Фрагмент аудіо завеликий, максимум 12 МБ');const token=safeStorage.decryptString(Buffer.from(db.audDTokenEncrypted,'base64'));return recognizeAudio(token,fs.readFileSync(f),path.basename(f));});
+let musicPreview=null;
+function stopMusicPreview(){if(musicPreview&&!musicPreview.isDestroyed())musicPreview.destroy();musicPreview=null;}
+ipcMain.handle('music:preview-stop',()=>{stopMusicPreview();return true;});
+ipcMain.handle('music:preview-play',async(_event,raw)=>{
+ const {classifyTikTokUrl}=require('./tiktok.cjs');
+ const parsed=classifyTikTokUrl(raw);
+ if(parsed.kind!=='video')throw Error('Потрібне повне публічне посилання TikTok на відео');
+ stopMusicPreview();
+ const win=new BrowserWindow({show:false,webPreferences:{partition:'persist:lifehub-tiktok',nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,backgroundThrottling:false,autoplayPolicy:'no-user-gesture-required'}});
+ musicPreview=win;win.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+ const allowed=url=>{try{const u=new URL(url);return u.protocol==='https:'&&(u.hostname==='tiktok.com'||u.hostname.endsWith('.tiktok.com'));}catch{return false;}};
+ for(const name of ['will-navigate','will-redirect'])win.webContents.on(name,(event,url)=>{if(!allowed(url))event.preventDefault();});
+ try{
+  await Promise.race([win.loadURL(parsed.url),new Promise((_,reject)=>setTimeout(()=>reject(Error('TikTok не відповідає')),12000))]);
+  for(let i=0;i<5;i++){
+   const playing=await win.webContents.executeJavaScript("(async()=>{const v=[...document.querySelectorAll('video')].find(x=>x.readyState>=2);if(!v)return false;try{v.muted=false;v.volume=1;await v.play();return !v.paused;}catch{return false;}})()",true);
+   if(playing){setTimeout(()=>{if(musicPreview===win)stopMusicPreview();},35000);return true;}
+   await new Promise(resolve=>setTimeout(resolve,600));
+  }
+  throw Error('TikTok не дозволив автоматичне відтворення. Увімкни ролик вручну або вибери аудіофайл.');
+ }catch(e){if(musicPreview===win)stopMusicPreview();throw e;}
+});
 ipcMain.handle('music:arm-capture',()=>{if(process.platform!=='win32')throw new Error('Запис звуку системи підтримується у цьому режимі лише на Windows');if(!db.audDTokenEncrypted)throw new Error('Спочатку підключи AudD у налаштуваннях');captureArmedUntil=Date.now()+8000;return true;});
 ipcMain.handle('music:recognize-captured',async(_event,bytes)=>{
  if(!db.audDTokenEncrypted)throw new Error('Не підключено AudD');

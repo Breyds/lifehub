@@ -10,7 +10,7 @@ const {enrichNewsImages}=require('./news-images.cjs');
 const {disposition,filterIncoming,rankNews,muteSource}=require('./news-actions.cjs');
 const {createIllustration}=require('./news-ai-image.cjs');
 const {chooseCover,canGenerate}=require('./news-cover-queue.cjs');
-const {inspectFile,obsSnapshot,cleanStudio}=require('./stream-studio.cjs');
+const {inspectFile,obsSnapshot,obsTest,cleanStudio}=require('./stream-studio.cjs');
 const {fetchMusicCharts}=require('./music.cjs');
 const spotifyPersonal=require('./spotify-personal.cjs');
 const musicDiscovery=require('./music-discovery.cjs');
@@ -338,9 +338,9 @@ ipcMain.handle('streams:remove-material',(_event,id,materialId)=>{
  if(/^[a-f0-9-]{36}$/.test(entry.id)&&/^[a-z0-9]{1,8}$/.test(entry.kind))try{fs.unlinkSync(path.join(app.getPath('userData'),'stream-materials',entry.id+'.'+entry.kind));}catch{}
  return true;
 });
-ipcMain.handle('streams:obs-check',async(_event,port,password)=>{
+ipcMain.handle('streams:obs-check',async(_event,port,password,test=false)=>{
  if(typeof password!=='string'||password.length>256)throw Error('Некоректний пароль OBS');
- return obsSnapshot(Number(port),password);
+ return test===true?obsTest(Number(port),password):obsSnapshot(Number(port),password);
 });
 ipcMain.handle('streams:ai-review',(_event,id,request,metrics)=>{
  const row=db.workspace.streams.find(x=>x.id===id);if(!row)throw Error('Стрім не знайдено');

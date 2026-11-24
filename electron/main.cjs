@@ -11,6 +11,7 @@ const {disposition,filterIncoming}=require('./news-actions.cjs');
 const {createIllustration}=require('./news-ai-image.cjs');
 const {fetchMusicCharts}=require('./music.cjs');
 const spotifyPersonal=require('./spotify-personal.cjs');
+const musicDiscovery=require('./music-discovery.cjs');
 const {checkTikTokUrl}=require('./tiktok.cjs');
 const {canScanUrl,scanCollectionInWindow}=require('./tiktok-collection.cjs');
 const {recognizeAudio}=require('./audd.cjs');
@@ -38,7 +39,7 @@ function save(){const p=storePath();fs.mkdirSync(path.dirname(p),{recursive:true
 function load(){const p=storePath();if(!fs.existsSync(p)){db=initial();save();return;}db={...initial(),...JSON.parse(fs.readFileSync(p,'utf8'))};if(!Array.isArray(db.tasks))throw new Error('Пошкоджено локальну базу завдань');if(!db.videoDrafts||typeof db.videoDrafts!=='object')db.videoDrafts={};db.workspace=safeWorkspace(db.workspace);db.preferences=safePreferences(db.preferences);if(!db.news||!Array.isArray(db.news.items))db.news={items:[],fetchedAt:'',errors:0,totalSources:0};if(!db.music||typeof db.music!=='object'||!db.music.markets)db.music={markets:{},errors:[],fetchedAt:'',source:''};if(!db.newsFeedback||typeof db.newsFeedback!=='object')db.newsFeedback={};if(!db.newsDismissed||typeof db.newsDismissed!=='object')db.newsDismissed={};if(!Array.isArray(db.newsSaved))db.newsSaved=[];if(!db.newsIllustrations||typeof db.newsIllustrations!=='object')db.newsIllustrations={};if(!db.newsImageCount||typeof db.newsImageCount!=='object')db.newsImageCount={};if(!Array.isArray(db.musicReminderShown))db.musicReminderShown=[];db.version=2;if(!db.cs2||typeof db.cs2!=='object')db.cs2=initial().cs2;db.cs2={...initial().cs2,...db.cs2};if(!Array.isArray(db.cs2.utilities))db.cs2.utilities=[];if(!Array.isArray(db.cs2.demos))db.cs2.demos=[];if(!Array.isArray(db.cs2.reminderDays))db.cs2.reminderDays=[];if(!db.cs2.utilityRadar||!Array.isArray(db.cs2.utilityRadar.items))db.cs2.utilityRadar=initial().cs2.utilityRadar;if(!db.cs2.proPicks||!Array.isArray(db.cs2.proPicks.items)||String(db.cs2.proPicks.reviewedAt||'')<starterProPicks().reviewedAt)db.cs2.proPicks=starterProPicks();if(!db.telegram||typeof db.telegram!=='object')db.telegram={tokenEncrypted:'',chatId:'',enabled:false};if(db.telegram?.tokenEncrypted&&db.telegram.chatId&&!Number.isSafeInteger(db.telegram.offset)){db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();}if(typeof db.blackoutSchedule!=='string')db.blackoutSchedule='';db.powerAddress=cleanPowerAddress(db.powerAddress);db.powerGroup=normalizeGroup(db.powerGroup);db.powerGroupOrigin=db.powerGroup?(db.powerGroupOrigin==='official'?'official':'manual'):'';if(!db.powerLive||!Array.isArray(db.powerLive.intervals))db.powerLive={status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Ще не перевіряли графік.'};if(!db.youtubeTrends||!Array.isArray(db.youtubeTrends.videos))db.youtubeTrends={videos:[],fetchedAt:'',topics:[]};}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function month(){return todayLocal().slice(0,7);}
-function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:db.news,music:db.music,spotifyPersonal:{connected:!!db.spotifyPersonal?.refreshEncrypted,week:db.spotifyPersonal?.week||'',items:db.spotifyPersonal?.schema===3?db.spotifyPersonal.items||[]:[],regions:db.spotifyPersonal?.schema===3?db.spotifyPersonal.regions||{us:[],regional:[]}:{us:[],regional:[]},message:db.spotifyPersonal?.message||'',radarPlaylist:db.spotifyPersonal?.radarPlaylist||'',radarMessage:db.spotifyPersonal?.radarMessage||'',mode:db.spotifyPersonal?.mode||'',window:db.spotifyPersonal?.window||null},tiktokCache:db.tiktokCache,newsFeedback:db.newsFeedback,newsSaved:db.newsSaved,newsIllustrations:db.newsIllustrations,audDConnected:!!db.audDTokenEncrypted,telegram:{connected:!!db.telegram?.tokenEncrypted&&!!db.telegram?.chatId,enabled:!!db.telegram?.enabled,pendingCode:db.telegram?.pendingCode||''},cs2:{faceitConnected:!!db.cs2.faceitApiKeyEncrypted,faceitNickname:db.cs2.faceitNickname||'',faceitData:db.cs2.faceitData,utilities:db.cs2.utilities,demos:db.cs2.demos,reminders:db.cs2.reminders===true,utilityRadar:db.cs2.utilityRadar,proPicks:db.cs2.proPicks},powerAddress:db.powerAddress,powerGroup:db.powerGroup,powerGroupOrigin:db.powerGroupOrigin,blackoutSchedule:db.blackoutSchedule,powerLive:db.powerLive.status==='verified'&&Date.now()-Date.parse(db.powerLive.checkedAt)>6*60*60*1000?{...db.powerLive,status:'stale',message:'Попередній графік застарів. Онови дані ДТЕК.'}:db.powerLive,youtubeConnected:!!db.youtubeApiKeyEncrypted,youtubeTrends:db.youtubeTrends};}
+function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:db.news,music:db.music,spotifyPersonal:{connected:!!db.spotifyPersonal?.refreshEncrypted,week:db.spotifyPersonal?.week||'',items:db.spotifyPersonal?.schema===4?db.spotifyPersonal.items||[]:[],regions:db.spotifyPersonal?.schema===4?db.spotifyPersonal.regions||{us:[],regional:[]}:{us:[],regional:[]},message:db.spotifyPersonal?.message||'',radarPlaylist:db.spotifyPersonal?.radarPlaylist||'',radarMessage:db.spotifyPersonal?.radarMessage||'',mode:db.spotifyPersonal?.mode||'',window:db.spotifyPersonal?.window||null,feedback:Object.fromEntries(Object.entries(db.spotifyPersonal?.feedback||{}).map(([k,v])=>[k,v.vote]))},tiktokCache:db.tiktokCache,newsFeedback:db.newsFeedback,newsSaved:db.newsSaved,newsIllustrations:db.newsIllustrations,audDConnected:!!db.audDTokenEncrypted,telegram:{connected:!!db.telegram?.tokenEncrypted&&!!db.telegram?.chatId,enabled:!!db.telegram?.enabled,pendingCode:db.telegram?.pendingCode||''},cs2:{faceitConnected:!!db.cs2.faceitApiKeyEncrypted,faceitNickname:db.cs2.faceitNickname||'',faceitData:db.cs2.faceitData,utilities:db.cs2.utilities,demos:db.cs2.demos,reminders:db.cs2.reminders===true,utilityRadar:db.cs2.utilityRadar,proPicks:db.cs2.proPicks},powerAddress:db.powerAddress,powerGroup:db.powerGroup,powerGroupOrigin:db.powerGroupOrigin,blackoutSchedule:db.blackoutSchedule,powerLive:db.powerLive.status==='verified'&&Date.now()-Date.parse(db.powerLive.checkedAt)>6*60*60*1000?{...db.powerLive,status:'stale',message:'Попередній графік застарів. Онови дані ДТЕК.'}:db.powerLive,youtubeConnected:!!db.youtubeApiKeyEncrypted,youtubeTrends:db.youtubeTrends};}
 function idFind(id){return db.tasks.find(t=>t.id===id);}
 async function notifyTelegram(text){
  if(!db.telegram?.enabled||!db.telegram.tokenEncrypted||!db.telegram.chatId)return;
@@ -495,7 +496,7 @@ async function refreshNews(force=false){if(newsBusy)return db.news;const hours=(
 async function refreshMusic(force=false){
  if(musicBusy)return db.music;
  const age=(Date.now()-Date.parse(db.music.fetchedAt||''))/3600000;
- const needsFreshAlbumUpgrade=db.music.schema!==2;
+ const needsFreshAlbumUpgrade=db.music.schema!==3;
  if(!force&&!needsFreshAlbumUpgrade&&Number.isFinite(age)&&age<24)return db.music;
  if(force&&!needsFreshAlbumUpgrade&&Number.isFinite(age)&&age<0.04)return db.music;
  musicBusy=true;
@@ -519,9 +520,9 @@ async function refreshPersonalMusic(force=false){
  const profile=db.spotifyPersonal;
  if(!profile?.refreshEncrypted||spotifyBusy)return;
  const week=lastFriday(),window=spotifyPersonal.weekWindow(week);
- if(!force&&profile.schema===3&&profile.week===week)return;
+ if(!force&&profile.schema===4&&profile.week===week)return;
  const age=Date.now()-Date.parse(profile.lastAttemptAt||'');
- if(!force&&profile.schema===3&&age>=0&&age<60*60*1000)return;
+ if(!force&&profile.schema===4&&age>=0&&age<60*60*1000)return;
  spotifyBusy=true;profile.lastAttemptAt=new Date().toISOString();
  try{
   const refreshToken=safeStorage.decryptString(Buffer.from(profile.refreshEncrypted,'base64'));
@@ -539,15 +540,13 @@ async function refreshPersonalMusic(force=false){
     mode='radar-copy';
    }catch(e){profile.radarMessage='Копія Radar недоступна. Перевір власника плейлиста або повторно авторизуй Spotify. '+String(e.message||e).slice(0,110);}
   }
-  if(!discovered)discovered=await spotifyPersonal.readFreshArtists(token.access_token,taste,window);
-  const unsaved=await spotifyPersonal.excludeSaved(token.access_token,discovered.filter(t=>spotifyPersonal.isFresh(t,window)));
-  const prior=profile.week===week?[]:profile.items||[];
-  const chartRanks=new Map(Object.values(music.markets||{}).flat().map(t=>[(t.artist+'|'+t.title).toLowerCase(),t.rank]));
-  const matches=spotifyPersonal.recommend(taste,{spotify:unsaved.map(t=>({...t,rank:chartRanks.get((t.artist+'|'+t.title).toLowerCase())??t.rank}))},prior,mode==='radar-copy');
-  profile.items=matches;profile.regions=spotifyPersonal.regionalPicks(taste,music.markets||{},matches,window);profile.schema=3;profile.week=week;profile.mode=mode;profile.window=window;
-  profile.message='Релізи '+window.from+' — '+window.to+'. '+matches.length+' новинок за точними датами релізу альбому або синглу. '+(mode==='radar-copy'?'Джерело: твоя власна копія Release Radar.':'Джерело: пошук свіжих релізів виконавців зі Spotify, не оригінальний Release Radar.')+' Доступних плейлистів перевірено: '+playlists.readable+'/'+playlists.examined+'.';
+  if(!discovered){try{discovered=await spotifyPersonal.readFreshArtists(token.access_token,taste,window);}catch{discovered=[];}}
+  const feedback=profile.feedback||{};
+  const result=await musicDiscovery.generate({token:token.access_token,taste,markets:music.markets||{},window,catalog:discovered,radar:mode==='radar-copy',feedback});
+  profile.items=result.items;profile.regions=result.regions;profile.schema=4;profile.week=week;profile.mode=mode;profile.window=window;
+  profile.message='Релізи '+window.from+' — '+window.to+'. '+result.items.length+' новинок. '+(mode==='radar-copy'?'Джерело: твоя копія Release Radar.':'Знайомі виконавці, доступні жанрові збіги й популярні новинки; не оригінальний Release Radar.')+' Доступних плейлистів перевірено: '+playlists.readable+'/'+playlists.examined+'.'+(result.items.length<10?' Не вистачило перевірених нових релізів — старі не підставляємо.':'');
   if(mode==='radar-copy')profile.radarMessage='';
- }catch(e){profile.message=String(e?.message||e).slice(0,200);if(profile.schema!==3||profile.week!==week){profile.items=[];profile.regions={us:[],regional:[]};}}
+ }catch(e){profile.message=String(e?.message||e).slice(0,200);if(profile.schema!==4||profile.week!==week){profile.items=[];profile.regions={us:[],regional:[]};}}
  finally{spotifyBusy=false;save();}
 }
 ipcMain.handle('music:spotify-radar-copy',async(_event,raw)=>{
@@ -570,6 +569,16 @@ ipcMain.handle('music:spotify-connect',async(_event,clientId)=>{
  await refreshPersonalMusic(true);return true;
 });
 ipcMain.handle('music:spotify-refresh',async()=>{await refreshPersonalMusic(true);return true;});
+ipcMain.handle('music:spotify-feedback',(_event,id,vote)=>{
+ if(typeof id!=='string'||id.length>120||!['like','dislike','none'].includes(vote))throw Error('Некоректна оцінка');
+ const profile=db.spotifyPersonal;if(!profile?.refreshEncrypted)throw Error('Підключи Spotify');
+ const row=[...(profile.items||[]),...(profile.regions?.us||[]),...(profile.regions?.regional||[])].find(t=>t.id===id);
+ if(!row)throw Error('Трек не знайдено у добірці');
+ const k=musicDiscovery.key(row),feedback={...(profile.feedback||{})};
+ if(vote==='none')delete feedback[k];else feedback[k]={vote,artist:String(row.artist).slice(0,160),genres:(row.genres||[]).slice(0,8),at:new Date().toISOString()};
+ profile.feedback=Object.fromEntries(Object.entries(feedback).slice(-500));save();return true;
+});
+
 ipcMain.handle('music:spotify-disconnect',()=>{if(spotifyBusy)throw Error('Spotify зараз оновлюється');db.spotifyPersonal={clientId:'',refreshEncrypted:'',week:'',items:[],message:''};save();return true;});
 async function refreshTikTokCollection(raw,force=false,interactive=false){
  const existing=db.tiktokCache||{url:'',videos:[],fetchedAt:'',message:''};

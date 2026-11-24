@@ -42,7 +42,8 @@ async function spotifyGet(token,endpoint,fetcher=fetch){
 function cover(images){return (images||[]).map(x=>x?.url).find(v=>typeof v==='string'&&/^https:\/\/(?:i\.scdn\.co|image-cdn-ak\.spotifycdn\.com|image-cdn-fa\.spotifycdn\.com)\//i.test(v))||'';}
 function weekWindow(week,now=new Date()){
  const d=new Date(week+'T12:00:00Z');if(!Number.isFinite(d.getTime()))throw Error('Невірна дата тижня');
- const end=week<=now.toISOString().slice(0,10)?week:now.toISOString().slice(0,10);d.setUTCDate(d.getUTCDate()-6);
+ const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+ const end=week<=today?week:today;d.setUTCDate(d.getUTCDate()-6);
  return {from:d.toISOString().slice(0,10),to:end};
 }
 function isFresh(t,window){return /^\d{4}-\d{2}-\d{2}$/.test(t.releaseDate||'')&&t.releaseDate>=window.from&&t.releaseDate<=window.to&&!/\b(remaster(?:ed)?|reissue|anniversary|deluxe)\b/i.test(t.album||'');}
@@ -55,6 +56,21 @@ async function readOwnedPlaylist(token,id,fetcher=fetch){
  if(!/^[A-Za-z0-9]{22}$/.test(id))throw Error('Некоректне посилання на плейлист');
  const data=await spotifyGet(token,'playlists/'+id+'/items?limit=50',fetcher);
  return extractTracks(data.items);
+}
+async function readPlaylistTaste(token,skipId='',fetcher=fetch){
+ const first=await spotifyGet(token,'me/playlists?limit=50',fetcher);
+ const lists=(first.items||[]).filter(p=>p.id&&p.id!==skipId&&/^[A-Za-z0-9]{22}$/.test(p.id)).slice(0,12);
+ const collected=[];let readable=0;
+ for(let i=0;i<lists.length;i+=3){
+  const result=await Promise.allSettled(lists.slice(i,i+3).map(async p=>{
+   let page=await spotifyGet(token,'playlists/'+p.id+'/items?limit=50',fetcher);
+   const rows=[...(page.items||[])];
+   for(let offset=50;page.next&&offset<200;offset+=50){page=await spotifyGet(token,'playlists/'+p.id+'/items?limit=50&offset='+offset,fetcher);rows.push(...(page.items||[]));}
+   return extractTracks(rows);
+  }));
+  for(const r of result)if(r.status==='fulfilled'){readable++;collected.push(...r.value);}
+ }
+ return {tracks:[...new Map(collected.map(t=>[t.id,t])).values()],readable,examined:lists.length};
 }
 async function readFreshArtists(token,taste,window,fetcher=fetch){
  const weights=new Map();for(const t of taste)for(const a of t.artists||[t.artist])weights.set(a,(weights.get(a)||0)+1);
@@ -130,4 +146,4 @@ function recommend(taste,markets,previous=[],allowNewArtists=false){
  for(const {t,affinity} of matching){const k=key(t.artist,t.title);if(seen.has(k)||(perArtist.get(t.artist.toLowerCase())||0)>=3)continue;seen.add(k);perArtist.set(t.artist.toLowerCase(),(perArtist.get(t.artist.toLowerCase())||0)+1);out.push({...t,reason:affinity?'Виконавець є у твоїй бібліотеці Spotify ('+affinity+' збігів)':'Новий виконавець із твоєї копії Release Radar'});if(out.length===10)break;}
  return out;
 }
-module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks,discoverArtistTracks,excludeSaved,weekWindow,isFresh,readFreshArtists,readOwnedPlaylist,playlistId,regionalPicks,cover};
+module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks,discoverArtistTracks,excludeSaved,weekWindow,isFresh,readFreshArtists,readOwnedPlaylist,playlistId,regionalPicks,cover,readPlaylistTaste};

@@ -80,12 +80,12 @@ async function readFreshArtists(token,taste,window,fetcher=fetch){
  }
  return tracks.map((t,i)=>({...t,market:'spotify',rank:i+1,source:'spotify-new'}));
 }
-function regionalPicks(taste,markets,excluded=[]){
+function regionalPicks(taste,markets,excluded=[],window=null){
  const result={us:[],regional:[]},seen=new Set(excluded.map(t=>key(t.artist,t.title)));
  const weights=new Map();for(const t of taste)for(const a of t.artists||[t.artist])weights.set(a.toLowerCase(),(weights.get(a.toLowerCase())||0)+1);
  const known=new Set(taste.map(t=>key(t.artist,t.title)));
  for(const [group,countries] of [['us',['us']],['regional',['ua','kz','ru']]]){
-  const candidates=countries.flatMap(m=>markets[m]||[]).filter(t=>!known.has(key(t.artist,t.title))&&weights.has(t.artist.toLowerCase())).sort((a,b)=>a.rank-b.rank||(weights.get(b.artist.toLowerCase())||0)-(weights.get(a.artist.toLowerCase())||0));
+  const candidates=countries.flatMap(m=>markets[m]||[]).filter(t=>!known.has(key(t.artist,t.title))&&weights.has(t.artist.toLowerCase())&&(!window||isFresh(t,window))).sort((a,b)=>a.rank-b.rank||(weights.get(b.artist.toLowerCase())||0)-(weights.get(a.artist.toLowerCase())||0));
   const artistCount=new Map();
   for(const t of candidates){const k=key(t.artist,t.title),a=t.artist.toLowerCase();if(seen.has(k)||(artistCount.get(a)||0)>=2)continue;seen.add(k);artistCount.set(a,(artistCount.get(a)||0)+1);result[group].push({...t,reason:'У твоєму смаку · чарт #'+t.rank});if(result[group].length>=5)break;}
  }
@@ -121,13 +121,13 @@ async function discoverArtistTracks(token,taste,fetcher=fetch){
  }));
  return result.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
 }
-function recommend(taste,markets,previous=[]){
+function recommend(taste,markets,previous=[],allowNewArtists=false){
  const known=new Set(taste.map(t=>key(t.artist,t.title))),seen=new Set(),prior=new Set(previous.map(t=>key(t.artist,t.title))),counts=new Map(),perArtist=new Map();
  for(const t of taste)for(const artist of t.artists||[t.artist])counts.set(artist.toLowerCase(),(counts.get(artist.toLowerCase())||0)+1);
  const candidates=Object.values(markets||{}).flat().filter(t=>!known.has(key(t.artist,t.title))&&!prior.has(key(t.artist,t.title)));
- const matching=candidates.map(t=>({t,affinity:counts.get(t.artist.toLowerCase())||0})).filter(x=>x.affinity>0).sort((a,b)=>b.affinity-a.affinity||a.t.rank-b.t.rank);
+ const matching=candidates.map(t=>({t,affinity:counts.get(t.artist.toLowerCase())||0})).filter(x=>allowNewArtists||x.affinity>0).sort((a,b)=>b.affinity-a.affinity||a.t.rank-b.t.rank);
  const out=[];
- for(const {t,affinity} of matching){const k=key(t.artist,t.title);if(seen.has(k)||(perArtist.get(t.artist.toLowerCase())||0)>=3)continue;seen.add(k);perArtist.set(t.artist.toLowerCase(),(perArtist.get(t.artist.toLowerCase())||0)+1);out.push({...t,reason:'Виконавець є у твоїй бібліотеці Spotify ('+affinity+' збігів)'});if(out.length===10)break;}
+ for(const {t,affinity} of matching){const k=key(t.artist,t.title);if(seen.has(k)||(perArtist.get(t.artist.toLowerCase())||0)>=3)continue;seen.add(k);perArtist.set(t.artist.toLowerCase(),(perArtist.get(t.artist.toLowerCase())||0)+1);out.push({...t,reason:affinity?'Виконавець є у твоїй бібліотеці Spotify ('+affinity+' збігів)':'Новий виконавець із твоєї копії Release Radar'});if(out.length===10)break;}
  return out;
 }
 module.exports={REDIRECT,clientValid,authorize,tokenRequest,readTaste,recommend,extractTracks,discoverArtistTracks,excludeSaved,weekWindow,isFresh,readFreshArtists,readOwnedPlaylist,playlistId,regionalPicks,cover};

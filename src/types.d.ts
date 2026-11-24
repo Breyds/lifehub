@@ -13,10 +13,10 @@ export type VideoDraft={file:string;size:number;modifiedAt:string;title?:string;
 export type VideoInbox={inbox:string;videos:VideoDraft[]};
 export type WorkspaceKind='projects'|'gym'|'cardio'|'cs2logs'|'weight'|'meals'|'channels'|'ideas'|'streams'|'songs'|'programs';
 export type WorkspaceItem={id:string;title:string;createdAt:string;updatedAt:string;[key:string]:unknown};
-export type Preferences={nickname:string;avatarData:string;tiktokCollectionUrl:string;cs2Targets:CS2Goals;cs2WeeklyTargets:CS2Goals;accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null;age:number|null;activity:string;weeklyDays:number;homeEquipment:string;availableWeekdays:number[];sessionMinutes:number;onboardedAt:string};fridayReminder:boolean};
-export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string;imageUrl?:string;imageCreditUrl?:string;imageCaption?:string;region?:string};
-export type NewsState={items:NewsEntry[];fetchedAt:string;errors:number;totalSources:number;lastAttemptAt?:string};
-export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;title?:string;at:string}>;
+export type Preferences={nickname:string;avatarData:string;tiktokCollectionUrl:string;cs2Targets:CS2Goals;cs2WeeklyTargets:CS2Goals;accent:'green'|'blue'|'violet'|'orange';density:'comfortable'|'compact';language:'uk'|'en';newsAutoRefresh:boolean;newsAutoImages:boolean;newsCategories:string[];fitness:{goal:string;experience:string;constraints:string;height:number|null;currentWeight:number|null;age:number|null;activity:string;weeklyDays:number;homeEquipment:string;availableWeekdays:number[];sessionMinutes:number;onboardedAt:string};fridayReminder:boolean};
+export type NewsEntry={id:string;title:string;url:string;source:string;category:string;publishedAt:string;imageUrl?:string;imageCreditUrl?:string;imageCaption?:string;region?:string;score?:number;affinity?:number;reason?:string};
+export type NewsState={items:NewsEntry[];fetchedAt:string;errors:number;totalSources:number;lastAttemptAt?:string;categoryStats?:Record<string,{ok:number;failed:number;count:number}>;sourceCounts?:Record<string,number>};
+export type NewsFeedback=Record<string,{vote:'interesting'|'not';category:string;title?:string;source?:string;keywords?:string[];at:string}>;
 export type MusicTrack={id:string;title:string;artist:string;url:string;artworkUrl:string;releaseDate:string;market:string;rank:number;source?:'chart'|'new-album';album?:string};
 export type MusicCharts={markets:Record<string,MusicTrack[]>;freshReleases?:Record<string,MusicTrack[]>;freshErrors?:string[];errors:string[];fetchedAt:string;source:string;method?:string;lastAttemptAt?:string};
 export type CS2Goals={dmKills:number;botKills:number;matches:number;minutes:number};
@@ -37,7 +37,7 @@ export type PowerLive={status:string;checkedAt:string;source:string;message:stri
 export type TikTokCachedVideo={url:string;title:string;author:string;sound:string;recognized?:{title:string;artist:string;spotifyUrl:string}};
 export type SpotifyPick=MusicTrack&{reason:string};
 export type SpotifyPersonal={feedback:Record<string,'like'|'dislike'>;connected:boolean;week:string;items:SpotifyPick[];regions:{us:SpotifyPick[];regional:SpotifyPick[]};message:string;radarPlaylist:string;radarMessage:string;mode:string;window:{from:string;to:string}|null};
-export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsMutedSources:string[];newsImageUsage:number;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -51,7 +51,8 @@ declare global {
     unrateNews:(id:string)=>Promise<boolean>;
     saveNews:(id:string)=>Promise<boolean>;
     unsaveNews:(id:string)=>Promise<boolean>;
-    illustrateNews:(id:string)=>Promise<boolean>;
+    illustrateNews:(id:string,automatic?:boolean)=>Promise<boolean>;
+    muteNewsSource:(source:string,muted?:boolean)=>Promise<boolean>;
     rankedNews:()=>Promise<NewsEntry[]>;
     openLink:(url:string)=>Promise<boolean>;
     saveAudDToken:(token:string)=>Promise<boolean>;

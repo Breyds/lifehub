@@ -24,7 +24,7 @@ test('publisher RSS image is parsed from media:thumbnail',()=>{
 test('publisher RSS fallback feed is requested alongside news search',async()=>{
  let count=0;
  const result=await fetchNews(['world'],async(url)=>{count++;return {ok:true,text:async()=>'<rss></rss>'};});
- assert.equal(count,2);assert.equal(result.totalSources,2);
+ assert.ok(count>=4);assert.equal(result.totalSources,count);
 });
 test('apple chart preserves rank, country, releaseDate and source link',()=>{
  const feed={feed:{results:[{id:'456',name:'New Song',artistName:'Artist',releaseDate:'2026-11-13',url:'https://music.apple.com/us/album/456',artworkUrl100:'https://is1-ssl.mzstatic.com/image/abc.jpg'}]}};

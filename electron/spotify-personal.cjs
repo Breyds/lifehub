@@ -42,7 +42,7 @@ async function spotifyGet(token,endpoint,fetcher=fetch){
 function cover(images){return (images||[]).map(x=>x?.url).find(v=>typeof v==='string'&&/^https:\/\/(?:i\.scdn\.co|image-cdn-ak\.spotifycdn\.com|image-cdn-fa\.spotifycdn\.com)\//i.test(v))||'';}
 function weekWindow(week,now=new Date()){
  const d=new Date(week+'T12:00:00Z');if(!Number.isFinite(d.getTime()))throw Error('Невірна дата тижня');
- const end=now.toISOString().slice(0,10);d.setUTCDate(d.getUTCDate()-6);
+ const end=week<=now.toISOString().slice(0,10)?week:now.toISOString().slice(0,10);d.setUTCDate(d.getUTCDate()-6);
  return {from:d.toISOString().slice(0,10),to:end};
 }
 function isFresh(t,window){return /^\d{4}-\d{2}-\d{2}$/.test(t.releaseDate||'')&&t.releaseDate>=window.from&&t.releaseDate<=window.to&&!/\b(remaster(?:ed)?|reissue|anniversary|deluxe)\b/i.test(t.album||'');}

@@ -3,7 +3,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   load:()=>ipcRenderer.invoke('data:load'),
   streamImportMaterial:(id)=>ipcRenderer.invoke('streams:import-material',id),
   streamRemoveMaterial:(id,material)=>ipcRenderer.invoke('streams:remove-material',id,material),
-  streamObsCheck:(port,password)=>ipcRenderer.invoke('streams:obs-check',port,password),
+  streamObsCheck:(port,password,test=false)=>ipcRenderer.invoke('streams:obs-check',port,password,test),
   streamAiReview:(id,request,metrics)=>ipcRenderer.invoke('streams:ai-review',id,request,metrics),
   newsCoverMissing:(id)=>ipcRenderer.invoke('news:cover-missing',id),
   addWorkspace:(kind,data)=>ipcRenderer.invoke('workspace:add',kind,data),

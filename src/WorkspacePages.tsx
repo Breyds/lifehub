@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from 'react';
 import type {ChangeEvent,FormEvent,ReactNode} from 'react';
-import {ArrowLeft,ArrowRight,ArrowUpRight,CalendarDays,Clock,Crosshair,Dumbbell,ExternalLink,FileText,Gamepad2,Heart,HeartOff,Lightbulb,LoaderCircle,Music2,Plus,RefreshCw,Save,Search,SlidersHorizontal,Sparkles,Trash2,TrendingUp,Video,X} from 'lucide-react';
+import {ArrowLeft,ArrowRight,ArrowUpRight,CalendarDays,Clock,Crosshair,Dumbbell,ExternalLink,FileText,Heart,HeartOff,Lightbulb,LoaderCircle,Music2,Plus,RefreshCw,Save,Search,SlidersHorizontal,Sparkles,Trash2,TrendingUp,Video,X} from 'lucide-react';
 import type {Category,NewsEntry,Snapshot,Task,WorkspaceItem,WorkspaceKind} from './types';
 import {RankStudioPage} from './ExtraPages';
 import {YouTubeTrends} from './YoutubeTrends';

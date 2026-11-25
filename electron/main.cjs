@@ -19,6 +19,7 @@ const {canScanUrl,scanCollectionInWindow}=require('./tiktok-collection.cjs');
 const {recognizeAudio}=require('./audd.cjs');
 const {telegramRequest,validToken,pairingCode,findPairedChat,lastUpdateOffset}=require('./telegram.cjs');
 const telegramMenu=require('./telegram-menu.cjs');
+const telegramSync=require('./telegram-sync.cjs');
 const {validateBlackouts}=require('./power.cjs');
 const {cleanPowerAddress}=require('./power-address.cjs');
 const {readDtekSchedule}=require('./dtek-live.cjs');
@@ -46,16 +47,17 @@ function save(){const p=storePath();fs.mkdirSync(path.dirname(p),{recursive:true
 function load(){const p=storePath();if(!fs.existsSync(p)){db=initial();save();return;}db={...initial(),...JSON.parse(fs.readFileSync(p,'utf8'))};if(!Array.isArray(db.tasks))throw new Error('Пошкоджено локальну базу завдань');if(!db.videoDrafts||typeof db.videoDrafts!=='object')db.videoDrafts={};db.workspace=safeWorkspace(db.workspace);db.preferences=safePreferences(db.preferences);if(!db.newsCover089){db.preferences.newsAutoImages=true;db.newsCover089=true;}if(!db.newsConfig087){db.preferences.newsCategories=[...new Set([...db.preferences.newsCategories,...Object.keys(FEEDS)])];db.newsConfig087=true;}if(!Array.isArray(db.newsMutedSources))db.newsMutedSources=[];if(!db.news||!Array.isArray(db.news.items))db.news={items:[],fetchedAt:'',errors:0,totalSources:0};if(!db.music||typeof db.music!=='object'||!db.music.markets)db.music={markets:{},errors:[],fetchedAt:'',source:''};if(!db.newsFeedback||typeof db.newsFeedback!=='object')db.newsFeedback={};if(!db.newsDismissed||typeof db.newsDismissed!=='object')db.newsDismissed={};if(!Array.isArray(db.newsSaved))db.newsSaved=[];if(!db.newsIllustrations||typeof db.newsIllustrations!=='object')db.newsIllustrations={};if(!db.newsImageCount||typeof db.newsImageCount!=='object')db.newsImageCount={};if(!Array.isArray(db.musicReminderShown))db.musicReminderShown=[];db.version=2;if(!db.cs2||typeof db.cs2!=='object')db.cs2=initial().cs2;db.cs2={...initial().cs2,...db.cs2};if(!Array.isArray(db.cs2.utilities))db.cs2.utilities=[];if(!Array.isArray(db.cs2.demos))db.cs2.demos=[];if(!Array.isArray(db.cs2.reminderDays))db.cs2.reminderDays=[];if(!db.cs2.utilityRadar||!Array.isArray(db.cs2.utilityRadar.items))db.cs2.utilityRadar=initial().cs2.utilityRadar;if(!db.cs2.proPicks||!Array.isArray(db.cs2.proPicks.items)||String(db.cs2.proPicks.reviewedAt||'')<starterProPicks().reviewedAt)db.cs2.proPicks=starterProPicks();if(!db.telegram||typeof db.telegram!=='object')db.telegram={tokenEncrypted:'',chatId:'',enabled:false};if(db.telegram?.tokenEncrypted&&db.telegram.chatId&&!Number.isSafeInteger(db.telegram.offset)){db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();}if(typeof db.blackoutSchedule!=='string')db.blackoutSchedule='';db.powerAddress=cleanPowerAddress(db.powerAddress);db.powerGroup=normalizeGroup(db.powerGroup);db.powerGroupOrigin=db.powerGroup?(db.powerGroupOrigin==='official'?'official':'manual'):'';if(!db.powerLive||!Array.isArray(db.powerLive.intervals))db.powerLive={status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Ще не перевіряли графік.'};if(!db.youtubeTrends||!Array.isArray(db.youtubeTrends.videos))db.youtubeTrends={videos:[],fetchedAt:'',topics:[]};}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function month(){return todayLocal().slice(0,7);}
-function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:{...db.news,items:rankNews(filterIncoming(db.news.items,db),db.newsFeedback)},music:db.music,spotifyPersonal:{connected:!!db.spotifyPersonal?.refreshEncrypted,week:db.spotifyPersonal?.week||'',items:db.spotifyPersonal?.schema===4?db.spotifyPersonal.items||[]:[],regions:db.spotifyPersonal?.schema===4?db.spotifyPersonal.regions||{us:[],regional:[]}:{us:[],regional:[]},message:db.spotifyPersonal?.message||'',radarPlaylist:db.spotifyPersonal?.radarPlaylist||'',radarMessage:db.spotifyPersonal?.radarMessage||'',mode:db.spotifyPersonal?.mode||'',window:db.spotifyPersonal?.window||null,feedback:Object.fromEntries(Object.entries(db.spotifyPersonal?.feedback||{}).map(([k,v])=>[k,v.vote]))},tiktokCache:db.tiktokCache,newsFeedback:db.newsFeedback,newsMutedSources:db.newsMutedSources,newsImageUsage:Number(db.newsImageCount[month()]||0),newsCoverError:db.newsCoverLastError||'',newsCoverPauseUntil:Number(db.newsCoverPauseUntil||0),newsSaved:db.newsSaved,newsIllustrations:db.newsIllustrations,audDConnected:!!db.audDTokenEncrypted,telegram:{connected:!!db.telegram?.tokenEncrypted&&!!db.telegram?.chatId,enabled:!!db.telegram?.enabled,pendingCode:db.telegram?.pendingCode||''},cs2:{faceitConnected:!!db.cs2.faceitApiKeyEncrypted,faceitNickname:db.cs2.faceitNickname||'',faceitData:db.cs2.faceitData,utilities:db.cs2.utilities,demos:db.cs2.demos,reminders:db.cs2.reminders===true,utilityRadar:db.cs2.utilityRadar,proPicks:db.cs2.proPicks},powerAddress:db.powerAddress,powerGroup:db.powerGroup,powerGroupOrigin:db.powerGroupOrigin,blackoutSchedule:db.blackoutSchedule,powerLive:db.powerLive.status==='verified'&&Date.now()-Date.parse(db.powerLive.checkedAt)>6*60*60*1000?{...db.powerLive,status:'stale',message:'Попередній графік застарів. Онови дані ДТЕК.'}:db.powerLive,youtubeStudio:ytPublic(),youtubeConnected:!!db.youtubeApiKeyEncrypted,youtubeTrends:db.youtubeTrends};}
+function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:{...db.news,items:rankNews(filterIncoming(db.news.items,db),db.newsFeedback)},music:db.music,spotifyPersonal:{connected:!!db.spotifyPersonal?.refreshEncrypted,week:db.spotifyPersonal?.week||'',items:db.spotifyPersonal?.schema===4?db.spotifyPersonal.items||[]:[],regions:db.spotifyPersonal?.schema===4?db.spotifyPersonal.regions||{us:[],regional:[]}:{us:[],regional:[]},message:db.spotifyPersonal?.message||'',radarPlaylist:db.spotifyPersonal?.radarPlaylist||'',radarMessage:db.spotifyPersonal?.radarMessage||'',mode:db.spotifyPersonal?.mode||'',window:db.spotifyPersonal?.window||null,feedback:Object.fromEntries(Object.entries(db.spotifyPersonal?.feedback||{}).map(([k,v])=>[k,v.vote]))},tiktokCache:db.tiktokCache,newsFeedback:db.newsFeedback,newsMutedSources:db.newsMutedSources,newsImageUsage:Number(db.newsImageCount[month()]||0),newsCoverError:db.newsCoverLastError||'',newsCoverPauseUntil:Number(db.newsCoverPauseUntil||0),newsSaved:db.newsSaved,newsIllustrations:db.newsIllustrations,audDConnected:!!db.audDTokenEncrypted,telegram:{connected:!!db.telegram?.tokenEncrypted&&!!db.telegram?.chatId,enabled:!!db.telegram?.enabled,pendingCode:db.telegram?.pendingCode||'',chatId:db.telegram?.chatId||'',cloud:{configured:!!db.telegramCloud?.url,url:db.telegramCloud?.url||'',lastSync:db.telegramCloud?.lastSync||'',error:db.telegramCloud?.error||'',conflicts:db.telegramCloud?.conflicts||[]}},cs2:{faceitConnected:!!db.cs2.faceitApiKeyEncrypted,faceitNickname:db.cs2.faceitNickname||'',faceitData:db.cs2.faceitData,utilities:db.cs2.utilities,demos:db.cs2.demos,reminders:db.cs2.reminders===true,utilityRadar:db.cs2.utilityRadar,proPicks:db.cs2.proPicks},powerAddress:db.powerAddress,powerGroup:db.powerGroup,powerGroupOrigin:db.powerGroupOrigin,blackoutSchedule:db.blackoutSchedule,powerLive:db.powerLive.status==='verified'&&Date.now()-Date.parse(db.powerLive.checkedAt)>6*60*60*1000?{...db.powerLive,status:'stale',message:'Попередній графік застарів. Онови дані ДТЕК.'}:db.powerLive,youtubeStudio:ytPublic(),youtubeConnected:!!db.youtubeApiKeyEncrypted,youtubeTrends:db.youtubeTrends};}
 function idFind(id){return db.tasks.find(t=>t.id===id);}
 async function notifyTelegram(text){
- if(!db.telegram?.enabled||!db.telegram.tokenEncrypted||!db.telegram.chatId)return;
+ if(db.telegramCloud?.url||!db.telegram?.enabled||!db.telegram.tokenEncrypted||!db.telegram.chatId)return;
  try{const token=safeStorage.decryptString(Buffer.from(db.telegram.tokenEncrypted,'base64'));await telegramRequest(token,'sendMessage',{chat_id:db.telegram.chatId,text:String(text).slice(0,1400)});}catch(e){/* Notifications are best-effort; never log secret tokens. */console.error('LifeHub Telegram notification failed:',String(e?.message||e).slice(0,140));}
 }
 // Private local bot: only the paired chat can use commands. No multi-user registration yet.
 function telegramToken(){return db.telegram?.tokenEncrypted?safeStorage.decryptString(Buffer.from(db.telegram.tokenEncrypted,'base64')):'';}
 function nextDay(date){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+1);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 async function pollTelegram(){
+ if(db.telegramCloud?.url){await syncTelegramCloud();return;}
  if(telegramPolling||!db.telegram?.enabled||!db.telegram.chatId||!db.telegram.tokenEncrypted)return;
  telegramPolling=true;
  try{
@@ -76,6 +78,38 @@ async function pollTelegram(){
  }catch(e){/* network/token errors are best effort; never log token URLs */console.error('Telegram polling failed:',String(e?.message||e).slice(0,120));}
  finally{telegramPolling=false;}
 }
+let cloudBusy=false;
+function cloudKey(){return safeStorage.decryptString(Buffer.from(db.telegramCloud.keyEncrypted,'base64'));}
+function cloudPayload(ack=[]){return {chatId:db.telegram.chatId,tasks:telegramSync.cleanTasks(db.tasks),powerLive:db.powerLive,powerGroup:db.powerGroup,enabled:db.telegram.enabled===true,taskReminders:db.preferences.taskReminders,privateNotificationText:db.preferences.privateNotificationText,evening:db.evening,notified:db.notified,ack};}
+async function syncTelegramCloud(){
+ if(cloudBusy||!db.telegramCloud?.url)return false;cloudBusy=true;const config=db.telegramCloud;
+ try{const key=cloudKey();let ack=[];for(let i=0;i<4;i++){
+ const result=await telegramSync.request(config.url,key,'/sync',cloudPayload(ack));
+ if(db.telegramCloud!==config)throw Error('Конфігурацію змінено');
+ if(!Array.isArray(result.pending)||result.pending.length>1000)throw Error('Некоректна черга змін');
+ if(!result.pending.length){config.lastSync=result.lastSync||new Date().toISOString();config.error='';save();return true;}
+ const applied=telegramSync.applyPending(db.tasks,result.pending);db.tasks=applied.tasks;ack=applied.ack;config.conflicts=[...(config.conflicts||[]),...applied.conflicts].slice(-30);save();
+ }throw Error('Черга ще не синхронізована; повторна спроба автоматично');
+ }catch(e){config.error=String(e.message||e).slice(0,180);save();return false;}finally{cloudBusy=false;}
+}
+ipcMain.handle('telegram:cloud-connect',async(_e,rawUrl,rawKey)=>{
+ if(!db.telegram?.chatId||!db.telegram.tokenEncrypted)throw Error('Спочатку прив’яжи Telegram у LifeHub');
+ if(db.telegramCloud?.url||cloudBusy||telegramPolling)throw Error('Зачекай завершення синхронізації або відключи попередній сервер');
+ if(!safeStorage.isEncryptionAvailable())throw Error('Системне шифрування недоступне');
+ const url=telegramSync.endpoint(rawUrl),key=String(rawKey||'').trim(),health=await telegramSync.request(url,key,'/health',{chatId:db.telegram.chatId});
+ if(String(health.botId)!==telegramToken().split(':')[0]||String(health.chatId)!==String(db.telegram.chatId))throw Error('Сервер має інший Telegram-бот або чат');
+ db.telegramCloud={url,keyEncrypted:safeStorage.encryptString(key).toString('base64'),lastSync:'',error:'',conflicts:[]};save();
+ const ok=await syncTelegramCloud();if(!ok)throw Error('Сервер налаштовано, але першу синхронізацію не підтверджено. Повтори перевірку.');
+ return true;
+});
+ipcMain.handle('telegram:cloud-sync',()=>syncTelegramCloud());
+ipcMain.handle('telegram:cloud-disconnect',async()=>{
+ if(!db.telegramCloud?.url)return true;
+ if(cloudBusy)throw Error('Триває синхронізація');
+ if(!await syncTelegramCloud())throw Error('Спочатку віднови зв’язок із сервером, щоб не загубити зміни');
+ await telegramSync.request(db.telegramCloud.url,cloudKey(),'/stop',{chatId:db.telegram.chatId});
+ delete db.telegramCloud;save();return true;
+});
 function setupAudioCapture(){
  // Explicit one-time IPC arm ensures no arbitrary page can capture desktop audio.
  session.defaultSession.setDisplayMediaRequestHandler(async(request,callback)=>{
@@ -214,6 +248,7 @@ ipcMain.handle('music:recognize-captured',async(_event,bytes,source='')=>{
  return result;
 });
 ipcMain.handle('telegram:connect',async(_event,token)=>{
+ if(db.telegramCloud?.url)throw Error('Спочатку відключи хмарний сервер');
  if(!validToken(token))throw new Error('Некоректний токен Telegram');
  if(!safeStorage.isEncryptionAvailable())throw new Error('Шифрування Windows недоступне');
  await telegramRequest(token,'getMe'); // validate token with Telegram before saving
@@ -232,8 +267,8 @@ ipcMain.handle('telegram:pair-check',async()=>{
  return true;
 });
 ipcMain.handle('telegram:test',async()=>{if(!db.telegram?.tokenEncrypted||!db.telegram.chatId)throw new Error('Спочатку прив’яжи бота кодом');await telegramRequest(telegramToken(),'sendMessage',{chat_id:db.telegram.chatId,text:'✅ LifeHub: тестове нагадування працює!',reply_markup:telegramMenu.keyboard});return true;});
-ipcMain.handle('telegram:enable',(_event,enabled)=>{if(!db.telegram?.chatId)throw new Error('Спочатку прив’яжи бота');db.telegram.enabled=!!enabled;save();return true;});
-ipcMain.handle('telegram:disconnect',()=>{db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();return true;});
+ipcMain.handle('telegram:enable',(_event,enabled)=>{if(!db.telegram?.chatId)throw new Error('Спочатку прив’яжи бота');db.telegram.enabled=!!enabled;save();if(db.telegramCloud?.url)void syncTelegramCloud();return true;});
+ipcMain.handle('telegram:disconnect',()=>{if(db.telegramCloud?.url)throw Error('Спочатку відключи хмарний сервер');db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();return true;});
 ipcMain.handle('power:save',(_event,raw)=>{validateBlackouts(raw);db.blackoutSchedule=String(raw||'').trim().slice(0,320);save();return true;});
 ipcMain.handle('power:address-save',(_event,address)=>{const next=cleanPowerAddress(address);if(JSON.stringify(next)!==JSON.stringify(db.powerAddress)){db.powerGroup='';db.powerGroupOrigin='';db.powerLive={status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Адресу змінено. Чергу треба перевірити повторно.'};}db.powerAddress=next;save();return true;});
 let powerFetching=false;

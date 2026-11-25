@@ -1,0 +1,6 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {cleanTasks,differences,applyPending,endpoint}=require('../electron/telegram-sync.cjs');
+const {cleanTask}=require('../electron/logic.cjs');
+test('Cloud changes merge by stable IDs, replay safely and preserve conflicting local changes',()=>{const task=cleanTask({title:'A',dueDate:'2026-11-25'},'a'),base=cleanTasks([task]),remote=JSON.parse(JSON.stringify(base));remote[0].completions.push('2026-11-25');const pending=differences(base,remote);assert.equal(pending.length,1);const out=applyPending(base,pending);assert.equal(out.conflicts.length,0);assert.deepEqual(out.tasks,remote);assert.equal(applyPending(out.tasks,pending).conflicts.length,0);const local=JSON.parse(JSON.stringify(base));local[0].title='Locally edited';const conflict=applyPending(local,pending);assert.equal(conflict.tasks[0].title,'Locally edited');assert.equal(conflict.conflicts.length,1);});
+test('Cloud connection requires HTTPS origin without embedded credentials',()=>{assert.equal(endpoint('https://example.org'),'https://example.org');assert.throws(()=>endpoint('http://example.org'));assert.throws(()=>endpoint('https://user:pass@example.org'));assert.throws(()=>endpoint('https://example.org/secret'));});

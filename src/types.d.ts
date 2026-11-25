@@ -37,7 +37,7 @@ export type PowerLive={status:string;checkedAt:string;source:string;message:stri
 export type TikTokCachedVideo={url:string;title:string;author:string;sound:string;recognized?:{title:string;artist:string;spotifyUrl:string}};
 export type SpotifyPick=MusicTrack&{reason:string};
 export type SpotifyPersonal={feedback:Record<string,'like'|'dislike'>;connected:boolean;week:string;items:SpotifyPick[];regions:{us:SpotifyPick[];regional:SpotifyPick[]};message:string;radarPlaylist:string;radarMessage:string;mode:string;window:{from:string;to:string}|null};
-export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeStudio:{accounts:Record<string,{owner:CreatorOwner}>;jobs:CreatorJob[]};youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsMutedSources:string[];newsImageUsage:number;newsCoverError:string;newsCoverPauseUntil:number;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string;chatId:string;cloud:{configured:boolean;url:string;lastSync:string;error:string;conflicts:{id:string;title:string}[]}};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeStudio:{accounts:Record<string,{owner:CreatorOwner}>;jobs:CreatorJob[]};youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsMutedSources:string[];newsImageUsage:number;newsCoverError:string;newsCoverPauseUntil:number;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -78,6 +78,9 @@ declare global {
     testTelegram:()=>Promise<boolean>;
     enableTelegram:(enabled:boolean)=>Promise<boolean>;
     disconnectTelegram:()=>Promise<boolean>;
+    connectTelegramCloud:(url:string,key:string)=>Promise<boolean>;
+    syncTelegramCloud:()=>Promise<boolean>;
+    disconnectTelegramCloud:()=>Promise<boolean>;
     saveBlackouts:(raw:string)=>Promise<boolean>;
     savePowerAddress:(address:{settlement:string;street:string;house:string})=>Promise<boolean>;
     fetchPower:()=>Promise<PowerLive>;

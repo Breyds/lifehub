@@ -378,6 +378,11 @@ ipcMain.handle('youtube:inbox-import',async(_event,id,filename)=>{
 function planRefs(){
  return [...new Map([...(earlyState().rows||[]),...(db.youtubeTrends?.videos||[])].map(x=>[x.id,{id:x.id,title:x.title,url:x.url,channel:x.channel,views:x.views}])).values()].slice(0,60);
 }
+ipcMain.handle('youtube:channel-builder',async(_event,brief,referenceIds)=>{
+ const refs=planRefs(),ids=Array.isArray(referenceIds)?referenceIds.slice(0,12):[],examples=ids.length?refs.filter(x=>ids.includes(x.id)):refs.slice(0,20);
+ const result=await aiInsight('youtube','Запропонуй оригінальну концепцію нового каналу, позиціонування, аудиторію, Shorts/Long, 30-денні експерименти. Використовуй лише надані приклади як референси, не копіюй відео, не обіцяй хайп.',{brief:String(brief||'').slice(0,700),examples},{type:'object',additionalProperties:false,properties:{title:{type:'string'},focus:{type:'string'},strategy:{type:'string'}},required:['title','focus','strategy']});
+ const raw=JSON.parse(result.text);return {title:String(raw.title||'').slice(0,130),focus:String(raw.focus||'').slice(0,350),strategy:String(raw.strategy||'').slice(0,8000)};
+});
 ipcMain.handle('youtube:generate-plan',async(_event,id,raw)=>{
  const channel=ytChannel(id),options=creatorPlan.planOptions(raw),refs=planRefs(),selected=Array.isArray(raw?.referenceIds)?raw.referenceIds.slice(0,12):[];
  const examples=selected.length?refs.filter(x=>selected.includes(x.id)):refs.slice(0,20);

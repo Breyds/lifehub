@@ -154,7 +154,7 @@ function makeWindow(){windowRef=new BrowserWindow({width:1280,height:850,minWidt
  if(process.env.VITE_DEV_SERVER_URL)windowRef.loadURL(process.env.VITE_DEV_SERVER_URL);else windowRef.loadFile(path.join(__dirname,'../dist/index.html'));
  windowRef.on('closed',()=>{windowRef=null;});
 }
-app.whenReady().then(()=>{load();for(const j of ytState().jobs)if(j.status==='uploading'){j.status='uncertain';j.error='Попереднє завантаження перервано. Перевір YouTube Studio перед повтором.';}save();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void updateEarly(false).catch(()=>{}),25000);setInterval(()=>void updateEarly(false).catch(()=>{}),15*60*1000);setInterval(()=>{try{if(ytState().inboxFolder)scanCreatorInbox();}catch{}},25000);setTimeout(()=>void processNewsCover().catch(()=>{}),15000);setInterval(()=>void processNewsCover().catch(()=>{}),15000);setTimeout(()=>void refreshPersonalMusic(false).catch(()=>{}),22000);setTimeout(()=>{if(db.preferences.tiktokCollectionUrl&&db.tiktokCache?.url===db.preferences.tiktokCollectionUrl)void refreshTikTokCollection(db.preferences.tiktokCollectionUrl,false).catch(()=>{});},45000);setTimeout(()=>{void refreshUtilityRadar(false).catch(()=>{});void refreshProPicks(false).catch(()=>{});},35000);setInterval(()=>void refreshProPicks(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshUtilityRadar(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshPersonalMusic(false).catch(()=>{}),60*60*1000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
+app.whenReady().then(()=>{load();for(const j of ytState().jobs)if(j.status==='uploading'){j.status='uncertain';j.error='Попереднє завантаження перервано. Перевір YouTube Studio перед повтором.';}save();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void updateEarly(false).catch(()=>{}),25000);setInterval(()=>void updateEarly(false).catch(()=>{}),15*60*1000);setInterval(()=>{try{for(const c of db.workspace.channels)if(ytState().inboxFolders?.[c.id])scanCreatorInbox(c.id);}catch{}},25000);setTimeout(()=>void processNewsCover().catch(()=>{}),15000);setInterval(()=>void processNewsCover().catch(()=>{}),15000);setTimeout(()=>void refreshPersonalMusic(false).catch(()=>{}),22000);setTimeout(()=>{if(db.preferences.tiktokCollectionUrl&&db.tiktokCache?.url===db.preferences.tiktokCollectionUrl)void refreshTikTokCollection(db.preferences.tiktokCollectionUrl,false).catch(()=>{});},45000);setTimeout(()=>{void refreshUtilityRadar(false).catch(()=>{});void refreshProPicks(false).catch(()=>{});},35000);setInterval(()=>void refreshProPicks(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshUtilityRadar(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshPersonalMusic(false).catch(()=>{}),60*60*1000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('before-quit',()=>{if(notifyTimer)clearInterval(notifyTimer);if(telegramTimer)clearInterval(telegramTimer);if(updateTimer)clearInterval(updateTimer);if(newsTimer)clearInterval(newsTimer);});
 ipcMain.handle('data:load',()=>cleanSnapshot());
@@ -343,26 +343,28 @@ ipcMain.handle('youtube:early-settings',(_event,raw)=>{
 });
 ipcMain.handle('youtube:early-refresh',()=>updateEarly(true));
 const inboxSeen=new Map();let inboxImportBusy=false;
-function creatorInboxFolder(){return ytState().inboxFolder||inboxPath();}
-function scanCreatorInbox(){
- const folder=creatorInboxFolder();if(!ytState().inboxFolder)fs.mkdirSync(folder,{recursive:true});
+function inboxFolders(){const s=ytState();if(!s.inboxFolders||typeof s.inboxFolders!=='object'||Array.isArray(s.inboxFolders))s.inboxFolders={};return s.inboxFolders;}
+function defaultCreatorFolder(id){ytChannel(id);return path.join(inboxPath(),'channels',crypto.createHash('sha256').update(id).digest('hex').slice(0,20));}
+function creatorInboxFolder(id){ytChannel(id);const folders=inboxFolders();if(!folders[id]&&db.workspace.channels.length===1&&ytState().inboxFolder){folders[id]=ytState().inboxFolder;save();}return folders[id]||defaultCreatorFolder(id);}
+function scanCreatorInbox(id){
+ const folder=creatorInboxFolder(id);if(!inboxFolders()[id])fs.mkdirSync(folder,{recursive:true});
  const result=creatorInbox.scan(folder,inboxSeen.get(folder)||{});inboxSeen.set(folder,result.next);
  return {folder,rows:result.rows.map(row=>({...row,imported:ytState().jobs.some(j=>j.inboxSource===folder+'|'+row.file+'|'+row.signature)||(ytState().inboxHistory||[]).some(j=>j.source===folder+'|'+row.file+'|'+row.signature)}))};
 }
-ipcMain.handle('youtube:inbox-folder',async()=>{
- const r=await dialog.showOpenDialog(windowRef,{title:'Обери папку Upload Ready',properties:['openDirectory']});
- if(!r.canceled&&r.filePaths[0]){ytState().inboxFolder=r.filePaths[0];inboxSeen.clear();save();}
- return scanCreatorInbox();
+ipcMain.handle('youtube:inbox-folder',async(_event,id)=>{
+ ytChannel(id);const r=await dialog.showOpenDialog(windowRef,{title:'Обери папку Upload Ready для цього каналу',properties:['openDirectory']});
+ if(!r.canceled&&r.filePaths[0]){const p=path.resolve(r.filePaths[0]);for(const c of db.workspace.channels){if(c.id!==id&&path.resolve(creatorInboxFolder(c.id)).toLowerCase()===p.toLowerCase())throw Error('Ця папка вже належить іншому каналу. Обери окрему.');}inboxFolders()[id]=p;inboxSeen.clear();save();}
+ return scanCreatorInbox(id);
 });
-ipcMain.handle('youtube:inbox-scan',()=>scanCreatorInbox());
-ipcMain.handle('youtube:inbox-default',()=>{delete ytState().inboxFolder;inboxSeen.clear();save();return scanCreatorInbox();});
-ipcMain.handle('youtube:inbox-open',async()=>{const p=creatorInboxFolder();if(!ytState().inboxFolder)fs.mkdirSync(p,{recursive:true});const error=await shell.openPath(p);if(error)throw Error(error);return true;});
+ipcMain.handle('youtube:inbox-scan',(_event,id)=>scanCreatorInbox(id));
+ipcMain.handle('youtube:inbox-default',(_event,id)=>{ytChannel(id);const p=defaultCreatorFolder(id);for(const c of db.workspace.channels){if(c.id!==id&&path.resolve(creatorInboxFolder(c.id)).toLowerCase()===p.toLowerCase())throw Error('Папка вже належить іншому каналу');}inboxFolders()[id]=p;fs.mkdirSync(p,{recursive:true});inboxSeen.clear();save();return scanCreatorInbox(id);});
+ipcMain.handle('youtube:inbox-open',async(_event,id)=>{const p=creatorInboxFolder(id);if(!inboxFolders()[id])fs.mkdirSync(p,{recursive:true});const error=await shell.openPath(p);if(error)throw Error(error);return true;});
 ipcMain.handle('youtube:inbox-import',async(_event,id,filename)=>{
  if(inboxImportBusy||ytUploadBusy)throw Error('Інша операція вже виконується');
- ytChannel(id);const data=scanCreatorInbox(),row=data.rows.find(v=>v.file===filename);
+ ytChannel(id);const data=scanCreatorInbox(id),row=data.rows.find(v=>v.file===filename);
  if(!row?.ready)throw Error('Файл ще не стабільний. Зачекай наступного сканування.');
  const source=data.folder+'|'+row.file+'|'+row.signature;
- const existing=ytState().jobs.find(j=>j.inboxSource===source);if(existing)return existing.id;
+ const existing=ytState().jobs.find(j=>j.inboxSource===source);if(existing){if(existing.channelId!==id)throw Error('Цей файл уже в черзі іншого каналу');return existing.id;}
  if(ytState().jobs.length>=200)throw Error('Ліміт чернеток');
  inboxImportBusy=true;let dest='';
  try{
@@ -370,7 +372,7 @@ ipcMain.handle('youtube:inbox-import',async(_event,id,filename)=>{
   const hash=await creatorInbox.copyStable(data.folder,row,dest);
   if((ytState().inboxHistory||[]).some(x=>x.hash===hash))throw Error('Цей файл уже мав спробу публікації. Перевір YouTube Studio, щоб не дублювати відео.');
   const duplicate=ytState().jobs.find(j=>j.fileHash===hash);
-  if(duplicate){await fs.promises.unlink(dest);dest='';return duplicate.id;}
+  if(duplicate){await fs.promises.unlink(dest);dest='';if(duplicate.channelId!==id)throw Error('Цей файл уже в черзі іншого каналу');return duplicate.id;}
   const meta=creatorInbox.metadata(data.folder,row.file,data.folder===inboxPath()?db.videoDrafts[row.file]||{}:{});
   ytChannel(id);
   const j={id:crypto.randomUUID(),channelId:id,status:'draft',...meta,progress:0,videoId:'',error:'',inboxSource:source,fileHash:hash,file:{stored,name:row.file,bytes:row.size}};
@@ -379,7 +381,7 @@ ipcMain.handle('youtube:inbox-import',async(_event,id,filename)=>{
  }finally{if(dest)await fs.promises.unlink(dest).catch(()=>{});inboxImportBusy=false;}
 });
 function planRefs(){
- return [...new Map([...(earlyState().rows||[]),...(db.youtubeTrends?.videos||[])].map(x=>[x.id,{id:x.id,title:x.title,url:x.url,channel:x.channel,views:x.views}])).values()].slice(0,60);
+ return [...new Map([...(earlyState().rows||[]).filter(x=>x.opportunity),...(db.youtubeTrends?.videos||[])].map(x=>[x.id,{id:x.id,title:x.title,url:x.url,channel:x.channel,views:x.views}])).values()].slice(0,60);
 }
 ipcMain.handle('youtube:channel-builder',async(_event,brief,referenceIds)=>{
  const refs=planRefs(),ids=Array.isArray(referenceIds)?referenceIds.slice(0,12):[],examples=ids.length?refs.filter(x=>ids.includes(x.id)):refs.slice(0,20);

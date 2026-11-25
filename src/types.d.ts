@@ -85,10 +85,10 @@ declare global {
     ytEarlyState:()=>Promise<EarlyState>;
     ytEarlySettings:(raw:{enabled?:boolean;query?:string})=>Promise<EarlyState>;
     ytEarlyRefresh:()=>Promise<EarlyState>;
-    ytInboxFolder:()=>Promise<CreatorInbox>;
-    ytInboxDefault:()=>Promise<CreatorInbox>;
-    ytInboxScan:()=>Promise<CreatorInbox>;
-    ytInboxOpen:()=>Promise<boolean>;
+    ytInboxFolder:(id:string)=>Promise<CreatorInbox>;
+    ytInboxDefault:(id:string)=>Promise<CreatorInbox>;
+    ytInboxScan:(id:string)=>Promise<CreatorInbox>;
+    ytInboxOpen:(id:string)=>Promise<boolean>;
     ytInboxImport:(id:string,file:string)=>Promise<string>;
     ytInboxAi:(id:string)=>Promise<{title:string;description:string;tags:string}>;
     ytGeneratePlan:(id:string,raw:{days:number;shorts:number;longs:number;start:string;brief:string;referenceIds:string[]})=>Promise<AIContentPlan>;
@@ -171,7 +171,8 @@ export type NicheVideo={id:string;title:string;channel:string;channelId:string;c
 export type CreatorJob={id:string;channelId:string;status:string;title:string;description:string;tags:string;format:string;categoryId:string;publishAt:string;madeForKids:boolean|null;progress:number;videoId:string;error:string;fileName:string;coverName:string;actualPrivacy?:string;actualPublishAt?:string;uploadStatus?:string};
 
 export type EarlyWindow={hours:number;data:null|{from:number;to:number;startViews:number;endViews:number;change:number;hours:number}};
-export type EarlyVideo={id:string;channelId:string;channel:string;channelUrl:string;channelCreatedAt:string;channelVideoCount:number;subscribers:number;title:string;url:string;thumbnail:string;publishedAt:string;seconds:number|null;format:string;views:number;checkedAt:number;samples:{at:number;views:number}[];windows:EarlyWindow[]};
+export type Opportunity={query:string;checkedAt:number;similarCount:number;sampleSize:number;saturated:boolean;independentChannels:number;ratio:number;confirmed:boolean;examples:{id:string;title:string;channel:string;channelId:string;views:number;subscribers:number;url:string}[]};
+export type EarlyVideo={opportunity?:Opportunity|null;id:string;channelId:string;channel:string;channelUrl:string;channelCreatedAt:string;channelVideoCount:number;subscribers:number;title:string;url:string;thumbnail:string;publishedAt:string;seconds:number|null;format:string;views:number;checkedAt:number;samples:{at:number;views:number}[];windows:EarlyWindow[]};
 export type EarlyState={enabled:boolean;query:string;rows:EarlyVideo[];checkedAt:number;discoveredAt:number;nextAt:number;error:string};
 export type CreatorInbox={folder:string;rows:{file:string;size:number;modifiedAt:string;ready:boolean;imported:boolean;signature:string}[]};
 export type AIContentPlan={strategy:string;items:{title:string;date:string;format:string;hook:string;script:string;note:string;url:string}[]};

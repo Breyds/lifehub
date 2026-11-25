@@ -32,13 +32,13 @@ const STOP=new Set('the a an and or of in on to is for with how what why this th
 function words(title){return [...new Set(String(title||'').normalize('NFKC').toLowerCase().replace(/#[\p{L}\p{N}_]+/gu,' ').match(/[\p{L}\p{N}]{2,}/gu)||[])].filter(w=>!STOP.has(w)).slice(0,14);}
 function topicQuery(title){return words(title).slice(0,7).join(' ');}
 function related(a,b){const x=words(a),y=new Set(words(b)),n=x.filter(w=>y.has(w)).length;return n>=2&&n/Math.max(1,Math.min(x.length,y.size))>=0.6&&n/Math.max(1,Math.max(x.length,y.size))>=0.32;}
-function breakout(v,now=Date.now()){const age=now-Date.parse(v.publishedAt);return age>=0&&age<=7*DAY&&Number.isFinite(v.subscribers)&&v.subscribers>=0&&v.subscribers<=10000&&v.views>=10000&&v.views/Math.max(v.subscribers,1)>=10;}
+function breakout(v,now=Date.now()){const age=now-Date.parse(v.publishedAt);return age>=0&&age<=7*DAY&&Number.isFinite(v.subscribers)&&v.subscribers>=0&&v.subscribers<=20000&&v.views>=3000&&v.views/Math.max(v.subscribers,1)>=5;}
 function evidence(seed,results,{query='',now=Date.now(),sampleSize=results.length,saturated=false}={}){
  const comparable=[...new Map([seed,...results].filter(x=>x.format===seed.format&&(x.id===seed.id||related(seed.title,x.title))).map(x=>[x.id,x])).values()];
  const winners=comparable.filter(v=>breakout(v,now)).sort((a,b)=>b.views-a.views),unique=[...new Map(winners.map(v=>[v.channelId,v])).values()];
- const sparse=comparable.length<=12,exceptional=seed.views>=50000&&seed.views/Math.max(seed.subscribers,1)>=50;
- if(!sparse||(!exceptional&&unique.length<2))return null;
- return {query,checkedAt:now,similarCount:comparable.length,sampleSize,saturated,independentChannels:unique.length,ratio:seed.views/Math.max(seed.subscribers,1),confirmed:unique.length>=2&&!saturated,examples:unique.slice(0,6).map(v=>({id:v.id,title:v.title,channel:v.channel,channelId:v.channelId,views:v.views,subscribers:v.subscribers,url:v.url}))};
+ const sparse=comparable.length<=20;
+ if(!sparse||!breakout(seed,now))return null;
+ return {query,checkedAt:now,similarCount:comparable.length,sampleSize,saturated,independentChannels:unique.length,ratio:seed.views/Math.max(seed.subscribers,1),confirmed:unique.length>=2&&!saturated&&unique.filter(v=>v.views>=5000&&v.views/Math.max(v.subscribers,1)>=8).length>=2,examples:unique.slice(0,6).map(v=>({id:v.id,title:v.title,channel:v.channel,channelId:v.channelId,views:v.views,subscribers:v.subscribers,url:v.url}))};
 }
 async function searchPage(key,params,fetcher){const u=new URL('https://www.googleapis.com/youtube/v3/search');u.search=new URLSearchParams({key,...params}).toString();const r=await fetcher(u,{signal:AbortSignal.timeout(18000)}),d=await r.json();if(!r.ok)throw Error('YouTube API: '+String(d.error?.message||r.status).slice(0,180));return {ids:(d.items||[]).map(v=>v.id?.videoId).filter(x=>ID.test(x)),saturated:!!d.nextPageToken||(d.items||[]).length>=50};}
 async function readRows(key,ids,now,fetcher,maxAge=7*DAY){
@@ -54,12 +54,12 @@ async function readRows(key,ids,now,fetcher,maxAge=7*DAY){
 async function refreshEarly(key,raw,{discover=false,now=Date.now(),fetcher=fetch}={}){
  const state=cleanState(raw,now),old=new Map(state.rows.map(x=>[x.id,x])),queries=state.query?[state.query]:Array.from({length:3},(_,i)=>DEFAULT_QUERIES[(state.cursor+i)%DEFAULT_QUERIES.length]);
  const ids=new Set(old.keys());
- if(discover){for(const q of queries){for(const order of ['viewCount','date']){const found=await searchPage(key,{part:'snippet',type:'video',q,order,publishedAfter:new Date(now-7*DAY).toISOString(),maxResults:'50'},fetcher);for(const id of found.ids)ids.add(id);}}}
- const rawRows=await readRows(key,ids,now,fetcher),rows=rawRows.filter(v=>v.subscribers!==null&&Number.isFinite(v.subscribers)&&v.subscribers>=0&&v.subscribers<=10000).map(v=>({...v,samples:sample(old.get(v.id)?.samples,v.views,now),opportunity:old.get(v.id)?.opportunity||null}));
+ if(discover){for(const q of queries){for(const order of ['viewCount','relevance','date']){const found=await searchPage(key,{part:'snippet',type:'video',q,order,publishedAfter:new Date(now-7*DAY).toISOString(),maxResults:'50'},fetcher);for(const id of found.ids)ids.add(id);}}}
+ const rawRows=await readRows(key,ids,now,fetcher),rows=rawRows.filter(v=>v.subscribers!==null&&Number.isFinite(v.subscribers)&&v.subscribers>=0&&v.subscribers<=20000).map(v=>({...v,samples:sample(old.get(v.id)?.samples,v.views,now),opportunity:old.get(v.id)?.opportunity||null}));
  if(discover){
   const seeds=rows.filter(v=>breakout(v,now)&&topicQuery(v.title).split(' ').length>=2&&v.format!=='unknown').sort((a,b)=>b.views/Math.max(b.subscribers,1)-a.views/Math.max(a.subscribers,1)||b.views-a.views);
   const tried=[];
-  for(const seed of seeds){if(tried.length>=4)break;if(tried.some(x=>x.format===seed.format&&related(x.title,seed.title)))continue;tried.push(seed);
+  for(const seed of seeds){if(tried.length>=5)break;if(tried.some(x=>x.format===seed.format&&related(x.title,seed.title)))continue;tried.push(seed);
    const query=topicQuery(seed.title),found=await searchPage(key,{part:'snippet',type:'video',q:query,order:'relevance',publishedAfter:new Date(now-90*DAY).toISOString(),maxResults:'50'},fetcher);
    const comparable=await readRows(key,found.ids,now,fetcher,90*DAY),op=evidence(seed,comparable,{query,now,sampleSize:found.ids.length,saturated:found.saturated});
    for(const v of rows)if(v.format===seed.format&&(v.id===seed.id||related(seed.title,v.title)))v.opportunity=null;

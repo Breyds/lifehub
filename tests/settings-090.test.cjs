@@ -1,0 +1,4 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {safePreferences}=require('../electron/workspace.cjs');
+test('new settings persist valid options and preserve safe defaults for old installations',()=>{const p=safePreferences({accent:'rose',startupPage:'youtube',reduceMotion:true,hideSidebarIdentity:true,taskReminders:false,privateNotificationText:true});assert.equal(p.accent,'rose');assert.equal(p.startupPage,'youtube');assert.equal(p.reduceMotion,true);assert.equal(p.hideSidebarIdentity,true);assert.equal(p.taskReminders,false);assert.equal(p.privateNotificationText,true);const old=safePreferences({});assert.equal(old.startupPage,'today');assert.equal(old.taskReminders,true);assert.equal(old.privateNotificationText,false);const bad=safePreferences({accent:'unknown',startupPage:'bad',reduceMotion:'true'});assert.equal(bad.accent,'green');assert.equal(bad.startupPage,'today');assert.equal(bad.reduceMotion,false);});

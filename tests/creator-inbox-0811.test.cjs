@@ -45,5 +45,7 @@ test('niche radar rejects ordinary small channels and distinguishes repeated bre
  assert.ok(related(seed.title,copy.title));assert.equal(evidence(seed,[copy],{query:'tiny dragon paper animation',now}).confirmed,true);
  assert.equal(evidence(seed,[],{query:'tiny dragon paper animation',now}).confirmed,false);
  assert.equal(evidence(seed,[copy],{query:'tiny dragon paper animation',now,saturated:true}).confirmed,false);
- const crowded=Array.from({length:15},(_,i)=>({...ordinary,id:'v'+i}));assert.equal(evidence(seed,crowded,{now}),null);
+ const crowded=Array.from({length:25},(_,i)=>({...ordinary,id:'v'+i}));assert.equal(evidence(seed,crowded,{now}),null);
 });
+
+test('balanced radar admits early signals without calling them confirmed',()=>{const now=Date.parse('2026-11-25T18:00:00Z'),seed={id:'s',channelId:'one',title:'Tiny dragon paper animation',format:'short-candidate',views:3500,subscribers:500,publishedAt:new Date(now-3600000).toISOString()};assert.equal(breakout(seed,now),true);assert.equal(evidence(seed,[],{now}).confirmed,false);assert.equal(breakout({...seed,views:100},now),false);assert.equal(breakout({...seed,subscribers:2000},now),false);});

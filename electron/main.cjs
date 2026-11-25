@@ -97,9 +97,9 @@ function setupAudioCapture(){
 function checkNotifications(){
   const date=todayLocal(),now=new Date();const hhmm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   let changed=false;
-  for(const t of db.tasks){const k=t.id+'|'+date+'|'+t.time;if(t.time&&t.time<=hhmm&&occurs(t,date)&&!taskDone(t,date)&&!db.notified.includes(k)){
+  if(db.preferences.taskReminders)for(const t of db.tasks){const k=t.id+'|'+date+'|'+t.time;if(t.time&&t.time<=hhmm&&occurs(t,date)&&!taskDone(t,date)&&!db.notified.includes(k)){
       db.notified.push(k);changed=true;
-      if(Notification.isSupported())new Notification({title:'LifeHub · Нагадування',body:t.title}).show();void notifyTelegram(`🔔 LifeHub: ${t.title} (${t.time})`);
+      if(Notification.isSupported())new Notification({title:'LifeHub · Нагадування',body:db.preferences.privateNotificationText?'Є запланована справа. Відкрий LifeHub.':t.title}).show();void notifyTelegram(db.preferences.privateNotificationText?'🔔 LifeHub: є запланована справа.':`🔔 LifeHub: ${t.title} (${t.time})`);
   }}
   if(db.evening&&now.getHours()>=21&&!db.eveningShown.includes(date)){
     db.eveningShown.push(date);changed=true;

@@ -30,4 +30,9 @@ async function copyStable(folder,row,dest){
  try{const after=fs.lstatSync(source);if(after.size+':'+after.mtimeMs!==row.signature)throw Error('Файл змінився під час копіювання');return await digest(dest);}
  catch(e){await fs.promises.unlink(dest).catch(()=>{});throw e;}
 }
-module.exports={scan,metadata,copyStable};
+function coverFile(folder,name){
+ const stem=path.basename(name,path.extname(name));
+ for(const ext of ['.png','.jpg','.jpeg']){try{const file=path.join(folder,stem+ext),st=fs.lstatSync(file);if(st.isFile()&&!st.isSymbolicLink()&&st.size>0&&st.size<=2*1024**2)return file;}catch{}}
+ return null;
+}
+module.exports={scan,metadata,copyStable,coverFile};

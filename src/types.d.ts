@@ -86,6 +86,7 @@ declare global {
     ytEarlySettings:(raw:{enabled?:boolean;query?:string})=>Promise<EarlyState>;
     ytEarlyRefresh:()=>Promise<EarlyState>;
     ytInboxFolder:()=>Promise<CreatorInbox>;
+    ytInboxDefault:()=>Promise<CreatorInbox>;
     ytInboxScan:()=>Promise<CreatorInbox>;
     ytInboxOpen:()=>Promise<boolean>;
     ytInboxImport:(id:string,file:string)=>Promise<string>;

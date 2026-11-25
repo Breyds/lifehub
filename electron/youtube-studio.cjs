@@ -1,6 +1,6 @@
 'use strict';
 const crypto=require('node:crypto'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');
-const SCOPES=['youtube.readonly','youtube.upload','yt-analytics.readonly'].map(s=>'https://www.googleapis.com/auth/'+s);
+const SCOPES=['youtube.readonly','youtube.upload','youtube.force-ssl','yt-analytics.readonly'].map(s=>'https://www.googleapis.com/auth/'+s);
 const ID=/^[A-Za-z0-9_-]{11}$/;
 const channelId=/^UC[A-Za-z0-9_-]{22}$/;
 const shortText=(v,n)=>String(v??'').trim().slice(0,n);
@@ -95,4 +95,17 @@ async function upload(token,file,meta,onProgress=()=>{},fetcher=fetch){
   throw Error('YouTube не підтвердив завершення; перевір Studio перед повторним завантаженням');
  }finally{fs.closeSync(fd);}
 }
-module.exports={config,authorize,tokenRequest,api,mine,durationSeconds,videoRow,listVideos,analytics,uploadMetadata,upload,safeUploadLocation};
+async function thumbnail(token,id,file,fetcher=fetch){
+ if(!ID.test(id))throw Error('Некоректний video ID');
+ const stat=fs.statSync(file);if(!stat.isFile()||stat.size<1||stat.size>2*1024*1024)throw Error('Обкладинка до 2 МБ');
+ const buf=fs.readFileSync(file),png=buf.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),jpeg=buf[0]===255&&buf[1]===216;
+ if(!png&&!jpeg)throw Error('Обкладинка має бути PNG або JPEG');
+ return json('https://www.googleapis.com/upload/youtube/v3/thumbnails/set?videoId='+id+'&uploadType=media',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':png?'image/png':'image/jpeg'},body:buf},fetcher);
+}
+async function schedule(token,id,status,fetcher=fetch,now=Date.now()){
+ if(!ID.test(id)||Date.parse(status.publishAt)<now+60000)throw Error('Час публікації вже надто близький. Відео залишено приватним.');
+ const d=await json('https://www.googleapis.com/youtube/v3/videos?part=status',{method:'PUT',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id,status})},fetcher);
+ if(d.status?.privacyStatus!=='private'||Date.parse(d.status?.publishAt)!==Date.parse(status.publishAt))throw Error('YouTube не підтвердив розклад. Перевір YouTube Studio.');
+ return videoRow(d);
+}
+module.exports={config,authorize,tokenRequest,api,mine,durationSeconds,videoRow,listVideos,analytics,uploadMetadata,upload,safeUploadLocation,thumbnail,schedule};

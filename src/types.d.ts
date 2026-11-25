@@ -31,13 +31,13 @@ export type CS2ProPick={id:string;map:string;type:CS2Utility['type'];side:string
 export type CS2ProPicks={items:CS2ProPick[];reviewedAt:string;fetchedAt:string;status:string;notice:string;source:string};
 export type CS2State={proPicks:CS2ProPicks;faceitConnected:boolean;faceitNickname:string;faceitData:CS2FaceitData|null;utilities:CS2Utility[];demos:CS2Demo[];reminders:boolean;utilityRadar:CS2UtilityRadar};
 export type Workspace=Record<WorkspaceKind,WorkspaceItem[]>;
-export type YouTubeTrend={id:string;category:string;subtopic:string;title:string;channel:string;channelUrl?:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
+export type YouTubeTrend={id:string;seconds?:number|null;format?:string;channelId?:string;category:string;subtopic:string;title:string;channel:string;channelUrl?:string;url:string;thumbnail:string;publishedAt:string;views:number;likes:number;viewsPerDay:number;likeRate:number};
 export type YoutubeTrendsState={videos:YouTubeTrend[];fetchedAt:string;topics:{id:string;label:string}[];method?:string};
 export type PowerLive={status:string;checkedAt:string;source:string;message:string;group?:string;groupSource?:string;sourceUpdatedAt?:string;forecastSource?:string;forecastUpdatedAt?:string;forecastStale?:boolean;lastAttemptAt?:string;intervals:{date:string;start:string;end:string;status:string}[];days?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[];weeklyDays?:{date:string;slots:{start:string;end:string;status:'on'|'off'|'possible'|'unknown'}[]}[]};
 export type TikTokCachedVideo={url:string;title:string;author:string;sound:string;recognized?:{title:string;artist:string;spotifyUrl:string}};
 export type SpotifyPick=MusicTrack&{reason:string};
 export type SpotifyPersonal={feedback:Record<string,'like'|'dislike'>;connected:boolean;week:string;items:SpotifyPick[];regions:{us:SpotifyPick[];regional:SpotifyPick[]};message:string;radarPlaylist:string;radarMessage:string;mode:string;window:{from:string;to:string}|null};
-export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsMutedSources:string[];newsImageUsage:number;newsCoverError:string;newsCoverPauseUntil:number;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
+export type Snapshot={spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeStudio:{accounts:Record<string,{owner:CreatorOwner}>;jobs:CreatorJob[]};youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsMutedSources:string[];newsImageUsage:number;newsCoverError:string;newsCoverPauseUntil:number;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
     load:()=>Promise<Snapshot>;
@@ -82,6 +82,19 @@ declare global {
     savePowerAddress:(address:{settlement:string;street:string;house:string})=>Promise<boolean>;
     fetchPower:()=>Promise<PowerLive>;
     savePowerGroup:(group:string)=>Promise<boolean>;
+    ytConnectOwner:(id:string,cfg:{clientId:string;clientSecret:string})=>Promise<CreatorOwner>;
+    ytDisconnectOwner:(id:string)=>Promise<boolean>;
+    ytVideos:(id:string,page?:string)=>Promise<{items:CreatorVideo[];nextPageToken:string}>;
+    ytAnalytics:(id:string,video?:string)=>Promise<CreatorAnalytics>;
+    ytNiche:(query:string,format:string)=>Promise<NicheVideo[]>;
+    ytCreatorAi:(id:string,query:string,video?:CreatorVideo)=>Promise<{text:string;spent:number}>;
+    ytCreateJob:(id:string)=>Promise<string>;
+    ytEditJob:(id:string,data:Partial<CreatorJob>)=>Promise<boolean>;
+    ytPickMedia:(id:string,cover?:boolean)=>Promise<boolean>;
+    ytDeleteJob:(id:string)=>Promise<boolean>;
+    ytSendJob:(id:string)=>Promise<boolean>;
+    ytJobStatus:(id:string)=>Promise<CreatorVideo>;
+    ytFinishJob:(id:string,date:string)=>Promise<boolean>;
     saveYouTubeKey:(key:string)=>Promise<boolean>;
     removeYouTubeKey:()=>Promise<boolean>;
     getYouTubeTrends:(force:boolean)=>Promise<YoutubeTrendsState>;
@@ -139,3 +152,9 @@ declare global {
 
 export type StreamMaterial={id:string;name:string;kind:string;bytes:number;entries:number;questions:number;warnings:string[];summary:string;sample?:string[]};
 export type ObsSnapshot={sample?:{seconds:number;renderSkipped:number|null;renderTotal:number|null;outputSkipped:number|null;outputTotal:number|null;networkSkipped:number|null;networkTotal:number|null};checkedAt:string;currentScene:string;scenes:string[];sources:{scene:string;items:{name:string;enabled:boolean}[]}[];inputs:{name:string;kind:string}[];cpu:number|null;memory:number|null;fps:number|null;renderSkipped:number|null;renderTotal:number|null;outputSkipped:number|null;outputTotal:number|null;streamActive:boolean|null;networkSkipped:number|null;networkTotal:number|null;recording:boolean|null;width:number|null;height:number|null};
+
+export type CreatorOwner={id:string;title:string;thumbnail:string;uploads:string;subscribers:number|null;views:number;videos:number};
+export type CreatorVideo={id:string;title:string;description:string;thumbnail:string;channelId:string;publishedAt:string;seconds:number|null;format:string;views:number;likes:number|null;comments:number|null;privacy:string;publishAt:string;uploadStatus:string};
+export type CreatorAnalytics={start:string;end:string;metrics:Record<string,number|null>};
+export type NicheVideo={id:string;title:string;channel:string;channelId:string;channelUrl:string;url:string;thumbnail:string;subscribers:number;views:number;viewsPerDay:number;ratio:number;seconds:number;publishedAt:string;format:string};
+export type CreatorJob={id:string;channelId:string;status:string;title:string;description:string;tags:string;format:string;categoryId:string;publishAt:string;madeForKids:boolean|null;progress:number;videoId:string;error:string;fileName:string;coverName:string;actualPrivacy?:string;actualPublishAt?:string;uploadStatus?:string};

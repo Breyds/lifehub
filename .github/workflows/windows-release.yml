@@ -25,6 +25,8 @@ jobs:
       - name: Check release version and existing tag
         id: release
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
           $version = node -p "require('./package.json').version"
@@ -36,12 +38,31 @@ jobs:
           $remote = git ls-remote --tags origin "refs/tags/$tag"
           if ($LASTEXITCODE -ne 0) { throw 'Cannot check GitHub tags' }
           $exists = -not [string]::IsNullOrWhiteSpace(($remote | Out-String).Trim())
-          $publish = ($env:GITHUB_REF_TYPE -eq 'tag') -or ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') -or (-not $exists)
+          $list = gh release list --repo $env:GITHUB_REPOSITORY --limit 1000 --json tagName,isDraft
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot list releases' }
+          $existing = $list | ConvertFrom-Json | Where-Object { $_.tagName -eq $tag } | Select-Object -First 1
+          $publish = ($null -eq $existing) -or $existing.isDraft
+          if (-not $publish) {
+            $view = gh release view $tag --repo $env:GITHUB_REPOSITORY --json assets
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot verify published assets' }
+            $names = @((($view | ConvertFrom-Json).assets) | ForEach-Object { $_.name })
+            foreach ($required in @("LifeHub-Setup-$version.exe", 'latest.yml', "LifeHub-Setup-$version.exe.blockmap")) {
+              if ($names -notcontains $required) { throw "Published release missing $required" }
+            }
+          }
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$tag" >> $env:GITHUB_OUTPUT
           "tag_exists=$($exists.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           "publish=$($publish.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
           Write-Host "Release $tag | already tagged: $exists | publish: $publish"
+      - name: Recover from tagged source
+        if: steps.release.outputs.publish == 'true' && steps.release.outputs.tag_exists == 'true'
+        shell: pwsh
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git checkout --detach "refs/tags/$env:TAG"
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot checkout version tag' }
       - name: Install dependencies
         if: steps.release.outputs.publish == 'true'
         run: npm install --no-audit --no-fund
@@ -70,40 +91,68 @@ jobs:
           $package.build.publish[0].owner = $parts[0]
           $package.build.publish[0].repo = $parts[1]
           $package | ConvertTo-Json -Depth 30 | Set-Content -Path package.json -Encoding utf8
-      - name: Build Windows installer and publish release
+      - name: Build Windows installer locally
         if: steps.release.outputs.publish == 'true'
-        run: npm run release:win
+        run: npm run dist:win
+      - name: Validate installer and generate update metadata if needed
+        if: steps.release.outputs.publish == 'true'
+        shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = $env:VERSION
+          $name = "LifeHub-Setup-$version.exe"
+          $exe = Get-Item "release/$name"
+          if ($exe.Length -le 0 -or -not (Test-Path "release/$name.blockmap")) { throw 'Incomplete installer' }
+          $hash = [Convert]::ToBase64String([Convert]::FromHexString((Get-FileHash $exe.FullName -Algorithm SHA512).Hash))
+          if (-not (Test-Path 'release/latest.yml')) {
+            $date = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffZ')
+            @("version: $version", 'files:', "  - url: $name", "    sha512: $hash", "    size: $($exe.Length)", "path: $name", "sha512: $hash", "releaseDate: '$date'") | Set-Content 'release/latest.yml' -Encoding utf8
+          }
+          $meta = Get-Content 'release/latest.yml' -Raw
+          if (-not $meta.Contains($hash) -or -not $meta.Contains($name) -or -not $meta.Contains("version: $version")) { throw 'Invalid update metadata' }
       - name: Save installer artifacts
         if: steps.release.outputs.publish == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: lifehub-windows
+          if-no-files-found: error
           path: |
             release/*.exe
             release/latest.yml
             release/*.blockmap
-
-      - name: Publish draft release after verifying assets
+      - name: Publish verified assets using GitHub CLI
+        if: steps.release.outputs.publish == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $version = node -p "require('./package.json').version"
-          $tag = "v$version"
-          $releases = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=30" | ConvertFrom-Json
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to fetch GitHub releases' }
-          $draft = $releases | Where-Object { $_.tag_name -eq $tag -and $_.draft } | Select-Object -First 1
-          if ($null -eq $draft) {
-            Write-Host "No draft release to publish for $tag"
-            exit 0
+          $tag = $env:TAG
+          $repo = $env:GITHUB_REPOSITORY
+          $name = "LifeHub-Setup-$env:VERSION.exe"
+          $list = gh release list --repo $repo --limit 1000 --json tagName,isDraft
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot list releases' }
+          $existing = $list | ConvertFrom-Json | Where-Object { $_.tagName -eq $tag } | Select-Object -First 1
+          if ($null -eq $existing) {
+            gh release create $tag --repo $repo --verify-tag --draft --title "LifeHub $env:VERSION" --generate-notes
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot create draft release' }
+          } elseif (-not $existing.isDraft) { throw 'Refusing to overwrite public release' }
+          gh release upload $tag "release/$name" "release/latest.yml" "release/$name.blockmap" --repo $repo --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Upload failed; draft preserved' }
+          $view = gh release view $tag --repo $repo --json isDraft,assets
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot verify assets' }
+          $draft = $view | ConvertFrom-Json
+          if (-not $draft.isDraft) { throw 'Expected draft release' }
+          foreach ($required in @($name, 'latest.yml', "$name.blockmap")) {
+            $asset = $draft.assets | Where-Object { $_.name -eq $required } | Select-Object -First 1
+            if ($null -eq $asset -or $asset.size -ne (Get-Item "release/$required").Length) { throw "Incomplete asset: $required" }
           }
-          $assetNames = @($draft.assets | ForEach-Object { $_.name })
-          if ($assetNames -notcontains "LifeHub-Setup-$version.exe" -or $assetNames -notcontains 'latest.yml') {
-            throw "Draft $tag is missing a Windows installer or latest.yml"
-          }
-          gh api --method PATCH "repos/$env:GITHUB_REPOSITORY/releases/$($draft.id)" -F "draft=false" | Out-Null
-          if ($LASTEXITCODE -ne 0) { throw "Failed to publish release $tag" }
+          gh release edit $tag --repo $repo --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot publish draft' }
+          $view = gh release view $tag --repo $repo --json isDraft,url
+          if ($LASTEXITCODE -ne 0 -or ($view | ConvertFrom-Json).isDraft) { throw 'Release publication not confirmed' }
           Write-Host "Published $tag"

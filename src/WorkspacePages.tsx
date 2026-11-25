@@ -92,11 +92,6 @@ export function FitnessPage(props:WorkspaceActions & {kind:'fitness'|'cs2'}){con
  {kind==='fitness'&&recent.length>1&&<section className="hub-surface"><h2>Історія ваги</h2><div className="hub-weight-chart">{recent.map(x=><div key={x.id}><strong>{fieldText(x,'kg')} кг</strong><div className="hub-weight-bar" style={{height:`${Math.max(25,Number(x.kg||0)/Math.max(...recent.map(z=>Number(z.kg)||1))*130)}px`}}/><small>{readable(fieldText(x,'date'))}</small></div>)}</div></section>}{edit.editorNode}</div>;
 }
 
-function InsightPanel({kind,snapshot,refresh,report,defaultQuery}:{kind:'trends'|'youtube'|'streams';snapshot:Snapshot;refresh:()=>Promise<void>;report:(s:string)=>void;defaultQuery:string}){const [query,setQuery]=useState(defaultQuery),[answer,setAnswer]=useState(''),[working,setWorking]=useState(false);
- async function run(){setWorking(true);try{const r=await window.lifehub.aiInsight(kind,query);setAnswer(r.text);await refresh();}catch(e){report(String(e));}finally{setWorking(false);}}
- return <section className="hub-surface hub-insight"><div className="hub-section-head"><div><h2><Sparkles size={17}/> AI-аналітика</h2><p>Пропозиції для розгляду, не автоматичні рішення</p></div><span className="hub-chip">API за запитом</span></div><textarea rows={2} value={query} onChange={e=>setQuery(e.target.value)}/><button className="button primary" disabled={working||!snapshot.hasKey} onClick={()=>void run()}>{working?'Аналізую…':'Отримати AI-ідеї'} <ArrowUpRight size={16}/></button>{!snapshot.hasKey&&<p className="hub-notice">Потрібен API-ключ. Безкоштовні функції працюють без нього.</p>}{answer&&<div className="hub-ai-result"><pre>{answer}</pre></div>}</section>;
-}
-
 export function YoutubePage(props:WorkspaceActions){return <CreatorStudio {...props}/>;}
 
 export function StreamsPage(props:WorkspaceActions){return <StreamStudio {...props}/>;}

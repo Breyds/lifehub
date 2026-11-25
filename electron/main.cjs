@@ -17,7 +17,8 @@ const musicDiscovery=require('./music-discovery.cjs');
 const {checkTikTokUrl}=require('./tiktok.cjs');
 const {canScanUrl,scanCollectionInWindow}=require('./tiktok-collection.cjs');
 const {recognizeAudio}=require('./audd.cjs');
-const {telegramRequest,validToken,pairingCode,findPairedChat,parseCommand,lastUpdateOffset,formatAgenda}=require('./telegram.cjs');
+const {telegramRequest,validToken,pairingCode,findPairedChat,lastUpdateOffset}=require('./telegram.cjs');
+const telegramMenu=require('./telegram-menu.cjs');
 const {validateBlackouts}=require('./power.cjs');
 const {cleanPowerAddress}=require('./power-address.cjs');
 const {readDtekSchedule}=require('./dtek-live.cjs');
@@ -62,24 +63,15 @@ async function pollTelegram(){
   const updates=await telegramRequest(token,'getUpdates',{offset:Number(db.telegram.offset)||0,limit:30,timeout:0});
   for(const item of updates){
    if(Number.isSafeInteger(item.update_id)){db.telegram.offset=Math.max(db.telegram.offset||0,item.update_id+1);save();}
-   const msg=item.message;
+   const msg=item.message||item.callback_query?.message;
    if(!msg||msg.chat?.type!=='private'||String(msg.chat?.id)!==String(db.telegram.chatId))continue;
-   const cmd=parseCommand(msg.text);
-   let reply='';
-   if(cmd.action==='help')reply='👋 LifeHub Personal\n/today — справи на сьогодні\n/tomorrow — на завтра\n/add 19:00 Назва — створити нагадування\n/done 1 — відмітити першу справу зі списку за сьогодні';
-   if(cmd.action==='today'||cmd.action==='tomorrow')reply=formatAgenda(db.tasks,cmd.action==='today'?todayLocal():nextDay(todayLocal()),{occurs,taskDone});
-   if(cmd.action==='add'){
-    const task=cleanTask({title:cmd.title,dueDate:todayLocal(),time:cmd.time,category:'personal',recurrence:'none',note:'Додано через Telegram LifeHub'});
-    db.tasks.push(task);save();reply=`✅ Створено: ${task.title} — сьогодні о ${task.time}.`;
-   }
-   if(cmd.action==='done'){
-    const date=todayLocal(),todayTasks=db.tasks.filter(t=>occurs(t,date)).sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
-    const task=todayTasks[cmd.index-1];
-    if(!task)reply='Немає справи з таким номером. Переглянь /today.';
-    else{const key=occurrenceKey(task,date);if(!task.completions.includes(key))task.completions.push(key);save();reply=`✅ Виконано: ${task.title}`;}
-   }
-   if(cmd.action==='unknown')reply='Команду не знайдено. Натисни /help.';
-   if(reply)await telegramRequest(token,'sendMessage',{chat_id:db.telegram.chatId,text:reply.slice(0,3900)});
+   const callback=item.callback_query;
+   if(callback&&String(callback.from?.id)!==String(db.telegram.chatId))continue;
+   if(callback)await telegramRequest(token,'answerCallbackQuery',{callback_query_id:callback.id}).catch(()=>{});
+   if(!callback&&/^(?:\/power(?:@\w+)?|⚡ Світло)$/i.test(String(msg.text||'').trim()))await refreshPowerSchedule(false).catch(()=>{});
+   const result=callback?telegramMenu.handleCallback(db,callback.data,todayLocal()):telegramMenu.handleMessage(db,msg.text,todayLocal());
+   if(result.changed)save();
+   await telegramRequest(token,'sendMessage',{chat_id:db.telegram.chatId,text:result.text.slice(0,3900),reply_markup:result.reply_markup});
   }
  }catch(e){/* network/token errors are best effort; never log token URLs */console.error('Telegram polling failed:',String(e?.message||e).slice(0,120));}
  finally{telegramPolling=false;}
@@ -236,10 +228,10 @@ ipcMain.handle('telegram:pair-check',async()=>{
  const chatId=findPairedChat(updates,db.telegram.pendingCode);
  if(!chatId)throw new Error('Відкрий свого бота в Telegram і надішли /link КОД, потім повтори перевірку.');
  db.telegram.chatId=chatId;db.telegram.enabled=true;db.telegram.pendingCode='';db.telegram.pendingExpiry=0;db.telegram.offset=lastUpdateOffset(updates,0);save();
- await telegramRequest(token,'sendMessage',{chat_id:chatId,text:'✅ LifeHub підключено! /help — список команд. Я працюю, поки LifeHub відкритий на ПК.'});
+ await telegramRequest(token,'sendMessage',{chat_id:chatId,text:'✅ LifeHub підключено! Обирай розділ у меню. Локальний режим працює, поки LifeHub відкритий на ПК.',reply_markup:telegramMenu.keyboard});
  return true;
 });
-ipcMain.handle('telegram:test',async()=>{if(!db.telegram?.tokenEncrypted||!db.telegram.chatId)throw new Error('Спочатку прив’яжи бота кодом');await telegramRequest(telegramToken(),'sendMessage',{chat_id:db.telegram.chatId,text:'✅ LifeHub: тестове нагадування працює!'});return true;});
+ipcMain.handle('telegram:test',async()=>{if(!db.telegram?.tokenEncrypted||!db.telegram.chatId)throw new Error('Спочатку прив’яжи бота кодом');await telegramRequest(telegramToken(),'sendMessage',{chat_id:db.telegram.chatId,text:'✅ LifeHub: тестове нагадування працює!',reply_markup:telegramMenu.keyboard});return true;});
 ipcMain.handle('telegram:enable',(_event,enabled)=>{if(!db.telegram?.chatId)throw new Error('Спочатку прив’яжи бота');db.telegram.enabled=!!enabled;save();return true;});
 ipcMain.handle('telegram:disconnect',()=>{db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();return true;});
 ipcMain.handle('power:save',(_event,raw)=>{validateBlackouts(raw);db.blackoutSchedule=String(raw||'').trim().slice(0,320);save();return true;});

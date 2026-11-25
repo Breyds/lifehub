@@ -11,7 +11,7 @@ import {
   Activity,ArrowLeft,ArrowRight,Bell,Bot,CalendarDays,Check,CheckCheck,ChevronRight,
   CircleHelp,Clock,CloudDownload,Crosshair,Download,Dumbbell,Edit3,FolderKanban,
   GraduationCap,Home,KeyRound,Lightbulb,Menu,Plus,Save,Settings,ShieldCheck,
-  Sparkles,Trash2,Twitch,Video,Wallet, X,BarChart3, RotateCcw, Layers3, Compass, CalendarRange, ListTodo, Youtube, Radio, Newspaper, Music2
+  Sparkles,Trash2,Twitch,Video,Wallet, X, RotateCcw, Layers3, Compass, CalendarRange, ListTodo, Youtube, Radio, Newspaper, Music2
 } from 'lucide-react';
 import type {Task,TaskInput,Category,Recurrence,Priority,Snapshot,Plan} from './types';
 import './style.css';
@@ -62,6 +62,7 @@ const blank=(cat:Category='personal'):TaskInput=>({title:'',category:cat,dueDate
 function App(){
  const [snapshot,setSnapshot]=useState<Snapshot|null>(null);
  const [page,setPage]=useState<string>('today');
+ const [previousPage,setPreviousPage]=useState('today');
  const [selectedDate,setSelectedDate]=useState(today());
  const [modal,setModal]=useState(false);
  const [editing,setEditing]=useState<string|null>(null);
@@ -93,21 +94,19 @@ function App(){
   if(form.dueDate<today()&&form.dueDate!==existing?.dueDate){showError('Для нової справи або перенесення вибери сьогодні чи майбутню дату');return;}
   setWorking(true);try{if(editing)await window.lifehub.editTask(editing,form);else await window.lifehub.addTask(form);await refresh();setToast('Завдання збережено');setModal(false);}catch(err){showError(err);}finally{setWorking(false);}
  }
- function changePage(p:string){setPage(p);setMenuOpen(false);}
+ function changePage(p:string){if(p==='settings'&&page!=='settings')setPreviousPage(page);setPage(p);setMenuOpen(false);}
  const tasks=snapshot?.tasks||[];
  const dayTasks=useMemo(()=>tasks.filter(t=>scheduledOccurs(t,selectedDate)).sort((a,b)=>(isDone(a,selectedDate)?1:0)-(isDone(b,selectedDate)?1:0)||(a.time||'99:99').localeCompare(b.time||'99:99')),[tasks,selectedDate]);
  const completed=dayTasks.filter(t=>isDone(t,selectedDate)).length;
  const estimatedMinutes=dayTasks.filter(t=>!isDone(t,selectedDate)).reduce((sum,t)=>sum+Number(t.durationMin||0),0);
  const pct=dayTasks.length?Math.round(completed/dayTasks.length*100):0;
  const activeCat=categories.find(c=>c.id===page);
- const stats=useMemo(()=>Array.from({length:7},(_,i)=>{const d=plusDays(today(),i-6);const t=tasks.filter(x=>occurs(x,d));return {date:d,all:t.length,done:t.filter(x=>isDone(x,d)).length};}),[tasks]);
  const dueSoon=tasks.filter(t=>!isDone(t,t.dueDate) && (upcomingMode==='tomorrow'? scheduledOccurs(t,plusDays(today(),1)):t.recurrence==='none'&&t.dueDate>=today()&&['high','critical','urgent'].includes(t.priority||'normal'))).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||(a.time||'99:99').localeCompare(b.time||'99:99')).slice(0,4);
  const navSections=[
   {title:'ПЛАНУВАННЯ',items:[{id:'today',title:'Сьогодні',icon:ListTodo},{id:'planner',title:'Плани',icon:CalendarRange},{id:'projects',title:'Проєкти',icon:FolderKanban},{id:'allTasks',title:'Усі справи',icon:CheckCheck},{id:'power',title:'Світло',icon:Zap}]},
   {title:'ТРЕНУВАННЯ',items:[{id:'fitness',title:'Фізична форма',icon:Dumbbell},{id:'cs2train',title:'CS2 · Практика',icon:Crosshair}]},
   {title:'КОНТЕНТ ТА МЕДІА',items:[{id:'youtube',title:'YouTube',icon:Youtube},{id:'streams',title:'Стріми',icon:Radio},{id:'news',title:'Новини',icon:Newspaper},{id:'music',title:'Музика',icon:Music2}]},
   {title:'ОСОБИСТЕ',items:[{id:'study',title:'Навчання',icon:GraduationCap}]},
-  {title:'АНАЛІТИКА',items:[{id:'stats',title:'Статистика',icon:BarChart3}]}
  ];
  const allNav=navSections.flatMap(x=>x.items);
  const englishLabels:Record<string,string>={today:'Today',planner:'Planner',projects:'Projects',allTasks:'All tasks',power:'Power',fitness:'Fitness',cs2train:'CS2 training',youtube:'YouTube',streams:'Streams',news:'News',music:'Music',study:'Studies',stats:'Statistics',imports:'ChatGPT Import',settings:'Settings'};
@@ -149,7 +148,7 @@ function App(){
  }
  async function templateVideo(){const value:TaskInput={title:'Опублікувати відео Rank Daily',category:'rankdaily',dueDate:today(),time:'19:00',recurrence:'daily',note:'Приклад регулярного завдання. Можна змінити час або вимкнути.'};await safe(()=>window.lifehub.addTask(value),'Шаблон додано');}
  if(!snapshot)return <div className="loading"><Sparkles/> Відкриваємо LifeHub…</div>;
- return <div className={`app theme-${snapshot.preferences.accent} density-${snapshot.preferences.density} ${snapshot.preferences.reduceMotion?'reduce-motion':''}`}>
+ return <div className={`app theme-${snapshot.preferences.accent} density-${snapshot.preferences.density} ${snapshot.preferences.reduceMotion?'reduce-motion':''} ${page==='settings'?'settings-fullscreen':''}`}>
   <aside className={`sidebar ${menuOpen?'sidebar-open':''}`}>
     <div className="brand"><div className="brand-icon brand-fixed"><Compass size={26}/></div><div><strong>LifeHub</strong><small>PERSONAL CONTROL CENTER</small></div></div>
     {navSections.map((group,index)=><div className="nav-group" key={group.title}><div className={`sidebar-section ${index?'section-gap':''}`}>{group.title}</div>{group.items.map(p=><button className={`nav ${page===p.id?'selected':''}`} key={p.id} onClick={()=>changePage(p.id)}><p.icon size={18}/>{navLabel(p)}{p.id==='today'&&dayTasks.length>0&&<span className="nav-count">{dayTasks.length}</span>}</button>)}</div>)}
@@ -190,9 +189,7 @@ function App(){
     {page==='music'&&<MusicPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')}/>}
     {page==='imports'&&<ChatImportPage hasKey={snapshot.hasKey} report={setToast} onProposal={p=>{setPlan(p);setApproved(p.changes.map((x,i)=>x.valid?i:-1).filter(x=>x>=0));setAiOpen(true);}}/>}
     {page==='studio'&&<RankStudioPage report={setToast}/>}
-    {page==='stats'&&<><h1>Твій прогрес</h1><p className="subtitle">Історія за сім днів — без оцінок і зайвого тиску.</p><div className="metrics"><div className="metric"><div className="metric-head">Виконано за тиждень <CheckCheck size={18}/></div><strong>{stats.reduce((s,x)=>s+x.done,0)}</strong><small>Позначок про виконання</small></div><div className="metric"><div className="metric-head">Усього за тиждень <CalendarDays size={18}/></div><strong>{stats.reduce((s,x)=>s+x.all,0)}</strong><small>Запланованих появ завдань</small></div><div className="metric"><div className="metric-head">Виконання <Activity size={18}/></div><strong>{stats.reduce((s,x)=>s+x.all,0)?Math.round(stats.reduce((s,x)=>s+x.done,0)/stats.reduce((s,x)=>s+x.all,0)*100):0}<em>%</em></strong><small>Частка виконаних</small></div></div><section className="panel chart-panel"><h2>Активність за останні 7 днів</h2><div className="bars">{stats.map(x=><div className="bar-col" key={x.date}><div className="bar-bg"><div className="bar-fill" style={{height:`${x.all?Math.round(x.done/x.all*100):0}%`}}/></div><strong>{x.done}/{x.all}</strong><small>{pretty(x.date,{weekday:'short'})}</small></div>)}</div><p className="muted">Статистика базується на твоїх позначках виконання. Невиконані старі завдання можуть переноситися в наступні дні.</p></section></>}
-    {page==='stats'&&<section className="panel chart-panel"><h2>Активність за напрямами</h2><div className="hub-stats-categories">{categories.map(c=>{const dayCount=stats.reduce((n,d)=>n+tasks.filter(t=>t.category===c.id&&occurs(t,d.date)).length,0);const doneCount=stats.reduce((n,d)=>n+tasks.filter(t=>t.category===c.id&&occurs(t,d.date)&&isDone(t,d.date)).length,0);return <div key={c.id} className="hub-stat-category"><span>{c.title}</span><div className="task-meter-track"><span style={{width:`${dayCount?Math.round(doneCount/dayCount*100):0}%`}}/></div><strong>{doneCount}/{dayCount}</strong></div>;})}</div><p className="muted">CS2-сесій: {snapshot.workspace.cs2logs.length} · Кардіо: {snapshot.workspace.cardio.length} · Стрімів: {snapshot.workspace.streams.length} · Проєктів: {snapshot.workspace.projects.length}</p></section>}
-    {page==='settings'&&<SettingsCenter snapshot={snapshot} refresh={refresh} report={setToast}
+    {page==='settings'&&<SettingsCenter snapshot={snapshot} refresh={refresh} report={setToast} onClose={()=>changePage(previousPage)}
       ai={<div className="settings-grid"><section className="panel settings-panel"><div className="setting-header"><div className="setting-icon"><KeyRound size={22}/></div><div><h2>OpenAI API</h2><p>Планування з GPT-5 mini</p></div><span className={`status ${snapshot.hasKey?'good':'muted-badge'}`}>{snapshot.hasKey?'Підключено':'Не підключено'}</span></div><label className="field-label">Твій секретний API-ключ</label><div className="key-row"><input type="password" value={keyInput} onChange={e=>setKeyInput(e.target.value)} placeholder="sk-..." autoComplete="off"/><button disabled={working||!keyInput.trim()} className="button primary" onClick={()=>void safe(async()=>{await window.lifehub.setKey(keyInput);setKeyInput('');},'Ключ зашифровано і збережено')}><Save size={16}/> Зберегти</button></div>{snapshot.hasKey&&<button className="link-danger" onClick={()=>void safe(()=>window.lifehub.removeKey(),'Ключ видалено')}>Видалити збережений ключ</button>}<div className="hint"><ShieldCheck size={18}/><span>Ключ зберігається зашифрованим системою Windows. Запити надсилаються напряму в OpenAI, не через чужий сервер.</span></div></section><section className="panel settings-panel"><div className="setting-header"><div className="setting-icon"><Wallet size={22}/></div><div><h2>Бюджет AI</h2><p>Локальний облік витрат за місяць</p></div></div><div className="budget-top"><strong>${snapshot.spent.toFixed(4)}</strong><span>із ${snapshot.limit.toFixed(2)}</span></div><div className="progress big"><span style={{width:`${Math.min(100,snapshot.spent/snapshot.limit*100)}%`}}/></div><p className="warning">Це лише оцінка витрат LifeHub. Ліміт LifeHub локальний, не загальний ліміт акаунта OpenAI. Перевір фактичне використання і бюджет API-проєкту в OpenAI. Облік із затримкою може дещо перевищити ліміт.</p></section></div>}
       notifications={<><div className="settings-grid"><section className="panel settings-panel"><div className="setting-header"><div className="setting-icon"><Bell size={22}/></div><div><h2>Нагадування</h2><p>Залишайся в курсі справ</p></div></div><div className="toggle-row"><div><strong>Автозапуск із Windows</strong><p>Працює після встановлення програми</p></div><input type="checkbox" checked={snapshot.autostart} onChange={e=>void safe(()=>window.lifehub.setAutostart(e.target.checked))}/></div><div className="toggle-row"><div><strong>Підсумок дня після 21:00</strong><p>Сповіщення, якщо програма відкрита</p></div><input type="checkbox" checked={snapshot.evening} onChange={e=>void safe(()=>window.lifehub.setEvening(e.target.checked))}/></div></section></div><SmartSettings section="telegram" snapshot={snapshot} refresh={refresh} report={setToast}/></>}
       integrations={<SmartSettings section="integrations" snapshot={snapshot} refresh={refresh} report={setToast}/>}

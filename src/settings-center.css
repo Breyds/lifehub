@@ -23,3 +23,19 @@
 .app .sc-feed-list{display:flex;gap:9px;flex-wrap:wrap;padding:14px 0}.app .sc-feed-list label{display:flex;align-items:center;gap:6px;border:1px solid #434343;padding:7px 10px;border-radius:7px;font-size:12px}
 @media(max-width:1160px){.app .sc-shell{grid-template-columns:195px minmax(0,1fr)}.app .sc-page{padding:30px 22px}.app .sc-nav{padding:20px 10px}.app .sc-row{gap:12px;flex-wrap:wrap}.app .sc-control{max-width:100%}}
 @media(max-width:850px){.app .sc-shell{grid-template-columns:1fr}.app .sc-nav{border-right:0;border-bottom:1px solid #303030;gap:8px}.app .sc-group{display:flex;flex-direction:row;flex-wrap:wrap}.app .sc-group h3{width:100%}.app .sc-group button{width:auto}.app .sc-page{padding:24px}}
+
+/* Settings are a dedicated viewport; only the selected content pane scrolls. */
+.app.settings-fullscreen{position:fixed;inset:0;display:block;min-height:0;overflow:hidden}
+.app.settings-fullscreen>.sidebar,.app.settings-fullscreen>.main>.topbar{display:none!important}
+.app.settings-fullscreen>.main{height:100%;width:100%;margin:0;padding:0;min-height:0;overflow:hidden}
+.app.settings-fullscreen>.main>.content{height:100%;width:100%;max-width:none;padding:0;margin:0;overflow:hidden}
+.app.settings-fullscreen .sc-shell{height:100%;min-height:0;border:0;border-radius:0;grid-template-columns:270px minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
+.app.settings-fullscreen .sc-nav{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;gap:9px;padding:16px 13px}
+.app.settings-fullscreen .sc-nav h2{font-size:19px}.app.settings-fullscreen .sc-group button{padding:8px 10px}
+.app.settings-fullscreen .sc-group h3{margin:5px 9px 3px}.app.settings-fullscreen .sc-scroll{min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:auto}
+.app.settings-fullscreen .sc-page{min-height:100%;padding:46px clamp(28px,6vw,100px);max-width:1200px}
+.app .sc-back{display:flex;align-items:center;gap:9px;border:0;background:transparent;color:#bcbcbc;text-align:left;padding:7px 8px;border-radius:7px;font-size:12px}.app .sc-back:hover{background:#343434;color:#fff}
+.app .sc-stats-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}.app .sc-stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.app .sc-stat{background:#242424;border:1px solid #393939;border-radius:12px;padding:18px}.app .sc-stat small,.app .sc-stat strong,.app .sc-stat span{display:block}.app .sc-stat strong{font-size:28px;margin:7px 0;color:var(--hub-accent)}.app .sc-stat small,.app .sc-stat span{color:#aaa;font-size:12px}
+.app .sc-chart{display:flex;gap:4px;align-items:end;height:145px;padding-top:10px}.app .sc-chart>div{height:100%;flex:1;display:flex;align-items:center;justify-content:flex-end;flex-direction:column;min-width:0;gap:4px}.app .sc-chart .sc-bar{width:100%;min-height:2px;max-width:36px;background:var(--hub-accent);border-radius:4px 4px 0 0}.app .sc-chart small{font-size:10px;color:#999}
+.app .sc-stat-cat{display:grid;grid-template-columns:minmax(90px,1fr) 2fr 60px;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #333;font-size:12px}.app .sc-stat-cat .sc-progress{width:100%;height:7px}.app .sc-stat-cat strong{text-align:right}
+@media(max-width:1000px){.app.settings-fullscreen .sc-shell{grid-template-columns:220px minmax(0,1fr)}.app.settings-fullscreen .sc-page{padding:28px}.app.settings-fullscreen .sc-group{flex-direction:column}.app.settings-fullscreen .sc-group button{width:100%}}

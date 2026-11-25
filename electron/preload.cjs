@@ -46,6 +46,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   ytEarlySettings:(raw)=>ipcRenderer.invoke('youtube:early-settings',raw),
   ytEarlyRefresh:()=>ipcRenderer.invoke('youtube:early-refresh'),
   ytInboxFolder:()=>ipcRenderer.invoke('youtube:inbox-folder'),
+  ytInboxDefault:()=>ipcRenderer.invoke('youtube:inbox-default'),
   ytInboxScan:()=>ipcRenderer.invoke('youtube:inbox-scan'),
   ytInboxOpen:()=>ipcRenderer.invoke('youtube:inbox-open'),
   ytInboxImport:(id,file)=>ipcRenderer.invoke('youtube:inbox-import',id,file),

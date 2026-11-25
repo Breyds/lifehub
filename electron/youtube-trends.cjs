@@ -2,14 +2,14 @@
 // All metrics are returned by the official YouTube Data API, no modeled/fake views.
 const {durationSeconds}=require('./youtube-studio.cjs');
 const TOPICS=[
- {id:'games',label:'Ігри',queries:['gaming shorts viral 2026','new game trailer 2026']},
+ {id:'games',label:'Ігри',queries:['gaming shorts viral','new game trailer']},
  {id:'gta',label:'GTA VI',queries:['GTA 6 gameplay shorts','GTA VI funny moments']},
- {id:'anime',label:'Аніме',queries:['anime edits shorts 2026','new anime trailer 2026']},
- {id:'internet',label:'Інтернет / меми',queries:['viral meme shorts 2026','internet trends shorts']},
- {id:'stream',label:'Стрімери',queries:['streamer funny clips shorts 2026']},
- {id:'technology',label:'Технології',queries:['tech ai gadgets shorts 2026']},
- {id:'sports',label:'Спорт',queries:['football best moments shorts 2026']},
- {id:'film',label:'Кіно / серіали',queries:['movie trailers shorts 2026']}
+ {id:'anime',label:'Аніме',queries:['anime edits shorts','new anime trailer']},
+ {id:'internet',label:'Інтернет / меми',queries:['viral meme shorts','internet trends shorts']},
+ {id:'stream',label:'Стрімери',queries:['streamer funny clips shorts']},
+ {id:'technology',label:'Технології',queries:['tech ai gadgets shorts']},
+ {id:'sports',label:'Спорт',queries:['football best moments shorts']},
+ {id:'film',label:'Кіно / серіали',queries:['movie trailers shorts']}
 ];
 function daysAgo(d=7,clock=Date.now()){return new Date(clock-d*86400000).toISOString();}
 function parseTrends(searchResults,details,now=Date.now()){
@@ -20,13 +20,13 @@ function parseTrends(searchResults,details,now=Date.now()){
   if(!old)map.set(id,item);
  }
  const grouped={};for(const item of map.values()){(grouped[item.category]??=[]).push(item);}for(const key in grouped)grouped[key].sort((a,b)=>b.viewsPerDay-a.viewsPerDay);
- return Object.entries(grouped).flatMap(([,list])=>list.slice(0,8)).sort((a,b)=>b.viewsPerDay-a.viewsPerDay);
+ return Object.entries(grouped).flatMap(([,list])=>[...list.filter(v=>v.format==='short-candidate').slice(0,4),...list.filter(v=>v.format==='long').slice(0,4),...list.filter(v=>v.format==='unknown').slice(0,2)]).sort((a,b)=>b.viewsPerDay-a.viewsPerDay);
 }
 async function fetchYoutubeTrends(apiKey,fetcher=fetch){
  if(typeof apiKey!=='string'||apiKey.trim().length<20)throw new Error('Потрібен API-ключ YouTube Data API v3.');
  const all=[];
- for(const topic of TOPICS){for(const q of topic.queries){
-  const url=new URL('https://www.googleapis.com/youtube/v3/search');url.searchParams.set('key',apiKey);url.searchParams.set('part','snippet');url.searchParams.set('type','video');url.searchParams.set('q',q);url.searchParams.set('maxResults','8');url.searchParams.set('order','viewCount');url.searchParams.set('publishedAfter',daysAgo());
+ for(const topic of TOPICS){for(const q of [...new Set([...topic.queries,topic.queries[0].replace(/\bshorts\b/ig,'')+' analysis guide'])]){
+  const url=new URL('https://www.googleapis.com/youtube/v3/search');url.searchParams.set('key',apiKey);url.searchParams.set('part','snippet');url.searchParams.set('type','video');url.searchParams.set('q',q);if(q.endsWith(' analysis guide'))url.searchParams.set('videoDuration','medium');url.searchParams.set('maxResults','8');url.searchParams.set('order','viewCount');url.searchParams.set('publishedAfter',daysAgo());
   const r=await fetcher(url.toString(),{signal:AbortSignal.timeout(12000)});const data=await r.json();if(!r.ok)throw new Error(`YouTube API: ${String(data.error?.message||r.status).slice(0,140)}`);
   all.push(...(data.items||[]).map(x=>({...x,_topic:topic.id,_query:q})));
  }}
@@ -37,7 +37,7 @@ async function fetchYoutubeTrends(apiKey,fetcher=fetch){
 async function nicheRadar(key,query,format='all',fetcher=fetch){
  if(typeof query!=='string'||query.trim().length<2||query.length>100)throw Error('Введи конкретну нішу (2–100 символів)');
  const get=async(endpoint,params)=>{const u=new URL('https://www.googleapis.com/youtube/v3/'+endpoint);u.search=new URLSearchParams({key,...params}).toString();const r=await fetcher(u,{signal:AbortSignal.timeout(15000)});const d=await r.json();if(!r.ok)throw Error('YouTube API: '+String(d.error?.message||r.status).slice(0,180));return d;};
- const p=await get('search',{part:'snippet',type:'video',q:query,order:'viewCount',publishedAfter:daysAgo(30),maxResults:'50',...(format==='short'?{videoDuration:'short'}:format==='long'?{videoDuration:'medium'}:{})});
+ const p=await get('search',{part:'snippet',type:'video',q:query,order:'viewCount',publishedAfter:daysAgo(30),maxResults:'50',...(format==='short'?{videoDuration:'short'}:{})});
  const ids=(p.items||[]).map(x=>x.id?.videoId).filter(Boolean);
  if(!ids.length)return [];
  const d=await get('videos',{part:'snippet,statistics,contentDetails',id:ids.join(',')});

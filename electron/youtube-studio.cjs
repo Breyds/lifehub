@@ -79,7 +79,7 @@ function uploadMetadata(raw,now=Date.now()){
 function safeUploadLocation(raw){const u=new URL(raw);if(u.protocol!=='https:'||!['www.googleapis.com','youtube.googleapis.com'].includes(u.hostname)||!u.pathname.startsWith('/upload/'))throw Error('Недовірена адреса завантаження');return u.toString();}
 async function upload(token,file,meta,onProgress=()=>{},fetcher=fetch){
  const stat=fs.statSync(file);if(!stat.isFile()||stat.size<1||stat.size>4*1024**3)throw Error('Підтримуються файли до 4 ГБ');
- const type=({'.mp4':'video/mp4','.mov':'video/quicktime','.webm':'video/webm','.mkv':'video/x-matroska'})[path.extname(file).toLowerCase()];if(!type)throw Error('Підтримувані формати MP4, MOV, WEBM, MKV');
+ const type=({'.mp4':'video/mp4','.m4v':'video/mp4','.mov':'video/quicktime','.webm':'video/webm','.mkv':'video/x-matroska'})[path.extname(file).toLowerCase()];if(!type)throw Error('Підтримувані формати MP4, MOV, WEBM, MKV');
  const start=await fetcher('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Upload-Content-Length':String(stat.size),'X-Upload-Content-Type':type},body:JSON.stringify(meta),signal:AbortSignal.timeout(30000)});
  if(!start.ok)throw Error('YouTube не почав завантаження: '+start.status+' '+(await start.text()).slice(0,200));
  const location=safeUploadLocation(start.headers.get('location'));const fd=fs.openSync(file,'r');let offset=0;

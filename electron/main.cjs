@@ -22,7 +22,8 @@ const {validateBlackouts}=require('./power.cjs');
 const {cleanPowerAddress}=require('./power-address.cjs');
 const {readDtekSchedule}=require('./dtek-live.cjs');
 const {normalizeGroup,fetchMirror}=require('./dtek-mirror.cjs');
-const {fetchYoutubeTrends}=require('./youtube-trends.cjs');
+const {fetchYoutubeTrends,nicheRadar}=require('./youtube-trends.cjs');
+const ytStudio=require('./youtube-studio.cjs');
 const {cleanUtility,getFaceit,weeklyStart,summarize,mapBreakdown}=require('./cs2.cjs');
 const {fetchCS2UtilityRadar}=require('./cs2-utility-radar.cjs');
 const {fetchProPicks,starter:starterProPicks}=require('./cs2-pro-feed.cjs');
@@ -41,7 +42,7 @@ function save(){const p=storePath();fs.mkdirSync(path.dirname(p),{recursive:true
 function load(){const p=storePath();if(!fs.existsSync(p)){db=initial();save();return;}db={...initial(),...JSON.parse(fs.readFileSync(p,'utf8'))};if(!Array.isArray(db.tasks))throw new Error('Пошкоджено локальну базу завдань');if(!db.videoDrafts||typeof db.videoDrafts!=='object')db.videoDrafts={};db.workspace=safeWorkspace(db.workspace);db.preferences=safePreferences(db.preferences);if(!db.newsCover089){db.preferences.newsAutoImages=true;db.newsCover089=true;}if(!db.newsConfig087){db.preferences.newsCategories=[...new Set([...db.preferences.newsCategories,...Object.keys(FEEDS)])];db.newsConfig087=true;}if(!Array.isArray(db.newsMutedSources))db.newsMutedSources=[];if(!db.news||!Array.isArray(db.news.items))db.news={items:[],fetchedAt:'',errors:0,totalSources:0};if(!db.music||typeof db.music!=='object'||!db.music.markets)db.music={markets:{},errors:[],fetchedAt:'',source:''};if(!db.newsFeedback||typeof db.newsFeedback!=='object')db.newsFeedback={};if(!db.newsDismissed||typeof db.newsDismissed!=='object')db.newsDismissed={};if(!Array.isArray(db.newsSaved))db.newsSaved=[];if(!db.newsIllustrations||typeof db.newsIllustrations!=='object')db.newsIllustrations={};if(!db.newsImageCount||typeof db.newsImageCount!=='object')db.newsImageCount={};if(!Array.isArray(db.musicReminderShown))db.musicReminderShown=[];db.version=2;if(!db.cs2||typeof db.cs2!=='object')db.cs2=initial().cs2;db.cs2={...initial().cs2,...db.cs2};if(!Array.isArray(db.cs2.utilities))db.cs2.utilities=[];if(!Array.isArray(db.cs2.demos))db.cs2.demos=[];if(!Array.isArray(db.cs2.reminderDays))db.cs2.reminderDays=[];if(!db.cs2.utilityRadar||!Array.isArray(db.cs2.utilityRadar.items))db.cs2.utilityRadar=initial().cs2.utilityRadar;if(!db.cs2.proPicks||!Array.isArray(db.cs2.proPicks.items)||String(db.cs2.proPicks.reviewedAt||'')<starterProPicks().reviewedAt)db.cs2.proPicks=starterProPicks();if(!db.telegram||typeof db.telegram!=='object')db.telegram={tokenEncrypted:'',chatId:'',enabled:false};if(db.telegram?.tokenEncrypted&&db.telegram.chatId&&!Number.isSafeInteger(db.telegram.offset)){db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();}if(typeof db.blackoutSchedule!=='string')db.blackoutSchedule='';db.powerAddress=cleanPowerAddress(db.powerAddress);db.powerGroup=normalizeGroup(db.powerGroup);db.powerGroupOrigin=db.powerGroup?(db.powerGroupOrigin==='official'?'official':'manual'):'';if(!db.powerLive||!Array.isArray(db.powerLive.intervals))db.powerLive={status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Ще не перевіряли графік.'};if(!db.youtubeTrends||!Array.isArray(db.youtubeTrends.videos))db.youtubeTrends={videos:[],fetchedAt:'',topics:[]};}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function month(){return todayLocal().slice(0,7);}
-function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:{...db.news,items:rankNews(filterIncoming(db.news.items,db),db.newsFeedback)},music:db.music,spotifyPersonal:{connected:!!db.spotifyPersonal?.refreshEncrypted,week:db.spotifyPersonal?.week||'',items:db.spotifyPersonal?.schema===4?db.spotifyPersonal.items||[]:[],regions:db.spotifyPersonal?.schema===4?db.spotifyPersonal.regions||{us:[],regional:[]}:{us:[],regional:[]},message:db.spotifyPersonal?.message||'',radarPlaylist:db.spotifyPersonal?.radarPlaylist||'',radarMessage:db.spotifyPersonal?.radarMessage||'',mode:db.spotifyPersonal?.mode||'',window:db.spotifyPersonal?.window||null,feedback:Object.fromEntries(Object.entries(db.spotifyPersonal?.feedback||{}).map(([k,v])=>[k,v.vote]))},tiktokCache:db.tiktokCache,newsFeedback:db.newsFeedback,newsMutedSources:db.newsMutedSources,newsImageUsage:Number(db.newsImageCount[month()]||0),newsCoverError:db.newsCoverLastError||'',newsCoverPauseUntil:Number(db.newsCoverPauseUntil||0),newsSaved:db.newsSaved,newsIllustrations:db.newsIllustrations,audDConnected:!!db.audDTokenEncrypted,telegram:{connected:!!db.telegram?.tokenEncrypted&&!!db.telegram?.chatId,enabled:!!db.telegram?.enabled,pendingCode:db.telegram?.pendingCode||''},cs2:{faceitConnected:!!db.cs2.faceitApiKeyEncrypted,faceitNickname:db.cs2.faceitNickname||'',faceitData:db.cs2.faceitData,utilities:db.cs2.utilities,demos:db.cs2.demos,reminders:db.cs2.reminders===true,utilityRadar:db.cs2.utilityRadar,proPicks:db.cs2.proPicks},powerAddress:db.powerAddress,powerGroup:db.powerGroup,powerGroupOrigin:db.powerGroupOrigin,blackoutSchedule:db.blackoutSchedule,powerLive:db.powerLive.status==='verified'&&Date.now()-Date.parse(db.powerLive.checkedAt)>6*60*60*1000?{...db.powerLive,status:'stale',message:'Попередній графік застарів. Онови дані ДТЕК.'}:db.powerLive,youtubeConnected:!!db.youtubeApiKeyEncrypted,youtubeTrends:db.youtubeTrends};}
+function cleanSnapshot(){return {tasks:db.tasks,update:updateState,spent:Number(db.usage[month()]||0),limit:LIMIT_USD,hasKey:!!db.apiKeyEncrypted,autostart:!!db.autostart,evening:!!db.evening,model:API_MODEL,workspace:db.workspace,preferences:db.preferences,news:{...db.news,items:rankNews(filterIncoming(db.news.items,db),db.newsFeedback)},music:db.music,spotifyPersonal:{connected:!!db.spotifyPersonal?.refreshEncrypted,week:db.spotifyPersonal?.week||'',items:db.spotifyPersonal?.schema===4?db.spotifyPersonal.items||[]:[],regions:db.spotifyPersonal?.schema===4?db.spotifyPersonal.regions||{us:[],regional:[]}:{us:[],regional:[]},message:db.spotifyPersonal?.message||'',radarPlaylist:db.spotifyPersonal?.radarPlaylist||'',radarMessage:db.spotifyPersonal?.radarMessage||'',mode:db.spotifyPersonal?.mode||'',window:db.spotifyPersonal?.window||null,feedback:Object.fromEntries(Object.entries(db.spotifyPersonal?.feedback||{}).map(([k,v])=>[k,v.vote]))},tiktokCache:db.tiktokCache,newsFeedback:db.newsFeedback,newsMutedSources:db.newsMutedSources,newsImageUsage:Number(db.newsImageCount[month()]||0),newsCoverError:db.newsCoverLastError||'',newsCoverPauseUntil:Number(db.newsCoverPauseUntil||0),newsSaved:db.newsSaved,newsIllustrations:db.newsIllustrations,audDConnected:!!db.audDTokenEncrypted,telegram:{connected:!!db.telegram?.tokenEncrypted&&!!db.telegram?.chatId,enabled:!!db.telegram?.enabled,pendingCode:db.telegram?.pendingCode||''},cs2:{faceitConnected:!!db.cs2.faceitApiKeyEncrypted,faceitNickname:db.cs2.faceitNickname||'',faceitData:db.cs2.faceitData,utilities:db.cs2.utilities,demos:db.cs2.demos,reminders:db.cs2.reminders===true,utilityRadar:db.cs2.utilityRadar,proPicks:db.cs2.proPicks},powerAddress:db.powerAddress,powerGroup:db.powerGroup,powerGroupOrigin:db.powerGroupOrigin,blackoutSchedule:db.blackoutSchedule,powerLive:db.powerLive.status==='verified'&&Date.now()-Date.parse(db.powerLive.checkedAt)>6*60*60*1000?{...db.powerLive,status:'stale',message:'Попередній графік застарів. Онови дані ДТЕК.'}:db.powerLive,youtubeStudio:ytPublic(),youtubeConnected:!!db.youtubeApiKeyEncrypted,youtubeTrends:db.youtubeTrends};}
 function idFind(id){return db.tasks.find(t=>t.id===id);}
 async function notifyTelegram(text){
  if(!db.telegram?.enabled||!db.telegram.tokenEncrypted||!db.telegram.chatId)return;
@@ -150,7 +151,7 @@ function makeWindow(){windowRef=new BrowserWindow({width:1280,height:850,minWidt
  if(process.env.VITE_DEV_SERVER_URL)windowRef.loadURL(process.env.VITE_DEV_SERVER_URL);else windowRef.loadFile(path.join(__dirname,'../dist/index.html'));
  windowRef.on('closed',()=>{windowRef=null;});
 }
-app.whenReady().then(()=>{load();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void processNewsCover().catch(()=>{}),15000);setInterval(()=>void processNewsCover().catch(()=>{}),15000);setTimeout(()=>void refreshPersonalMusic(false).catch(()=>{}),22000);setTimeout(()=>{if(db.preferences.tiktokCollectionUrl&&db.tiktokCache?.url===db.preferences.tiktokCollectionUrl)void refreshTikTokCollection(db.preferences.tiktokCollectionUrl,false).catch(()=>{});},45000);setTimeout(()=>{void refreshUtilityRadar(false).catch(()=>{});void refreshProPicks(false).catch(()=>{});},35000);setInterval(()=>void refreshProPicks(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshUtilityRadar(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshPersonalMusic(false).catch(()=>{}),60*60*1000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
+app.whenReady().then(()=>{load();for(const j of ytState().jobs)if(j.status==='uploading'){j.status='uncertain';j.error='Попереднє завантаження перервано. Перевір YouTube Studio перед повтором.';}save();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void processNewsCover().catch(()=>{}),15000);setInterval(()=>void processNewsCover().catch(()=>{}),15000);setTimeout(()=>void refreshPersonalMusic(false).catch(()=>{}),22000);setTimeout(()=>{if(db.preferences.tiktokCollectionUrl&&db.tiktokCache?.url===db.preferences.tiktokCollectionUrl)void refreshTikTokCollection(db.preferences.tiktokCollectionUrl,false).catch(()=>{});},45000);setTimeout(()=>{void refreshUtilityRadar(false).catch(()=>{});void refreshProPicks(false).catch(()=>{});},35000);setInterval(()=>void refreshProPicks(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshUtilityRadar(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshPersonalMusic(false).catch(()=>{}),60*60*1000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
 app.on('before-quit',()=>{if(notifyTimer)clearInterval(notifyTimer);if(telegramTimer)clearInterval(telegramTimer);if(updateTimer)clearInterval(updateTimer);if(newsTimer)clearInterval(newsTimer);});
 ipcMain.handle('data:load',()=>cleanSnapshot());
@@ -281,6 +282,119 @@ ipcMain.handle('power:group-save',(_event,raw)=>{
  db.powerLive={status:'not-checked',checkedAt:'',source:'',intervals:[],days:[],message:'Чергу збережено. Онови графік.'};save();return true;
 });
 ipcMain.handle('power:fetch',()=>refreshPowerSchedule(true));
+function ytState(){
+ if(!db.youtubeStudio||typeof db.youtubeStudio!=='object')db.youtubeStudio={accounts:{},jobs:[]};
+ if(!db.youtubeStudio.accounts)db.youtubeStudio.accounts={};
+ if(!Array.isArray(db.youtubeStudio.jobs))db.youtubeStudio.jobs=[];
+ return db.youtubeStudio;
+}
+function ytChannel(id){const row=db.workspace.channels.find(x=>x.id===id);if(!row)throw Error('Канал не знайдено');return row;}
+function ytPublic(){const s=ytState();return {accounts:Object.fromEntries(Object.entries(s.accounts).map(([k,v])=>[k,{owner:v.owner}])),jobs:s.jobs.map(({file,cover,...j})=>({...j,fileName:file?.name||'',coverName:cover?.name||''}))};}
+let ytAuthBusy=false,ytUploadBusy=false;
+async function ytAccess(id){
+ ytChannel(id);const account=ytState().accounts[id];if(!account)throw Error('Підключи Google OAuth для цього каналу');
+ const cfg=JSON.parse(safeStorage.decryptString(Buffer.from(account.config,'base64')));
+ const refresh=safeStorage.decryptString(Buffer.from(account.refresh,'base64'));
+ const token=await ytStudio.tokenRequest(cfg,{grant_type:'refresh_token',refresh_token:refresh});
+ if(!token.access_token)throw Error('Google не повернув access token');
+ if(token.refresh_token){account.refresh=safeStorage.encryptString(token.refresh_token).toString('base64');save();}
+ const owners=await ytStudio.mine(token.access_token),owner=owners.find(x=>x.id===account.owner.id);
+ if(!owner)throw Error('Google повернув інший канал. Перепідключи правильний акаунт.');
+ account.owner=owner;return {token:token.access_token,owner};
+}
+ipcMain.handle('youtube:connect-owner',async(_event,id,raw)=>{
+ ytChannel(id);if(ytAuthBusy||ytUploadBusy)throw Error('Інша операція YouTube виконується');
+ if(!safeStorage.isEncryptionAvailable())throw Error('Системне шифрування недоступне');
+ const cfg=ytStudio.config(raw);ytAuthBusy=true;
+ try{
+  const t=await ytStudio.authorize(cfg,url=>shell.openExternal(url));
+  if(!t.refresh_token||!t.access_token)throw Error('Google не видав refresh token. Повтори авторизацію.');
+  const owners=await ytStudio.mine(t.access_token);
+  if(owners.length!==1)throw Error('Google має повернути рівно один канал. Обери потрібний канал під час входу.');
+  ytChannel(id);ytState().accounts[id]={owner:owners[0],config:safeStorage.encryptString(JSON.stringify(cfg)).toString('base64'),refresh:safeStorage.encryptString(t.refresh_token).toString('base64')};save();return owners[0];
+ }finally{ytAuthBusy=false;}
+});
+ipcMain.handle('youtube:disconnect-owner',(_event,id)=>{if(ytUploadBusy||ytAuthBusy)throw Error('Зачекай завершення операції');delete ytState().accounts[id];save();return true;});
+ipcMain.handle('youtube:owner-videos',async(_event,id,page='')=>{const {token,owner}=await ytAccess(id);return ytStudio.listVideos(token,owner,String(page).slice(0,300));});
+ipcMain.handle('youtube:owner-analytics',async(_event,id,video='')=>{const {token,owner}=await ytAccess(id);return ytStudio.analytics(token,owner,video);});
+ipcMain.handle('youtube:niche',async(_event,query,format)=>{if(!db.youtubeApiKeyEncrypted)throw Error('Додай YouTube Data API key');return nicheRadar(safeStorage.decryptString(Buffer.from(db.youtubeApiKeyEncrypted,'base64')),query,format);});
+ipcMain.handle('youtube:creator-ai',(_event,id,request,video)=>{
+ const row=ytChannel(id),ctx={channel:{title:row.title,focus:row.focus},ideas:db.workspace.ideas.filter(x=>x.channelId===id).slice(0,20),trends:(db.youtubeTrends?.videos||[]).slice(0,20).map(x=>({title:x.title,channel:x.channel,views:x.views,viewsPerDay:x.viewsPerDay,url:x.url})),video:video&&typeof video==='object'?{id:String(video.id||'').slice(0,20),title:String(video.title||'').slice(0,180),description:String(video.description||'').slice(0,1000),views:Number(video.views)||0,likes:typeof video.likes==='number'?video.likes:null,comments:typeof video.comments==='number'?video.comments:null}:null};
+ return aiInsight('youtube',request,ctx);
+});
+const ytMediaDir=()=>path.join(app.getPath('userData'),'youtube-media');
+function ytJob(id){const j=ytState().jobs.find(x=>x.id===id);if(!j)throw Error('Чернетку не знайдено');return j;}
+ipcMain.handle('youtube:create-job',(_event,id)=>{ytChannel(id);if(ytState().jobs.length>=200)throw Error('Ліміт 200 чернеток');const j={id:crypto.randomUUID(),channelId:id,status:'draft',title:'',description:'',tags:'',format:'short',categoryId:'22',publishAt:'',madeForKids:null,progress:0,videoId:'',error:''};ytState().jobs.unshift(j);save();return j.id;});
+ipcMain.handle('youtube:edit-job',(_event,id,raw)=>{
+ const j=ytJob(id);if(ytUploadBusy||j.status!=='draft')throw Error('Редагувати можна лише чернетку, коли немає завантаження');
+ for(const [k,max] of [['title',100],['description',5000],['tags',450],['categoryId',3],['publishAt',40]])if(typeof raw?.[k]==='string')j[k]=raw[k].slice(0,max);
+ if(['short','long'].includes(raw?.format))j.format=raw.format;
+ if(typeof raw?.madeForKids==='boolean'||raw?.madeForKids===null)j.madeForKids=raw.madeForKids;
+ save();return true;
+});
+ipcMain.handle('youtube:pick-media',async(_event,id,cover=false)=>{
+ const j=ytJob(id);if(ytUploadBusy||j.status!=='draft')throw Error('Чернетка вже заблокована');
+ const selected=await dialog.showOpenDialog(windowRef,{title:cover?'Обкладинка YouTube':'Відео YouTube',properties:['openFile'],filters:[{name:cover?'PNG/JPEG':'Відео',extensions:cover?['png','jpg','jpeg']:['mp4','mov','webm','mkv']}]});
+ if(selected.canceled||!selected.filePaths[0])return false;
+ const file=selected.filePaths[0],ext=path.extname(file).toLowerCase(),stat=fs.statSync(file),allowed=cover?['.png','.jpg','.jpeg']:['.mp4','.mov','.webm','.mkv'];
+ if(!allowed.includes(ext)||!stat.isFile()||stat.size<1||stat.size>(cover?2*1024**2:4*1024**3))throw Error('Некоректний формат або розмір файлу');
+ if(j.status!=='draft'||!ytState().jobs.includes(j))throw Error('Чернетка змінилася');
+ fs.mkdirSync(ytMediaDir(),{recursive:true});const name=crypto.randomUUID()+ext;await fs.promises.copyFile(file,path.join(ytMediaDir(),name),fs.constants.COPYFILE_EXCL);
+ const field=cover?'cover':'file',old=j[field];if(j.status!=='draft'||!ytState().jobs.includes(j)){await fs.promises.unlink(path.join(ytMediaDir(),name)).catch(()=>{});throw Error('Чернетка змінилася');}
+ j[field]={stored:name,name:path.basename(file),bytes:stat.size};save();if(old?.stored&&/^[a-f0-9-]{36}\.[a-z0-9]{2,5}$/.test(old.stored))await fs.promises.unlink(path.join(ytMediaDir(),old.stored)).catch(()=>{});return true;
+});
+function ytFile(j,field){const name=j[field]?.stored;if(!name||!/^[a-f0-9-]{36}\.[a-z0-9]{2,5}$/.test(name))throw Error('Файл не додано');return path.join(ytMediaDir(),name);}
+ipcMain.handle('youtube:delete-job',(_event,id)=>{
+ const j=ytJob(id);if(ytUploadBusy||j.status==='uploading')throw Error('Триває операція YouTube');ytState().jobs=ytState().jobs.filter(x=>x!==j);save();
+ for(const field of ['file','cover'])try{fs.unlinkSync(ytFile(j,field));}catch{}return true;
+});
+ipcMain.handle('youtube:send-job',async(_event,id)=>{
+ if(ytUploadBusy||ytAuthBusy)throw Error('Інша операція YouTube виконується');
+ const j=ytJob(id);if(j.status!=='draft')throw Error('Це не нова чернетка. Перевір YouTube Studio, щоб не дублювати відео.');
+ const meta=ytStudio.uploadMetadata(j),file=ytFile(j,'file');
+ if(!fs.existsSync(file))throw Error('Локальний файл відсутній');
+ const account=ytState().accounts[j.channelId];if(!account)throw Error('Підключи власника каналу');
+ ytUploadBusy=true;
+ try{
+ const confirm=await dialog.showMessageBox(windowRef,{type:'warning',buttons:['Скасувати','Завантажити і запланувати'],defaultId:0,cancelId:0,title:'Публікація YouTube',message:'Канал: '+account.owner.title+'\nВідео: '+meta.snippet.title+'\nПублікація: '+new Date(meta.status.publishAt).toLocaleString('uk-UA'),detail:'Файл буде надіслано YouTube як приватний, а після завантаження буде встановлено розклад. Публікація може відбутися без відкритого LifeHub. Перевір права на контент.'});
+ if(confirm.response!==1)return false;
+ if(j.status!=='draft'||!ytState().jobs.includes(j))throw Error('Чернетка змінилася');
+ j.status='uploading';j.error='';save();
+  const {token,owner}=await ytAccess(j.channelId);
+  if(owner.id!==account.owner.id)throw Error('Канал змінився');
+  const result=await ytStudio.upload(token,file,{snippet:meta.snippet,status:{privacyStatus:'private',selfDeclaredMadeForKids:meta.status.selfDeclaredMadeForKids}},p=>{const next=Math.round(p*100);if(next>=j.progress+5||next===100){j.progress=next;save();}});
+  j.videoId=result.id;j.status='uploaded-private';save();
+  const fresh=await ytAccess(j.channelId);
+  if(j.cover){try{await ytStudio.thumbnail(fresh.token,j.videoId,ytFile(j,'cover'));}catch(e){j.error='Обкладинка не встановлена: '+String(e.message||e);save();return false;}}
+  await ytStudio.schedule(fresh.token,j.videoId,meta.status);
+  j.status='scheduled';j.error='';save();return true;
+ }catch(e){if(j.status!=='draft')j.status=j.videoId?'uploaded-private':'uncertain';j.error=String(e.message||e).slice(0,500);save();throw e;}
+ finally{ytUploadBusy=false;}
+});
+ipcMain.handle('youtube:job-status',async(_event,id)=>{
+ const j=ytJob(id);if(!j.videoId)throw Error('Немає підтвердженого ID YouTube');
+ const {token,owner}=await ytAccess(j.channelId);
+ const data=await ytStudio.api(token,'videos',{part:'snippet,status,statistics,contentDetails',id:j.videoId});
+ const v=data.items?.find(x=>x.id===j.videoId&&x.snippet?.channelId===owner.id);
+ if(!v)throw Error('Відео не знайдено у підключеному каналі');
+ const row=ytStudio.videoRow(v);j.status=row.privacy==='public'?'published':row.publishAt?'scheduled':'uploaded-private';j.actualPrivacy=row.privacy;j.actualPublishAt=row.publishAt;j.uploadStatus=row.uploadStatus;save();return row;
+});
+ipcMain.handle('youtube:finish-job',async(_event,id,date)=>{
+ if(ytUploadBusy||ytAuthBusy)throw Error('Інша операція YouTube виконується');
+ const j=ytJob(id);if(j.status!=='uploaded-private'||!j.videoId)throw Error('Потрібне підтверджене приватне відео');
+ const meta=ytStudio.uploadMetadata({...j,publishAt:date});
+ const account=ytState().accounts[j.channelId];if(!account)throw Error('Підключи канал');
+ ytUploadBusy=true;
+ try{
+  const {token,owner}=await ytAccess(j.channelId);
+  const data=await ytStudio.api(token,'videos',{part:'snippet,status',id:j.videoId});
+  const v=data.items?.find(x=>x.id===j.videoId&&x.snippet?.channelId===owner.id&&x.status?.privacyStatus==='private'&&!x.status?.publishAt);
+  if(!v)throw Error('Відео вже заплановане, опубліковане або недоступне. Перевір статус.');
+  const confirm=await dialog.showMessageBox(windowRef,{type:'warning',buttons:['Скасувати','Запланувати'],defaultId:0,cancelId:0,message:'Запланувати '+j.title+' на '+new Date(meta.status.publishAt).toLocaleString('uk-UA')+' у '+owner.title+'?',detail:'Відео вже є на YouTube. Повторного завантаження не буде.'});if(confirm.response!==1)return false;
+  if(j.cover)await ytStudio.thumbnail(token,j.videoId,ytFile(j,'cover'));
+  await ytStudio.schedule(token,j.videoId,meta.status);j.publishAt=meta.status.publishAt;j.status='scheduled';j.error='';save();return true;
+ }catch(e){j.error=String(e.message||e).slice(0,500);save();throw e;}finally{ytUploadBusy=false;}
+});
 ipcMain.handle('youtube:key-save',(_event,key)=>{if(typeof key!=='string'||key.trim().length<20||key.length>300)throw new Error('Невірний YouTube Data API key');if(!safeStorage.isEncryptionAvailable())throw new Error('Шифрування Windows недоступне');db.youtubeApiKeyEncrypted=safeStorage.encryptString(key.trim()).toString('base64');save();return true;});
 ipcMain.handle('youtube:key-remove',()=>{db.youtubeApiKeyEncrypted='';save();return true;});
 ipcMain.handle('youtube:trends',async(_event,force=false)=>{if(!db.youtubeApiKeyEncrypted)throw new Error('Додай YouTube Data API key у налаштуваннях');const age=Date.now()-Date.parse(db.youtubeTrends?.fetchedAt||'');if(Number.isFinite(age)&&age<(force?20*60*1000:24*60*60*1000))return db.youtubeTrends;const token=safeStorage.decryptString(Buffer.from(db.youtubeApiKeyEncrypted,'base64'));db.youtubeTrends=await fetchYoutubeTrends(token);save();return db.youtubeTrends;});

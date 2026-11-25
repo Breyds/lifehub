@@ -82,6 +82,17 @@ declare global {
     savePowerAddress:(address:{settlement:string;street:string;house:string})=>Promise<boolean>;
     fetchPower:()=>Promise<PowerLive>;
     savePowerGroup:(group:string)=>Promise<boolean>;
+    ytEarlyState:()=>Promise<EarlyState>;
+    ytEarlySettings:(raw:{enabled?:boolean;query?:string})=>Promise<EarlyState>;
+    ytEarlyRefresh:()=>Promise<EarlyState>;
+    ytInboxFolder:()=>Promise<CreatorInbox>;
+    ytInboxDefault:()=>Promise<CreatorInbox>;
+    ytInboxScan:()=>Promise<CreatorInbox>;
+    ytInboxOpen:()=>Promise<boolean>;
+    ytInboxImport:(id:string,file:string)=>Promise<string>;
+    ytInboxAi:(id:string)=>Promise<{title:string;description:string;tags:string}>;
+    ytGeneratePlan:(id:string,raw:{days:number;shorts:number;longs:number;start:string;brief:string;referenceIds:string[]})=>Promise<AIContentPlan>;
+    ytChannelBuilder:(brief:string,ids:string[])=>Promise<{title:string;focus:string;strategy:string}>;
     ytConnectOwner:(id:string,cfg:{clientId:string;clientSecret:string})=>Promise<CreatorOwner>;
     ytDisconnectOwner:(id:string)=>Promise<boolean>;
     ytVideos:(id:string,page?:string)=>Promise<{items:CreatorVideo[];nextPageToken:string}>;
@@ -158,3 +169,9 @@ export type CreatorVideo={id:string;title:string;description:string;thumbnail:st
 export type CreatorAnalytics={start:string;end:string;metrics:Record<string,number|null>};
 export type NicheVideo={id:string;title:string;channel:string;channelId:string;channelUrl:string;url:string;thumbnail:string;subscribers:number;views:number;viewsPerDay:number;ratio:number;seconds:number;publishedAt:string;format:string};
 export type CreatorJob={id:string;channelId:string;status:string;title:string;description:string;tags:string;format:string;categoryId:string;publishAt:string;madeForKids:boolean|null;progress:number;videoId:string;error:string;fileName:string;coverName:string;actualPrivacy?:string;actualPublishAt?:string;uploadStatus?:string};
+
+export type EarlyWindow={hours:number;data:null|{from:number;to:number;startViews:number;endViews:number;change:number;hours:number}};
+export type EarlyVideo={id:string;channelId:string;channel:string;channelUrl:string;channelCreatedAt:string;channelVideoCount:number;subscribers:number;title:string;url:string;thumbnail:string;publishedAt:string;seconds:number|null;format:string;views:number;checkedAt:number;samples:{at:number;views:number}[];windows:EarlyWindow[]};
+export type EarlyState={enabled:boolean;query:string;rows:EarlyVideo[];checkedAt:number;discoveredAt:number;nextAt:number;error:string};
+export type CreatorInbox={folder:string;rows:{file:string;size:number;modifiedAt:string;ready:boolean;imported:boolean;signature:string}[]};
+export type AIContentPlan={strategy:string;items:{title:string;date:string;format:string;hook:string;script:string;note:string;url:string}[]};

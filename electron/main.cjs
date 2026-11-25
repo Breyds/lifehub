@@ -326,14 +326,14 @@ const ytMediaDir=()=>path.join(app.getPath('userData'),'youtube-media');
 function ytJob(id){const j=ytState().jobs.find(x=>x.id===id);if(!j)throw Error('Чернетку не знайдено');return j;}
 ipcMain.handle('youtube:create-job',(_event,id)=>{ytChannel(id);if(ytState().jobs.length>=200)throw Error('Ліміт 200 чернеток');const j={id:crypto.randomUUID(),channelId:id,status:'draft',title:'',description:'',tags:'',format:'short',categoryId:'22',publishAt:'',madeForKids:null,progress:0,videoId:'',error:''};ytState().jobs.unshift(j);save();return j.id;});
 ipcMain.handle('youtube:edit-job',(_event,id,raw)=>{
- const j=ytJob(id);if(j.status!=='draft')throw Error('Редагувати можна лише чернетку');
+ const j=ytJob(id);if(ytUploadBusy||j.status!=='draft')throw Error('Редагувати можна лише чернетку, коли немає завантаження');
  for(const [k,max] of [['title',100],['description',5000],['tags',450],['categoryId',3],['publishAt',40]])if(typeof raw?.[k]==='string')j[k]=raw[k].slice(0,max);
  if(['short','long'].includes(raw?.format))j.format=raw.format;
  if(typeof raw?.madeForKids==='boolean'||raw?.madeForKids===null)j.madeForKids=raw.madeForKids;
  save();return true;
 });
 ipcMain.handle('youtube:pick-media',async(_event,id,cover=false)=>{
- const j=ytJob(id);if(j.status!=='draft')throw Error('Чернетка вже заблокована');
+ const j=ytJob(id);if(ytUploadBusy||j.status!=='draft')throw Error('Чернетка вже заблокована');
  const selected=await dialog.showOpenDialog(windowRef,{title:cover?'Обкладинка YouTube':'Відео YouTube',properties:['openFile'],filters:[{name:cover?'PNG/JPEG':'Відео',extensions:cover?['png','jpg','jpeg']:['mp4','mov','webm','mkv']}]});
  if(selected.canceled||!selected.filePaths[0])return false;
  const file=selected.filePaths[0],ext=path.extname(file).toLowerCase(),stat=fs.statSync(file),allowed=cover?['.png','.jpg','.jpeg']:['.mp4','.mov','.webm','.mkv'];
@@ -345,7 +345,7 @@ ipcMain.handle('youtube:pick-media',async(_event,id,cover=false)=>{
 });
 function ytFile(j,field){const name=j[field]?.stored;if(!name||!/^[a-f0-9-]{36}\.[a-z0-9]{2,5}$/.test(name))throw Error('Файл не додано');return path.join(ytMediaDir(),name);}
 ipcMain.handle('youtube:delete-job',(_event,id)=>{
- const j=ytJob(id);if(j.status==='uploading')throw Error('Триває завантаження');ytState().jobs=ytState().jobs.filter(x=>x!==j);save();
+ const j=ytJob(id);if(ytUploadBusy||j.status==='uploading')throw Error('Триває операція YouTube');ytState().jobs=ytState().jobs.filter(x=>x!==j);save();
  for(const field of ['file','cover'])try{fs.unlinkSync(ytFile(j,field));}catch{}return true;
 });
 ipcMain.handle('youtube:send-job',async(_event,id)=>{
@@ -354,21 +354,46 @@ ipcMain.handle('youtube:send-job',async(_event,id)=>{
  const meta=ytStudio.uploadMetadata(j),file=ytFile(j,'file');
  if(!fs.existsSync(file))throw Error('Локальний файл відсутній');
  const account=ytState().accounts[j.channelId];if(!account)throw Error('Підключи власника каналу');
+ ytUploadBusy=true;
+ try{
  const confirm=await dialog.showMessageBox(windowRef,{type:'warning',buttons:['Скасувати','Завантажити і запланувати'],defaultId:0,cancelId:0,title:'Публікація YouTube',message:'Канал: '+account.owner.title+'\nВідео: '+meta.snippet.title+'\nПублікація: '+new Date(meta.status.publishAt).toLocaleString('uk-UA'),detail:'Файл буде надіслано YouTube як приватний, а після завантаження буде встановлено розклад. Публікація може відбутися без відкритого LifeHub. Перевір права на контент.'});
  if(confirm.response!==1)return false;
- if(ytUploadBusy||j.status!=='draft')throw Error('Операція вже почалася');
- ytUploadBusy=true;j.status='uploading';j.error='';save();
- try{
+ if(j.status!=='draft'||!ytState().jobs.includes(j))throw Error('Чернетка змінилася');
+ j.status='uploading';j.error='';save();
   const {token,owner}=await ytAccess(j.channelId);
   if(owner.id!==account.owner.id)throw Error('Канал змінився');
-  const result=await ytStudio.upload(token,file,{snippet:meta.snippet,status:{privacyStatus:'private',selfDeclaredMadeForKids:meta.status.selfDeclaredMadeForKids}},p=>{j.progress=Math.round(p*100);save();});
+  const result=await ytStudio.upload(token,file,{snippet:meta.snippet,status:{privacyStatus:'private',selfDeclaredMadeForKids:meta.status.selfDeclaredMadeForKids}},p=>{const next=Math.round(p*100);if(next>=j.progress+5||next===100){j.progress=next;save();}});
   j.videoId=result.id;j.status='uploaded-private';save();
   const fresh=await ytAccess(j.channelId);
   if(j.cover){try{await ytStudio.thumbnail(fresh.token,j.videoId,ytFile(j,'cover'));}catch(e){j.error='Обкладинка не встановлена: '+String(e.message||e);save();return false;}}
   await ytStudio.schedule(fresh.token,j.videoId,meta.status);
   j.status='scheduled';j.error='';save();return true;
- }catch(e){j.status=j.videoId?'uploaded-private':'uncertain';j.error=String(e.message||e).slice(0,500);save();throw e;}
+ }catch(e){if(j.status!=='draft')j.status=j.videoId?'uploaded-private':'uncertain';j.error=String(e.message||e).slice(0,500);save();throw e;}
  finally{ytUploadBusy=false;}
+});
+ipcMain.handle('youtube:job-status',async(_event,id)=>{
+ const j=ytJob(id);if(!j.videoId)throw Error('Немає підтвердженого ID YouTube');
+ const {token,owner}=await ytAccess(j.channelId);
+ const data=await ytStudio.api(token,'videos',{part:'snippet,status,statistics,contentDetails',id:j.videoId});
+ const v=data.items?.find(x=>x.id===j.videoId&&x.snippet?.channelId===owner.id);
+ if(!v)throw Error('Відео не знайдено у підключеному каналі');
+ const row=ytStudio.videoRow(v);j.status=row.privacy==='public'?'published':row.publishAt?'scheduled':'uploaded-private';j.actualPrivacy=row.privacy;j.actualPublishAt=row.publishAt;j.uploadStatus=row.uploadStatus;save();return row;
+});
+ipcMain.handle('youtube:finish-job',async(_event,id,date)=>{
+ if(ytUploadBusy||ytAuthBusy)throw Error('Інша операція YouTube виконується');
+ const j=ytJob(id);if(j.status!=='uploaded-private'||!j.videoId)throw Error('Потрібне підтверджене приватне відео');
+ const meta=ytStudio.uploadMetadata({...j,publishAt:date});
+ const account=ytState().accounts[j.channelId];if(!account)throw Error('Підключи канал');
+ ytUploadBusy=true;
+ try{
+  const {token,owner}=await ytAccess(j.channelId);
+  const data=await ytStudio.api(token,'videos',{part:'snippet,status',id:j.videoId});
+  const v=data.items?.find(x=>x.id===j.videoId&&x.snippet?.channelId===owner.id&&x.status?.privacyStatus==='private'&&!x.status?.publishAt);
+  if(!v)throw Error('Відео вже заплановане, опубліковане або недоступне. Перевір статус.');
+  const confirm=await dialog.showMessageBox(windowRef,{type:'warning',buttons:['Скасувати','Запланувати'],defaultId:0,cancelId:0,message:'Запланувати '+j.title+' на '+new Date(meta.status.publishAt).toLocaleString('uk-UA')+' у '+owner.title+'?',detail:'Відео вже є на YouTube. Повторного завантаження не буде.'});if(confirm.response!==1)return false;
+  if(j.cover)await ytStudio.thumbnail(token,j.videoId,ytFile(j,'cover'));
+  await ytStudio.schedule(token,j.videoId,meta.status);j.publishAt=meta.status.publishAt;j.status='scheduled';j.error='';save();return true;
+ }catch(e){j.error=String(e.message||e).slice(0,500);save();throw e;}finally{ytUploadBusy=false;}
 });
 ipcMain.handle('youtube:key-save',(_event,key)=>{if(typeof key!=='string'||key.trim().length<20||key.length>300)throw new Error('Невірний YouTube Data API key');if(!safeStorage.isEncryptionAvailable())throw new Error('Шифрування Windows недоступне');db.youtubeApiKeyEncrypted=safeStorage.encryptString(key.trim()).toString('base64');save();return true;});
 ipcMain.handle('youtube:key-remove',()=>{db.youtubeApiKeyEncrypted='';save();return true;});

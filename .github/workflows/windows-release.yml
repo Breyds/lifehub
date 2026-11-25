@@ -134,25 +134,76 @@ jobs:
           $tag = $env:TAG
           $repo = $env:GITHUB_REPOSITORY
           $name = "LifeHub-Setup-$env:VERSION.exe"
-          $list = gh release list --repo $repo --limit 1000 --json tagName,isDraft
-          if ($LASTEXITCODE -ne 0) { throw 'Cannot list releases' }
-          $existing = $list | ConvertFrom-Json | Where-Object { $_.tagName -eq $tag } | Select-Object -First 1
-          if ($null -eq $existing) {
-            gh release create $tag --repo $repo --verify-tag --draft --title "LifeHub $env:VERSION" --generate-notes
-            if ($LASTEXITCODE -ne 0) { throw 'Cannot create draft release' }
-          } elseif (-not $existing.isDraft) { throw 'Refusing to overwrite public release' }
-          gh release upload $tag "release/$name" "release/latest.yml" "release/$name.blockmap" --repo $repo --clobber
-          if ($LASTEXITCODE -ne 0) { throw 'Upload failed; draft preserved' }
-          $view = gh release view $tag --repo $repo --json isDraft,assets
-          if ($LASTEXITCODE -ne 0) { throw 'Cannot verify assets' }
-          $draft = $view | ConvertFrom-Json
-          if (-not $draft.isDraft) { throw 'Expected draft release' }
-          foreach ($required in @($name, 'latest.yml', "$name.blockmap")) {
-            $asset = $draft.assets | Where-Object { $_.name -eq $required } | Select-Object -First 1
-            if ($null -eq $asset -or $asset.size -ne (Get-Item "release/$required").Length) { throw "Incomplete asset: $required" }
+          function Read-Release {
+            for ($try = 1; $try -le 4; $try++) {
+              $json = gh api "repos/$repo/releases?per_page=100"
+              if ($LASTEXITCODE -eq 0 -and $json) {
+                $matches = @($json | ConvertFrom-Json | Where-Object { $_.tag_name -eq $tag })
+                if ($matches.Count -gt 1) { throw "Multiple releases for $tag" }
+                return ($matches | Select-Object -First 1)
+              }
+              Start-Sleep -Seconds 3
+            }
+            throw 'Cannot list releases'
           }
-          gh release edit $tag --repo $repo --draft=false
-          if ($LASTEXITCODE -ne 0) { throw 'Cannot publish draft' }
-          $view = gh release view $tag --repo $repo --json isDraft,url
-          if ($LASTEXITCODE -ne 0 -or ($view | ConvertFrom-Json).isDraft) { throw 'Release publication not confirmed' }
-          Write-Host "Published $tag"
+          function Read-Asset($id, $assetName) {
+            for ($try = 1; $try -le 4; $try++) {
+              $json = gh api "repos/$repo/releases/$id/assets?per_page=100"
+              if ($LASTEXITCODE -eq 0 -and $json) {
+                return ($json | ConvertFrom-Json | Where-Object { $_.name -eq $assetName } | Select-Object -First 1)
+              }
+              Start-Sleep -Seconds 3
+            }
+            throw 'Cannot list release assets'
+          }
+          function Test-Match($asset, $file, $digest) {
+            return ($null -ne $asset -and $asset.state -eq 'uploaded' -and $asset.size -eq $file.Length -and $asset.digest -eq $digest)
+          }
+          $release = Read-Release
+          if ($null -eq $release) {
+            gh release create $tag --repo $repo --verify-tag --draft --title "LifeHub $env:VERSION" --generate-notes
+            for ($try = 1; $try -le 4; $try++) {
+              $release = Read-Release
+              if ($null -ne $release) { break }
+              Start-Sleep -Seconds 3
+            }
+          }
+          if ($null -eq $release -or -not $release.draft) { throw 'Expected a draft release; refusing to overwrite public assets' }
+          $id = $release.id
+          foreach ($required in @($name, 'latest.yml', "$name.blockmap")) {
+            $file = Get-Item "release/$required"
+            $digest = 'sha256:' + (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            for ($attempt = 1; $attempt -le 4; $attempt++) {
+              $asset = Read-Asset $id $required
+              if (Test-Match $asset $file $digest) { break }
+              if ($null -ne $asset) {
+                $current = Read-Release
+                if ($null -eq $current -or -not $current.draft -or $current.id -ne $id) { throw 'Draft changed; refusing deletion' }
+                gh api --method DELETE "repos/$repo/releases/assets/$($asset.id)"
+                if ($LASTEXITCODE -ne 0) {
+                  $asset = Read-Asset $id $required
+                  if ($null -ne $asset) { throw "Cannot remove mismatched draft asset: $required" }
+                }
+              }
+              gh release upload $tag $file.FullName --repo $repo
+              # The upload endpoint can report an error after storing a file. Verify server state.
+              for ($check = 1; $check -le 3; $check++) {
+                $asset = Read-Asset $id $required
+                if (Test-Match $asset $file $digest) { break }
+                Start-Sleep -Seconds 3
+              }
+              if (Test-Match $asset $file $digest) { break }
+            }
+            if (-not (Test-Match $asset $file $digest)) { throw "Asset verification failed: $required" }
+            Write-Host "Verified: $required"
+          }
+          $current = Read-Release
+          if ($null -eq $current -or -not $current.draft -or $current.id -ne $id) { throw 'Draft changed before publication' }
+          gh api --method PATCH "repos/$repo/releases/$id" -F draft=false -F prerelease=false | Out-Null
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            $current = Read-Release
+            if ($null -ne $current -and -not $current.draft -and $current.id -eq $id) { break }
+            Start-Sleep -Seconds 3
+          }
+          if ($null -eq $current -or $current.draft -or $current.id -ne $id) { throw 'Release publication not confirmed' }
+          Write-Host "Published $tag at $($current.html_url)"

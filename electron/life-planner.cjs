@@ -18,10 +18,11 @@ function build(raw,config,tasks,today,nowMinute=0){
  function reserve(d,count,value,reverse=false){let taken=0;for(let j=0;j<1440&&taken<count;j++){const i=reverse?1439-j:j;if(!d.occupancy[i]){d.occupancy[i]=value;taken++;}}return taken;}
  function intervals(d,value){const out=[];let start=-1;for(let i=0;i<=1440;i++){if(i<1440&&d.occupancy[i]===value){if(start<0)start=i;}else if(start>=0){out.push({start:clock(start),end:clock(i),minutes:i-start});start=-1;}}return out;}
  for(const d of days){mark(d,0,wake,1);mark(d,end,1440,1);if(d.date===today)mark(d,0,Math.min(1440,Math.max(0,nowMinute+5)),1);}
+ const orderedTasks=[...tasks].sort((a,b)=>Number(!!b.time)-Number(!!a.time));
  for(const d of days){
   const prev=addDay(d.date,-1);
   for(const t of tasks){if(t.time&&validTime(t.time)&&scheduledOccurs(t,prev)){const dur=Math.min(1440,Number(t.durationMin)||30),overflow=minutes(t.time)+dur+s.buffer-1440;if(overflow>0)mark(d,0,overflow,1);}}
-  for(const t of [...tasks].sort((a,b)=>Number(!!b.time)-Number(!!a.time))){if(!scheduledOccurs(t,d.date))continue;const dur=Math.min(1440,Math.max(1,Number(t.durationMin)||30));if(!t.durationMin&&!taskDone(t,d.date))notes.push(d.date+' · '+t.title+': тривалість невідома, зарезервовано 30 хв.');
+  for(const t of orderedTasks){if(!scheduledOccurs(t,d.date))continue;const dur=Math.min(1440,Math.max(1,Number(t.durationMin)||30));if(!t.durationMin&&!taskDone(t,d.date))notes.push(d.date+' · '+t.title+': тривалість невідома, зарезервовано 30 хв.');
    if(t.time&&validTime(t.time)){const start=minutes(t.time);mark(d,start,start+dur+s.buffer,1);d.planned+=dur;d.existing.push({title:t.title,start:t.time,end:clock(Math.min(1440,start+dur)),minutes:dur});}
    else if(!taskDone(t,d.date)){d.planned+=dur;d.existing.push({title:t.title,start:'',end:'',minutes:dur});const got=reserve(d,dur+s.buffer,1);if(got<dur+s.buffer)notes.push(d.date+' · недостатньо часу на вже заплановану справу без часу: '+t.title);}
   }

@@ -30,6 +30,7 @@ const earlyRadar=require('./youtube-early.cjs');
 const creatorInbox=require('./youtube-inbox.cjs');
 const creatorPlan=require('./youtube-plan.cjs');
 const lifePlanner=require('./life-planner.cjs');
+const {atomicStore,shouldCheckpoint}=require('./stable-store.cjs');
 const {cleanUtility,getFaceit,weeklyStart,summarize,mapBreakdown}=require('./cs2.cjs');
 const {fetchCS2UtilityRadar}=require('./cs2-utility-radar.cjs');
 const {fetchProPicks,starter:starterProPicks}=require('./cs2-pro-feed.cjs');
@@ -44,7 +45,9 @@ let windowRef=null,db,aiBusy=false,notifyTimer=null,updateTimer=null,newsTimer=n
 let updateState={status:'not-configured',version:app.getVersion(),message:'Публікацію оновлень ще не налаштовано.'};
 function initial(){return {version:2,tasks:[],apiKeyEncrypted:'',usage:{},autostart:false,evening:true,notified:[],eveningShown:[],videoDrafts:{},workspace:blankWorkspace(),preferences:safePreferences({}),news:{items:[],fetchedAt:'',errors:0,totalSources:0},music:{markets:{},errors:[],fetchedAt:'',source:''},newsFeedback:{},newsMutedSources:[],newsDismissed:{},newsSaved:[],newsIllustrations:{},newsImageCount:{},musicReminderShown:[],spotifyPersonal:{clientId:'',refreshEncrypted:'',week:'',items:[],message:''},tiktokCache:{url:'',videos:[],fetchedAt:'',message:''},audDTokenEncrypted:'',telegram:{tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0},powerAddress:{settlement:'',street:'',house:''},powerGroup:'',powerGroupOrigin:'',blackoutSchedule:'',powerLive:{status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Натисни «Отримати графік ДТЕК».'},youtubeApiKeyEncrypted:'',youtubeTrends:{videos:[],fetchedAt:'',topics:[]},cs2:{faceitApiKeyEncrypted:'',faceitNickname:'',faceitData:null,utilities:[],demos:[],reminders:false,reminderDays:[],utilityRadar:{items:[],fetchedAt:'',status:'not-checked',message:''},proPicks:starterProPicks()}};}
 const storePath=()=>path.join(app.getPath('userData'),'lifehub.json');
-function save(){const p=storePath();fs.mkdirSync(path.dirname(p),{recursive:true});const temp=p+'.tmp';fs.writeFileSync(temp,JSON.stringify(db,null,2),'utf8');fs.renameSync(temp,p);if(windowRef&&!windowRef.isDestroyed())windowRef.webContents.send('data:changed');}
+const store=atomicStore();
+function signalDataChange(){if(windowRef&&!windowRef.isDestroyed())windowRef.webContents.send('data:changed');}
+function save(){if(store.write(storePath(),db))signalDataChange();}
 function load(){const p=storePath();if(!fs.existsSync(p)){db=initial();save();return;}db={...initial(),...JSON.parse(fs.readFileSync(p,'utf8'))};if(!Array.isArray(db.tasks))throw new Error('Пошкоджено локальну базу завдань');if(!db.videoDrafts||typeof db.videoDrafts!=='object')db.videoDrafts={};db.workspace=safeWorkspace(db.workspace);db.preferences=safePreferences(db.preferences);if(!db.newsCover089){db.preferences.newsAutoImages=true;db.newsCover089=true;}if(!db.newsConfig087){db.preferences.newsCategories=[...new Set([...db.preferences.newsCategories,...Object.keys(FEEDS)])];db.newsConfig087=true;}if(!Array.isArray(db.newsMutedSources))db.newsMutedSources=[];if(!db.news||!Array.isArray(db.news.items))db.news={items:[],fetchedAt:'',errors:0,totalSources:0};if(!db.music||typeof db.music!=='object'||!db.music.markets)db.music={markets:{},errors:[],fetchedAt:'',source:''};if(!db.newsFeedback||typeof db.newsFeedback!=='object')db.newsFeedback={};if(!db.newsDismissed||typeof db.newsDismissed!=='object')db.newsDismissed={};if(!Array.isArray(db.newsSaved))db.newsSaved=[];if(!db.newsIllustrations||typeof db.newsIllustrations!=='object')db.newsIllustrations={};if(!db.newsImageCount||typeof db.newsImageCount!=='object')db.newsImageCount={};if(!Array.isArray(db.musicReminderShown))db.musicReminderShown=[];db.version=2;if(!db.cs2||typeof db.cs2!=='object')db.cs2=initial().cs2;db.cs2={...initial().cs2,...db.cs2};if(!Array.isArray(db.cs2.utilities))db.cs2.utilities=[];if(!Array.isArray(db.cs2.demos))db.cs2.demos=[];if(!Array.isArray(db.cs2.reminderDays))db.cs2.reminderDays=[];if(!db.cs2.utilityRadar||!Array.isArray(db.cs2.utilityRadar.items))db.cs2.utilityRadar=initial().cs2.utilityRadar;if(!db.cs2.proPicks||!Array.isArray(db.cs2.proPicks.items)||String(db.cs2.proPicks.reviewedAt||'')<starterProPicks().reviewedAt)db.cs2.proPicks=starterProPicks();if(!db.telegram||typeof db.telegram!=='object')db.telegram={tokenEncrypted:'',chatId:'',enabled:false};if(db.telegram?.tokenEncrypted&&db.telegram.chatId&&!Number.isSafeInteger(db.telegram.offset)){db.telegram={tokenEncrypted:'',chatId:'',enabled:false,pendingCode:'',pendingExpiry:0,offset:0};save();}if(typeof db.blackoutSchedule!=='string')db.blackoutSchedule='';db.powerAddress=cleanPowerAddress(db.powerAddress);db.powerGroup=normalizeGroup(db.powerGroup);db.powerGroupOrigin=db.powerGroup?(db.powerGroupOrigin==='official'?'official':'manual'):'';if(!db.powerLive||!Array.isArray(db.powerLive.intervals))db.powerLive={status:'not-checked',checkedAt:'',source:'',intervals:[],message:'Ще не перевіряли графік.'};if(!db.youtubeTrends||!Array.isArray(db.youtubeTrends.videos))db.youtubeTrends={videos:[],fetchedAt:'',topics:[]};}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function month(){return todayLocal().slice(0,7);}
@@ -79,7 +82,7 @@ async function pollTelegram(){
  }catch(e){/* network/token errors are best effort; never log token URLs */console.error('Telegram polling failed:',String(e?.message||e).slice(0,120));}
  finally{telegramPolling=false;}
 }
-let cloudBusy=false;
+let cloudBusy=false,cloudCheckpointAt=0,cloudUiAt=0;
 function cloudKey(){return safeStorage.decryptString(Buffer.from(db.telegramCloud.keyEncrypted,'base64'));}
 function cloudPayload(ack=[]){return {chatId:db.telegram.chatId,tasks:telegramSync.cleanTasks(db.tasks),powerLive:db.powerLive,powerGroup:db.powerGroup,enabled:db.telegram.enabled===true,taskReminders:db.preferences.taskReminders,privateNotificationText:db.preferences.privateNotificationText,evening:db.evening,notified:db.telegramCloud?.lastSync?[]:(db.telegramCloud?.initialNotified||[]),ack};}
 async function syncTelegramCloud(){
@@ -88,10 +91,10 @@ async function syncTelegramCloud(){
  const result=await telegramSync.request(config.url,key,'/sync',cloudPayload(ack));
  if(db.telegramCloud!==config)throw Error('Конфігурацію змінено');
  if(!Array.isArray(result.pending)||result.pending.length>1000)throw Error('Некоректна черга змін');
- if(!result.pending.length){config.lastSync=result.lastSync||new Date().toISOString();config.error='';delete config.initialNotified;save();return true;}
+ if(!result.pending.length){const now=Date.now(),important=!!config.error||!config.lastSync||!!config.initialNotified;config.lastSync=result.lastSync||new Date(now).toISOString();config.error='';delete config.initialNotified;if(shouldCheckpoint(cloudCheckpointAt,now,important)){save();cloudCheckpointAt=now;cloudUiAt=now;}else if(now-cloudUiAt>=60000){signalDataChange();cloudUiAt=now;}return true;}
  const applied=telegramSync.applyPending(db.tasks,result.pending);db.tasks=applied.tasks;ack=applied.ack;config.conflicts=[...(config.conflicts||[]),...applied.conflicts].slice(-30);save();
  }throw Error('Черга ще не синхронізована; повторна спроба автоматично');
- }catch(e){config.error=String(e.message||e).slice(0,180);save();return false;}finally{cloudBusy=false;}
+ }catch(e){const error=String(e.message||e).slice(0,180);if(db.telegramCloud===config&&config.error!==error){config.error=error;save();}return false;}finally{cloudBusy=false;}
 }
 ipcMain.handle('telegram:cloud-connect',async(_e,rawUrl,rawKey)=>{
  if(!db.telegram?.chatId||!db.telegram.tokenEncrypted)throw Error('Спочатку прив’яжи Telegram у LifeHub');
@@ -122,10 +125,10 @@ function setupAudioCapture(){
  });
 }
 function checkNotifications(){
-  const date=todayLocal(),now=new Date();const hhmm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const date=todayLocal(),now=new Date(),notified=new Set(db.notified);const hhmm=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   let changed=false;
-  if(db.preferences.taskReminders)for(const t of db.tasks){const k=t.id+'|'+date+'|'+t.time;if(t.time&&t.time<=hhmm&&occurs(t,date)&&!taskDone(t,date)&&!db.notified.includes(k)){
-      db.notified.push(k);changed=true;
+  if(db.preferences.taskReminders)for(const t of db.tasks){const k=t.id+'|'+date+'|'+t.time;if(t.time&&t.time<=hhmm&&occurs(t,date)&&!taskDone(t,date)&&!notified.has(k)){
+      db.notified.push(k);notified.add(k);changed=true;
       if(Notification.isSupported())new Notification({title:'LifeHub · Нагадування',body:db.preferences.privateNotificationText?'Є запланована справа. Відкрий LifeHub.':t.title}).show();void notifyTelegram(db.preferences.privateNotificationText?'🔔 LifeHub: є запланована справа.':`🔔 LifeHub: ${t.title} (${t.time})`);
   }}
   if(db.evening&&now.getHours()>=21&&!db.eveningShown.includes(date)){
@@ -181,9 +184,12 @@ function makeWindow(){windowRef=new BrowserWindow({width:1280,height:850,minWidt
  if(process.env.VITE_DEV_SERVER_URL)windowRef.loadURL(process.env.VITE_DEV_SERVER_URL);else windowRef.loadFile(path.join(__dirname,'../dist/index.html'));
  windowRef.on('closed',()=>{windowRef=null;});
 }
-app.whenReady().then(()=>{load();for(const j of ytState().jobs)if(j.status==='uploading'){j.status='uncertain';j.error='Попереднє завантаження перервано. Перевір YouTube Studio перед повтором.';}save();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),7000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),9000);setTimeout(()=>void updateEarly(false).catch(()=>{}),25000);setInterval(()=>void updateEarly(false).catch(()=>{}),15*60*1000);setInterval(()=>{try{for(const c of db.workspace.channels)if(ytState().inboxFolders?.[c.id])scanCreatorInbox(c.id);}catch{}},25000);setTimeout(()=>void processNewsCover().catch(()=>{}),15000);setInterval(()=>void processNewsCover().catch(()=>{}),15000);setTimeout(()=>void refreshPersonalMusic(false).catch(()=>{}),22000);setTimeout(()=>{if(db.preferences.tiktokCollectionUrl&&db.tiktokCache?.url===db.preferences.tiktokCollectionUrl)void refreshTikTokCollection(db.preferences.tiktokCollectionUrl,false).catch(()=>{});},45000);setTimeout(()=>{void refreshUtilityRadar(false).catch(()=>{});void refreshProPicks(false).catch(()=>{});},35000);setInterval(()=>void refreshProPicks(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshUtilityRadar(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshPersonalMusic(false).catch(()=>{}),60*60*1000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
+const primaryInstance=app.requestSingleInstanceLock();
+if(!primaryInstance)app.quit();
+app.on('second-instance',()=>{if(windowRef&&!windowRef.isDestroyed()){if(windowRef.isMinimized())windowRef.restore();windowRef.show();windowRef.focus();}});
+app.whenReady().then(()=>{if(!primaryInstance)return;load();for(const j of ytState().jobs)if(j.status==='uploading'){j.status='uncertain';j.error='Попереднє завантаження перервано. Перевір YouTube Studio перед повтором.';}save();Menu.setApplicationMenu(null);makeWindow();setupAudioCapture();checkNotifications();initUpdater();setTimeout(()=>void refreshFaceitDaily(),18000);setInterval(()=>void refreshFaceitDaily(),60*60*1000);telegramTimer=setInterval(()=>{void pollTelegram();},12000);setTimeout(()=>{void pollTelegram();},3500);notifyTimer=setInterval(checkNotifications,60*1000);if(db.preferences.newsAutoRefresh){setTimeout(()=>void refreshNews(false).catch(()=>{}),12000);}newsTimer=setInterval(()=>{if(db.preferences.newsAutoRefresh)void refreshNews(false).catch(()=>{});},6*60*60*1000);setTimeout(()=>void refreshMusic(false).catch(()=>{}),26000);setTimeout(()=>void updateEarly(false).catch(()=>{}),65000);setInterval(()=>void updateEarly(false).catch(()=>{}),15*60*1000);setInterval(()=>{try{for(const c of db.workspace.channels)if(ytState().inboxFolders?.[c.id])scanCreatorInbox(c.id);}catch{}},25000);setTimeout(()=>void processNewsCover().catch(()=>{}),40000);setTimeout(()=>setInterval(()=>void processNewsCover().catch(()=>{}),15000),40000);setTimeout(()=>void refreshPersonalMusic(false).catch(()=>{}),50000);setTimeout(()=>{if(db.preferences.tiktokCollectionUrl&&db.tiktokCache?.url===db.preferences.tiktokCollectionUrl)void refreshTikTokCollection(db.preferences.tiktokCollectionUrl,false).catch(()=>{});},45000);setTimeout(()=>void refreshUtilityRadar(false).catch(()=>{}),75000);setTimeout(()=>void refreshProPicks(false).catch(()=>{}),85000);setInterval(()=>void refreshProPicks(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshUtilityRadar(false).catch(()=>{}),6*60*60*1000);setInterval(()=>void refreshPersonalMusic(false).catch(()=>{}),60*60*1000);setTimeout(()=>void refreshPowerSchedule(false).catch(()=>{}),18000);setInterval(()=>void refreshPowerSchedule(false).catch(()=>{}),4*60*60*1000);setInterval(()=>void refreshMusic(false).catch(()=>{}),12*60*60*1000);app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)makeWindow();});});
 app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit();});
-app.on('before-quit',()=>{if(notifyTimer)clearInterval(notifyTimer);if(telegramTimer)clearInterval(telegramTimer);if(updateTimer)clearInterval(updateTimer);if(newsTimer)clearInterval(newsTimer);});
+app.on('before-quit',()=>{if(primaryInstance&&db&&db.telegramCloud?.lastSync){try{save();}catch{/* Keep the last valid atomic save. */}}if(notifyTimer)clearInterval(notifyTimer);if(telegramTimer)clearInterval(telegramTimer);if(updateTimer)clearInterval(updateTimer);if(newsTimer)clearInterval(newsTimer);});
 ipcMain.handle('data:load',()=>cleanSnapshot());
 ipcMain.handle('tasks:add',(_event,payload)=>{assertScheduledDate(payload?.dueDate);const task=cleanTask(payload);db.tasks.push(task);save();return task;});
 ipcMain.handle('tasks:edit',(_event,id,patch)=>{
@@ -377,7 +383,8 @@ function creatorInboxFolder(id){ytChannel(id);const folders=inboxFolders();if(!f
 function scanCreatorInbox(id){
  const folder=creatorInboxFolder(id);if(!inboxFolders()[id])fs.mkdirSync(folder,{recursive:true});
  const result=creatorInbox.scan(folder,inboxSeen.get(folder)||{});inboxSeen.set(folder,result.next);
- return {folder,diagnostics:result.diagnostics,rows:result.rows.map(row=>({...row,imported:ytState().jobs.some(j=>j.inboxSource===folder+'|'+row.file+'|'+row.signature)||(ytState().inboxHistory||[]).some(j=>j.source===folder+'|'+row.file+'|'+row.signature)}))};
+ const state=ytState(),imported=new Set([...state.jobs.map(j=>j.inboxSource),...(state.inboxHistory||[]).map(j=>j.source)]);
+ return {folder,diagnostics:result.diagnostics,rows:result.rows.map(row=>({...row,imported:imported.has(folder+'|'+row.file+'|'+row.signature)}))};
 }
 ipcMain.handle('youtube:inbox-folder',async(_event,id)=>{
  ytChannel(id);const r=await dialog.showOpenDialog(windowRef,{title:'Обери папку Upload Ready для цього каналу',properties:['openDirectory']});

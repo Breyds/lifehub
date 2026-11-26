@@ -1,10 +1,10 @@
 import {Zap, Droplets, CalendarClock, Timer, ChevronDown, Coffee, CheckCircle2} from 'lucide-react';
-import {PowerPage} from './PowerPage';
-import {CS2Page} from './CS2Page';
-import {AllTasksPage} from './AllTasksPage';
+const PowerPage=lazy(()=>import('./PowerPage').then(m=>({default:m.PowerPage})));
+const CS2Page=lazy(()=>import('./CS2Page').then(m=>({default:m.CS2Page})));
+const AllTasksPage=lazy(()=>import('./AllTasksPage').then(m=>({default:m.AllTasksPage})));
 import {LifeDatePicker,LifeTimeWheel} from './TaskEditorControls';
-import {PersonalImportPanel} from './PersonalImportPanel';
-import {useEffect,useMemo,useState} from 'react';
+const PersonalImportPanel=lazy(()=>import('./PersonalImportPanel').then(m=>({default:m.PersonalImportPanel})));
+import {lazy,Suspense,useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import type {ComponentType,FormEvent,CSSProperties} from 'react';
 import {createRoot} from 'react-dom/client';
 import {
@@ -16,13 +16,20 @@ import {
 import type {Task,TaskInput,Category,Recurrence,Priority,Snapshot,Plan} from './types';
 import './style.css';
 import './studio.css';
-import {ChatImportPage,RankStudioPage,UpdatesPanel} from './ExtraPages';
-import {SmartSettings} from './SmartSettings';
-import {SettingsCenter} from './SettingsCenter';
-import {LifePlanner} from './LifePlanner';
+const ChatImportPage=lazy(()=>import('./ExtraPages').then(m=>({default:m.ChatImportPage})));
+const RankStudioPage=lazy(()=>import('./ExtraPages').then(m=>({default:m.RankStudioPage})));
+const UpdatesPanel=lazy(()=>import('./ExtraPages').then(m=>({default:m.UpdatesPanel})));
+const SmartSettings=lazy(()=>import('./SmartSettings').then(m=>({default:m.SmartSettings})));
+const SettingsCenter=lazy(()=>import('./SettingsCenter').then(m=>({default:m.SettingsCenter})));
+const LifePlanner=lazy(()=>import('./LifePlanner').then(m=>({default:m.LifePlanner})));
 import {TaskServiceIcon} from './TaskServiceIcon';
-import {PlannerPage,ProjectsPage,YoutubePage,StreamsPage,NewsPage,MusicPage} from './WorkspacePages';
-import {FitnessStudio} from './FitnessStudio';
+const PlannerPage=lazy(()=>import('./WorkspacePages').then(m=>({default:m.PlannerPage})));
+const ProjectsPage=lazy(()=>import('./WorkspacePages').then(m=>({default:m.ProjectsPage})));
+const YoutubePage=lazy(()=>import('./WorkspacePages').then(m=>({default:m.YoutubePage})));
+const StreamsPage=lazy(()=>import('./WorkspacePages').then(m=>({default:m.StreamsPage})));
+const NewsPage=lazy(()=>import('./WorkspacePages').then(m=>({default:m.NewsPage})));
+const MusicPage=lazy(()=>import('./WorkspacePages').then(m=>({default:m.MusicPage})));
+const FitnessStudio=lazy(()=>import('./FitnessStudio').then(m=>({default:m.FitnessStudio})));
 const categories:{id:Category;title:string;short:string;icon:ComponentType<{size?:number}>;tone:string}[]=[
   {id:'personal',title:'Особисте',short:'Життя',icon:Home,tone:'slate'},
   {id:'rankdaily',title:'Rank Daily',short:'Контент',icon:Video,tone:'purple'},
@@ -84,8 +91,16 @@ function App(){
  const [upcomingMode,setUpcomingMode]=useState<'tomorrow'|'important'>('tomorrow');
  const [durationUnit,setDurationUnit]=useState<'min'|'hour'>('min');
  const [confirmTask,setConfirmTask]=useState<Task|null>(null);
- async function refresh(){try{setSnapshot(await window.lifehub.load());}catch(e){showError(e);}}
- useEffect(()=>{let active=true;void window.lifehub.load().then(s=>{if(active){setSnapshot(s);setPage(s.preferences.startupPage||'today');}}).catch(showError);const dispose=window.lifehub.onChanged(()=>void refresh());return()=>{active=false;dispose();};},[]);
+ const refreshJob=useRef<Promise<void>|null>(null),refreshDirty=useRef(false),initialLoad=useRef(true),mounted=useRef(true);
+ const [loadError,setLoadError]=useState('');
+ const refresh=useCallback(async()=>{
+  refreshDirty.current=true;
+  if(refreshJob.current)return refreshJob.current;
+  const job=(async()=>{do{refreshDirty.current=false;try{const next=await window.lifehub.load();if(!mounted.current)return;setSnapshot(next);setLoadError('');if(initialLoad.current){initialLoad.current=false;setPage(next.preferences.startupPage||'today');}}catch(e){if(!mounted.current)return;const message=e instanceof Error?e.message:String(e);setLoadError(message);setToast(message);}}while(refreshDirty.current&&mounted.current);})();
+  refreshJob.current=job;
+  try{await job;}finally{if(refreshJob.current===job)refreshJob.current=null;}
+ },[]);
+ useEffect(()=>{mounted.current=true;void refresh();let timer:number|undefined;const dispose=window.lifehub.onChanged(()=>{if(timer!==undefined)return;timer=window.setTimeout(()=>{timer=undefined;void refresh();},90);});return()=>{mounted.current=false;if(timer!==undefined)window.clearTimeout(timer);dispose();};},[refresh]);
  useEffect(()=>{if(!toast)return;const id=window.setTimeout(()=>setToast(''),4400);return()=>window.clearTimeout(id);},[toast]);
  function showError(err:unknown){setToast(err instanceof Error?err.message:String(err));}
  async function safe(work:()=>Promise<unknown>,success?:string){setWorking(true);try{await work();await refresh();if(success)setToast(success);}catch(e){showError(e);}finally{setWorking(false);}}
@@ -103,7 +118,8 @@ function App(){
  const estimatedMinutes=dayTasks.filter(t=>!isDone(t,selectedDate)).reduce((sum,t)=>sum+Number(t.durationMin||0),0);
  const pct=dayTasks.length?Math.round(completed/dayTasks.length*100):0;
  const activeCat=categories.find(c=>c.id===page);
- const dueSoon=tasks.filter(t=>!isDone(t,t.dueDate) && (upcomingMode==='tomorrow'? scheduledOccurs(t,plusDays(today(),1)):t.recurrence==='none'&&t.dueDate>=today()&&['high','critical','urgent'].includes(t.priority||'normal'))).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||(a.time||'99:99').localeCompare(b.time||'99:99')).slice(0,4);
+ const currentDay=today();
+ const dueSoon=useMemo(()=>{const target=plusDays(currentDay,1);return tasks.filter(t=>upcomingMode==='tomorrow'?scheduledOccurs(t,target)&&!isDone(t,target):t.recurrence==='none'&&t.dueDate>=currentDay&&!isDone(t,t.dueDate)&&['high','critical','urgent'].includes(t.priority||'normal')).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||(a.time||'99:99').localeCompare(b.time||'99:99')).slice(0,4);},[tasks,currentDay,upcomingMode]);
  const navSections=[
   {title:'ПЛАНУВАННЯ',items:[{id:'today',title:'Сьогодні',icon:ListTodo},{id:'lifeplanner',title:'AI Life Planner',icon:Sparkles},{id:'planner',title:'Плани',icon:CalendarRange},{id:'projects',title:'Проєкти',icon:FolderKanban},{id:'allTasks',title:'Усі справи',icon:CheckCheck},{id:'power',title:'Світло',icon:Zap}]},
   {title:'ТРЕНУВАННЯ',items:[{id:'fitness',title:'Фізична форма',icon:Dumbbell},{id:'cs2train',title:'CS2 · Практика',icon:Crosshair}]},
@@ -149,7 +165,7 @@ function App(){
   await safe(()=>window.lifehub.applyPlan(changes),`Підтверджено змін: ${changes.length}`);setPlan(null);setPrompt('');setApproved([]);
  }
  async function templateVideo(){const value:TaskInput={title:'Опублікувати відео Rank Daily',category:'rankdaily',dueDate:today(),time:'19:00',recurrence:'daily',note:'Приклад регулярного завдання. Можна змінити час або вимкнути.'};await safe(()=>window.lifehub.addTask(value),'Шаблон додано');}
- if(!snapshot)return <div className="loading"><Sparkles/> Відкриваємо LifeHub…</div>;
+ if(!snapshot)return <div className="loading">{loadError?<><span>Не вдалося завантажити локальні дані: {loadError}</span><button className="button primary" onClick={()=>void refresh()}>Повторити</button></>:<><Sparkles/> Відкриваємо LifeHub…</>}</div>;
  return <div className={`app theme-${snapshot.preferences.accent} density-${snapshot.preferences.density} ${snapshot.preferences.reduceMotion?'reduce-motion':''} ${page==='settings'?'settings-fullscreen':''}`}>
   <aside className={`sidebar ${menuOpen?'sidebar-open':''}`}>
     <div className="brand"><div className="brand-icon brand-fixed"><Compass size={26}/></div><div><strong>LifeHub</strong><small>PERSONAL CONTROL CENTER</small></div></div>
@@ -159,6 +175,7 @@ function App(){
   <main className="main">
    <header className="topbar"><button className="icon-button mobile-menu" onClick={()=>setMenuOpen(!menuOpen)}><Menu size={20}/></button><span className="crumb">LifeHub <ChevronRight size={14}/> <strong>{page==='today'?'Мій день':navLabel(allNav.find(x=>x.id===page)||{id:page,title:activeCat?.title||'LifeHub'})}</strong></span><div className="top-actions"><span className="local-pill"><span className="green-dot"/> Дані на комп'ютері</span><button className="button outline small" onClick={()=>setAiOpen(true)}><Sparkles size={16}/> AI-помічник</button>{page!=='allTasks'&&<button className="button primary small" onClick={()=>showAdd(activeCat?.id||'personal')}><Plus size={17}/> Завдання</button>}</div></header>
    <div className="content">
+    <Suspense fallback={<div className="loading"><Sparkles/> Відкриваємо розділ…</div>}>
     {page==='today'&&<>
       <section className="lh-today-intro">
        <div><span className="lh-kicker"><span className="pulse-dot"/> ТВОЯ ОСОБИСТА ПАНЕЛЬ</span><h1>Фокус на <em>{briefDate(selectedDate).toLowerCase()}</em></h1><p>Плани, звички та справи в одному місці. Ти вирішуєш, що виконувати і коли.</p></div>
@@ -198,7 +215,7 @@ function App(){
       integrations={<SmartSettings section="integrations" snapshot={snapshot} refresh={refresh} report={setToast}/>}
       data={<><div className="settings-grid"><section className="panel settings-panel"><div className="setting-header"><div className="setting-icon"><CloudDownload size={22}/></div><div><h2>Мої дані</h2><p>Резервна копія локальних завдань</p></div></div><button className="button outline" onClick={()=>void safe(()=>window.lifehub.exportData(),'Резервну копію експортовано')}><Download size={17}/> Експортувати JSON</button><p className="muted">У копію не потрапляють API-ключі. Це експорт основних локальних записів, а не повний образ програми; автоматичне відновлення не підтримується.</p></section></div><PersonalImportPanel onComplete={refresh} report={setToast}/><details className="hub-import-settings"><summary><Layers3 size={18}/> Імпорт історії ChatGPT <span>Відкрити інструмент</span></summary><ChatImportPage hasKey={snapshot.hasKey} report={setToast} onProposal={p=>{setPlan(p);setApproved(p.changes.map((x,i)=>x.valid?i:-1).filter(x=>x>=0));setAiOpen(true);}}/></details></>}
       updates={<UpdatesPanel initial={snapshot.update} report={setToast}/>}/>}
-
+    </Suspense>
    </div>
   </main>
   {aiOpen&&<><div className="drawer-overlay" onClick={()=>setAiOpen(false)}/><aside className="ai-drawer"><div className="drawer-head"><div className="drawer-title"><div className="ai-mark"><Bot size={22}/></div><div><h2>LifeHub AI</h2><small>Твій помічник із планування</small></div></div><button className="icon-button" onClick={()=>setAiOpen(false)}><X size={20}/></button></div><div className="drawer-scroll"><div className="assistant-message"><Sparkles size={18}/><div>Привіт, братан! Напиши, що хочеш запланувати або перенести. Я запропоную зміни — <strong>нічого не збережеться без твого підтвердження</strong>.</div></div><div className="privacy-note"><ShieldCheck size={16}/><span>Для створення пропозиції OpenAI отримує текст запиту та до 60 твоїх завдань (назви, категорії, дати). Зміни застосовуються лише вручну.</span></div>{plan&&<div className="proposal"><div className="proposal-heading"><Sparkles size={17}/> Пропозиція AI</div><p>{plan.summary}</p>{plan.changes.length?plan.changes.map((item,i)=><label className={`proposal-item ${!item.valid?'invalid':''}`} key={i}><input type="checkbox" checked={approved.includes(i)} disabled={!item.valid} onChange={e=>setApproved(v=>e.target.checked?[...v,i]:v.filter(n=>n!==i))}/><span><strong>{item.action==='create'?'+ Створити':'↪ Перенести'}: {item.title}</strong><small>{item.date}{item.time?' о '+item.time:''} · {categories.find(x=>x.id===item.category)?.title}{!item.valid?' · не можна застосувати':''}</small></span></label>):<p className="muted">AI не запропонував змін. Уточни запит.</p>}{approved.length>0&&<button disabled={working} className="button primary wide" onClick={()=>void applyAI()}><Check size={17}/> Застосувати обрані ({approved.length})</button>}<button className="button outline wide" onClick={()=>setPlan(null)}>Відхилити пропозицію</button></div>}</div><div className="drawer-footer"><label htmlFor="ai-input">Твій запит</label><textarea id="ai-input" rows={4} maxLength={1500} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Наприклад: завтра хочу 1 годину CS2 і підготувати ідеї для Twitch..."/><button className="button bright wide" disabled={!prompt.trim()||aiLoading||!snapshot.hasKey} onClick={()=>void requestAI()}>{aiLoading?'Створюю пропозицію…':<><Sparkles size={17}/> Запропонувати план</>}</button><div className="drawer-cost">{snapshot.hasKey?`Використано ~$${snapshot.spent.toFixed(4)} із $5 цього місяця`:'Спочатку додай API-ключ у налаштуваннях'}</div></div></aside></>}

@@ -22,6 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
       - name: Check release version and existing tag
         id: release
         shell: pwsh
@@ -65,7 +66,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Cannot checkout version tag' }
       - name: Install dependencies
         if: steps.release.outputs.publish == 'true'
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Run tests
         if: steps.release.outputs.publish == 'true'
         run: npm test
@@ -93,7 +94,7 @@ jobs:
           $package | ConvertTo-Json -Depth 30 | Set-Content -Path package.json -Encoding utf8
       - name: Build Windows installer locally
         if: steps.release.outputs.publish == 'true'
-        run: npm run dist:win
+        run: npx --no-install electron-builder --win nsis --publish never
       - name: Validate installer and generate update metadata if needed
         if: steps.release.outputs.publish == 'true'
         shell: pwsh

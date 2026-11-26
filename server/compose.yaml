@@ -1,0 +1,27 @@
+services:
+  telegram:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - telegram_data:/data
+    expose:
+      - "8080"
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      LIFEHUB_DOMAIN: ${LIFEHUB_DOMAIN:?Set LIFEHUB_DOMAIN in server/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+volumes:
+  telegram_data:
+  caddy_data:
+  caddy_config:

@@ -81,14 +81,14 @@ async function pollTelegram(){
 }
 let cloudBusy=false;
 function cloudKey(){return safeStorage.decryptString(Buffer.from(db.telegramCloud.keyEncrypted,'base64'));}
-function cloudPayload(ack=[]){return {chatId:db.telegram.chatId,tasks:telegramSync.cleanTasks(db.tasks),powerLive:db.powerLive,powerGroup:db.powerGroup,enabled:db.telegram.enabled===true,taskReminders:db.preferences.taskReminders,privateNotificationText:db.preferences.privateNotificationText,evening:db.evening,notified:db.notified,ack};}
+function cloudPayload(ack=[]){return {chatId:db.telegram.chatId,tasks:telegramSync.cleanTasks(db.tasks),powerLive:db.powerLive,powerGroup:db.powerGroup,enabled:db.telegram.enabled===true,taskReminders:db.preferences.taskReminders,privateNotificationText:db.preferences.privateNotificationText,evening:db.evening,notified:db.telegramCloud?.lastSync?[]:(db.telegramCloud?.initialNotified||[]),ack};}
 async function syncTelegramCloud(){
  if(cloudBusy||!db.telegramCloud?.url)return false;cloudBusy=true;const config=db.telegramCloud;
  try{const key=cloudKey();let ack=[];for(let i=0;i<4;i++){
  const result=await telegramSync.request(config.url,key,'/sync',cloudPayload(ack));
  if(db.telegramCloud!==config)throw Error('Конфігурацію змінено');
  if(!Array.isArray(result.pending)||result.pending.length>1000)throw Error('Некоректна черга змін');
- if(!result.pending.length){config.lastSync=result.lastSync||new Date().toISOString();config.error='';save();return true;}
+ if(!result.pending.length){config.lastSync=result.lastSync||new Date().toISOString();config.error='';delete config.initialNotified;save();return true;}
  const applied=telegramSync.applyPending(db.tasks,result.pending);db.tasks=applied.tasks;ack=applied.ack;config.conflicts=[...(config.conflicts||[]),...applied.conflicts].slice(-30);save();
  }throw Error('Черга ще не синхронізована; повторна спроба автоматично');
  }catch(e){config.error=String(e.message||e).slice(0,180);save();return false;}finally{cloudBusy=false;}
@@ -99,7 +99,7 @@ ipcMain.handle('telegram:cloud-connect',async(_e,rawUrl,rawKey)=>{
  if(!safeStorage.isEncryptionAvailable())throw Error('Системне шифрування недоступне');
  const url=telegramSync.endpoint(rawUrl),key=String(rawKey||'').trim(),health=await telegramSync.request(url,key,'/health',{chatId:db.telegram.chatId});
  if(String(health.botId)!==telegramToken().split(':')[0]||String(health.chatId)!==String(db.telegram.chatId))throw Error('Сервер має інший Telegram-бот або чат');
- db.telegramCloud={url,keyEncrypted:safeStorage.encryptString(key).toString('base64'),lastSync:'',error:'',conflicts:[]};save();
+ db.telegramCloud={url,keyEncrypted:safeStorage.encryptString(key).toString('base64'),lastSync:'',error:'',conflicts:[],initialNotified:db.notified.slice(-10000)};save();
  const ok=await syncTelegramCloud();if(!ok)throw Error('Сервер налаштовано, але першу синхронізацію не підтверджено. Повтори перевірку.');
  return true;
 });

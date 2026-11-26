@@ -10,3 +10,18 @@ Optional **single-user self-hosted** service. No server is provided automaticall
 6. To return to local mode, disconnect the cloud server in LifeHub while online; the app syncs pending changes and deactivates remote polling before resuming local polling. The server retains its local copy until you remove its private volume; deleting that volume loses pending unsynced changes.
 
 Deployment, live Telegram delivery, and Windows end-to-end sync must be verified with a real hosted instance. Unit tests exercise the mutation merge and local menu without real credentials.
+
+## Simpler VPS deployment with Docker Compose
+
+Use a Linux VPS you control, an available DNS name pointing to it, and Docker with Compose installed. From the repository:
+```sh
+cd server
+cp .env.example .env
+chmod 600 .env
+```
+Edit .env locally on the VPS. Set LIFEHUB_DOMAIN to your actual DNS name and the three secrets described above. Generate the sync key locally (for example, `openssl rand -hex 32`); never post tokens or the secret in chat. Then:
+```sh
+docker compose up -d --build
+docker compose ps
+```
+Caddy obtains HTTPS when DNS and ports 80/443 are reachable; the bot's internal HTTP port is not published to the host. Persistent Docker volumes retain the bot queue and TLS state. Enter the HTTPS address and sync key into LifeHub. Stop the server or remove volumes only after syncing any pending changes. This configuration is supplied but not deployed or end-to-end verified on a live VPS here.

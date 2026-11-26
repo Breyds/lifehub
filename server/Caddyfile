@@ -1,0 +1,3 @@
+{$LIFEHUB_DOMAIN} {
+    reverse_proxy telegram:8080
+}

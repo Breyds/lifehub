@@ -376,7 +376,7 @@ function creatorInboxFolder(id){ytChannel(id);const folders=inboxFolders();if(!f
 function scanCreatorInbox(id){
  const folder=creatorInboxFolder(id);if(!inboxFolders()[id])fs.mkdirSync(folder,{recursive:true});
  const result=creatorInbox.scan(folder,inboxSeen.get(folder)||{});inboxSeen.set(folder,result.next);
- return {folder,rows:result.rows.map(row=>({...row,imported:ytState().jobs.some(j=>j.inboxSource===folder+'|'+row.file+'|'+row.signature)||(ytState().inboxHistory||[]).some(j=>j.source===folder+'|'+row.file+'|'+row.signature)}))};
+ return {folder,diagnostics:result.diagnostics,rows:result.rows.map(row=>({...row,imported:ytState().jobs.some(j=>j.inboxSource===folder+'|'+row.file+'|'+row.signature)||(ytState().inboxHistory||[]).some(j=>j.source===folder+'|'+row.file+'|'+row.signature)}))};
 }
 ipcMain.handle('youtube:inbox-folder',async(_event,id)=>{
  ytChannel(id);const r=await dialog.showOpenDialog(windowRef,{title:'Обери папку Upload Ready для цього каналу',properties:['openDirectory']});
@@ -428,7 +428,7 @@ ipcMain.handle('youtube:inbox-ai',async(_event,id)=>{
  const raw=JSON.parse(result.text);return {title:String(raw.title||'').slice(0,100),description:String(raw.description||'').slice(0,5000),tags:String(raw.tags||'').slice(0,450)};
 });
 ipcMain.handle('youtube:creator-ai',(_event,id,request,video)=>{
- const row=ytChannel(id),ctx={channel:{title:row.title,focus:row.focus},ideas:db.workspace.ideas.filter(x=>x.channelId===id).slice(0,20),trends:(db.youtubeTrends?.videos||[]).slice(0,20).map(x=>({title:x.title,channel:x.channel,views:x.views,viewsPerDay:x.viewsPerDay,url:x.url})),video:video&&typeof video==='object'?{id:String(video.id||'').slice(0,20),title:String(video.title||'').slice(0,180),description:String(video.description||'').slice(0,1000),views:Number(video.views)||0,likes:typeof video.likes==='number'?video.likes:null,comments:typeof video.comments==='number'?video.comments:null}:null};
+ const row=ytChannel(id),ctx={channel:{title:row.title,focus:row.focus},ideas:db.workspace.ideas.filter(x=>x.channelId===id).slice(0,20),trends:(db.youtubeTrends?.videos||[]).slice(0,20).map(x=>({title:x.title,channel:x.channel,views:x.views,viewsPerDay:x.viewsPerDay,url:x.url})),video:video&&typeof video==='object'?{id:String(video.id||'').slice(0,20),title:String(video.title||'').slice(0,180),description:String(video.description||'').slice(0,1000),views:video.viewsAvailable===false?null:typeof video.views==='number'?video.views:null,likes:typeof video.likes==='number'?video.likes:null,comments:typeof video.comments==='number'?video.comments:null}:null};
  return aiInsight('youtube',request,ctx);
 });
 const ytMediaDir=()=>path.join(app.getPath('userData'),'youtube-media');
@@ -443,9 +443,9 @@ ipcMain.handle('youtube:edit-job',(_event,id,raw)=>{
 });
 ipcMain.handle('youtube:pick-media',async(_event,id,cover=false)=>{
  const j=ytJob(id);if(ytUploadBusy||j.status!=='draft')throw Error('Чернетка вже заблокована');
- const selected=await dialog.showOpenDialog(windowRef,{title:cover?'Обкладинка YouTube':'Відео YouTube',properties:['openFile'],filters:[{name:cover?'PNG/JPEG':'Відео',extensions:cover?['png','jpg','jpeg']:['mp4','mov','webm','mkv']}]});
+ const selected=await dialog.showOpenDialog(windowRef,{title:cover?'Обкладинка YouTube':'Відео YouTube',properties:['openFile'],filters:[{name:cover?'PNG/JPEG':'Відео',extensions:cover?['png','jpg','jpeg']:['mp4','mov','webm','m4v','mkv']}]});
  if(selected.canceled||!selected.filePaths[0])return false;
- const file=selected.filePaths[0],ext=path.extname(file).toLowerCase(),stat=fs.statSync(file),allowed=cover?['.png','.jpg','.jpeg']:['.mp4','.mov','.webm','.mkv'];
+ const file=selected.filePaths[0],ext=path.extname(file).toLowerCase(),stat=fs.statSync(file),allowed=cover?['.png','.jpg','.jpeg']:['.mp4','.mov','.webm','.m4v','.mkv'];
  if(!allowed.includes(ext)||!stat.isFile()||stat.size<1||stat.size>(cover?2*1024**2:4*1024**3))throw Error('Некоректний формат або розмір файлу');
  if(j.status!=='draft'||!ytState().jobs.includes(j))throw Error('Чернетка змінилася');
  fs.mkdirSync(ytMediaDir(),{recursive:true});const name=crypto.randomUUID()+ext;await fs.promises.copyFile(file,path.join(ytMediaDir(),name),fs.constants.COPYFILE_EXCL);

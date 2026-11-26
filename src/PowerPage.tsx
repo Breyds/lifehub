@@ -7,7 +7,7 @@ import './power-studio.css';
 
 type Address={settlement:string;street:string;house:string};
 type Props={snapshot:Snapshot;refresh:()=>Promise<void>;report:(message:string)=>void};
-type Range='today'|'tomorrow'|'week';
+type Range='today'|'tomorrow';
 type Selected={date:string;hour:number};
 const DTEK_URL='https://www.dtek-krem.com.ua/ua/shutdowns';
 const groups=Array.from({length:6},(_,i)=>i+1).flatMap(i=>[1,2].map(n=>String(i)+'.'+String(n)));
@@ -16,7 +16,7 @@ const updatedText=(iso:string)=>{if(!iso)return 'Не оновлювався';co
 const groupName=(value:string)=>value?value.replace(/^GPV/,''):'Не визначено';
 const nowKyivHour=()=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Kyiv',hour:'2-digit',hourCycle:'h23'}).formatToParts(new Date());return Number(parts.find(p=>p.type==='hour')?.value||0);};
 
-function HourGrid({dates,current,picked,onPick,mode}:{dates:string[];current:PowerLive;mode:Range;picked:Selected|null;onPick:(x:Selected)=>void}){
+function HourGrid({dates,current,picked,onPick}:{dates:string[];current:PowerLive;picked:Selected|null;onPick:(x:Selected)=>void}){
  const today=kyivToday(),currentHour=nowKyivHour();
  const available=['verified','mirror','stale'].includes(current.status);
  const actual=current.days||[],forecast=current.weeklyDays||[];
@@ -45,7 +45,7 @@ function HourGrid({dates,current,picked,onPick,mode}:{dates:string[];current:Pow
     </div>)}
    </div>
   </div>
-  <p className="lh-power-grid-note"><Info size={15}/> {mode==='week'?'Наступні 7 днів. Тижневий графік — прогноз; підтверджені години ДТЕК мають пріоритет.':'Натисни на годину, щоб побачити її перші та другі 30 хвилин.'} Сірі клітинки — дані відсутні, це не гарантія світла.</p>
+  <p className="lh-power-grid-note"><Info size={15}/> Натисни на годину, щоб побачити її перші та другі 30 хвилин. Сірі клітинки — дані відсутні, це не гарантія світла.</p>
  </>;
 }
 
@@ -57,13 +57,13 @@ export function PowerPage({snapshot,refresh,report}:Props){
  const [fetching,setFetching]=useState(false);
  const [manualQueue,setManualQueue]=useState(snapshot.powerGroup||'');
  const [queueSaving,setQueueSaving]=useState(false);
- const [range,setRange]=useState<Range>('week');
+ const [range,setRange]=useState<Range>('today');
  const [picked,setPicked]=useState<Selected|null>(null);
  useEffect(()=>setAddress(snapshot.powerAddress),[snapshot.powerAddress.settlement,snapshot.powerAddress.street,snapshot.powerAddress.house]);
  useEffect(()=>setManualQueue(snapshot.powerGroup||''),[snapshot.powerGroup]);
  const current=snapshot.powerLive;
  const today=kyivToday(),tomorrow=nextDay(today,1);
- const dateRange=range==='today'?[today]:range==='tomorrow'?[tomorrow]:Array.from({length:7},(_,n)=>nextDay(today,n));
+ const dateRange=range==='today'?[today]:[tomorrow];
  const selected=picked&&dateRange.includes(picked.date)?picked:null;
  const actual=selected?current.days?.find(d=>d.date===selected.date):undefined;
  const forecast=selected?current.weeklyDays?.find(d=>d.date===selected.date):undefined;
@@ -102,10 +102,10 @@ export function PowerPage({snapshot,refresh,report}:Props){
   </section>
   {editing&&<section className="lh-power-address-panel"><div className="lh-power-panel-header"><div><h2>Збережена адреса</h2><p>LifeHub спробує визначити чергу й отримати графік через ДТЕК.</p></div><span>Локально на ПК</span></div><div className="lh-power-address-fields"><label>Місто / село<input value={address.settlement} maxLength={100} placeholder="Наприклад, Фастів" onChange={e=>setAddress(v=>({...v,settlement:e.target.value}))}/></label><label>Вулиця / провулок<input value={address.street} maxLength={120} placeholder="Наприклад, пров. Поштовий" onChange={e=>setAddress(v=>({...v,street:e.target.value}))}/></label><label>Будинок<input value={address.house} maxLength={20} placeholder="26" onChange={e=>setAddress(v=>({...v,house:e.target.value}))}/></label></div><div className="lh-power-address-actions"><button disabled={saving||fetching||!address.house.trim()} type="button" onClick={()=>void saveAddress()}><Save size={16}/>{saving?'Збереження…':'Зберегти й отримати графік'}</button>{saved.house&&<button type="button" onClick={()=>{setAddress(saved);setEditing(false);}}>Скасувати</button>}</div></section>}
   <section className="lh-power-panel lh-power-chart-panel">
-   <div className="lh-power-panel-header"><div><span className="lh-power-kicker">OUTAGE SCHEDULE</span><h2>Погодинний графік</h2><p>{sourceLabel}</p></div><div className="lh-power-tabs">{([{id:'today',text:'Сьогодні'},{id:'tomorrow',text:'Завтра'},{id:'week',text:'7 днів'}] as const).map(x=><button type="button" key={x.id} className={range===x.id?'active':''} onClick={()=>{setRange(x.id);setPicked(null);}}>{x.text}</button>)}</div></div>
+   <div className="lh-power-panel-header"><div><span className="lh-power-kicker">OUTAGE SCHEDULE</span><h2>Погодинний графік</h2><p>{sourceLabel}</p></div><div className="lh-power-tabs">{([{id:'today',text:'Сьогодні'},{id:'tomorrow',text:'Завтра'}] as const).map(x=><button type="button" key={x.id} className={range===x.id?'active':''} onClick={()=>{setRange(x.id);setPicked(null);}}>{x.text}</button>)}</div></div>
    <div className={'lh-power-notice '+(current.status==='verified'?'verified':current.status==='mirror'?'mirror':'warning')}>{current.status==='verified'?<CheckCircle2 size={18}/>:current.status==='mirror'?<Info size={18}/>:<ShieldAlert size={18}/>}<span>{current.message||'Збережи адресу та онови графік.'}{current.status==='stale'?' Дані застарілі, перевір їх повторно.':''}</span></div>
    <div className="lh-power-legend"><span><i className="state-on"/> Є світло</span><span><i className="state-off"/> Немає світла</span><span><i className="state-possible"/> Можливо</span><span><i className="state-unknown"/> Невідомо</span><span className="lh-power-legend-partial"><i><b className="state-off"/><b className="state-on"/></i> 30 хв / 30 хв</span></div>
-   <HourGrid dates={dateRange} current={current} mode={range} picked={selected} onPick={setPicked}/>
+   <HourGrid dates={dateRange} current={current} picked={selected} onPick={setPicked}/>
    {selected&&chosenHalves&&<div className="lh-power-hour-details"><div><span className="lh-power-kicker">ОБРАНА ГОДИНА</span><h3>{pretty(selected.date)} · {hourText(selected.hour)}–{selected.hour===23?'24:00':hourText(selected.hour+1)}</h3><p>{actual?(current.status==='verified'?'Офіційні години ДТЕК':'Добові дані дзеркала'):forecast?'Прогноз на тиждень — не факт відключення':'Години не опубліковані'}</p></div><div className="lh-power-detail-halves">{([0,1] as const).map(n=><div key={n}><i className={'state-'+chosenHalves[n]}/><strong>{timeRange(selected.hour,n)}</strong><span>{statusName[chosenHalves[n]]}</span></div>)}</div><button onClick={()=>setPicked(null)}>Закрити</button></div>}
    <div className="lh-power-source-note"><TriangleAlert size={16}/><span>Це графік, а не датчик фактичної напруги. Графіки можуть змінюватися. {current.forecastStale?'Тижневий прогноз застарілий. ':''}AI використовує тільки свіжий підтверджений добовий графік.</span></div>
   </section>

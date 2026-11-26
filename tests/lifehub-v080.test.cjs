@@ -48,7 +48,7 @@ test('Stale weekly source remains labeled as stale, not confirmed',()=>{
 });
 test('Power UI has week/day modes, half-hour details, clear unknown states and automatic address queue',()=>{
  const ui=src('src/PowerPage.tsx'),grid=src('src/power-grid.ts'),logic=src('electron/main.cjs');
- assert.match(ui,/Сьогодні/);assert.match(ui,/Завтра/);assert.match(ui,/7 днів/);
+ assert.match(ui,/Сьогодні/);assert.match(ui,/Завтра/);assert.doesNotMatch(ui,/id:'week'/);
  assert.match(ui,/hourView\(day,h\)/);assert.match(ui,/timeRange\(selected.hour,n\)/);
  assert.match(grid,/halves:\[PowerStatus,PowerStatus\]/);
  assert.match(grid,/unknown/);assert.match(grid,/minutes\(slot.start\)/);

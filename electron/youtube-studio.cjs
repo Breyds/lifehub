@@ -51,7 +51,7 @@ async function mine(token,fetcher=fetch){
 function durationSeconds(s){const m=String(s||'').match(/^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);return m?Number(m[1]||0)*86400+Number(m[2]||0)*3600+Number(m[3]||0)*60+Number(m[4]||0):null;}
 function videoRow(v){
  const seconds=durationSeconds(v.contentDetails?.duration);
- return {id:v.id,title:shortText(v.snippet?.title,180),description:shortText(v.snippet?.description,1200),thumbnail:v.snippet?.thumbnails?.medium?.url||'',channelId:v.snippet?.channelId||'',publishedAt:v.snippet?.publishedAt||'',seconds,format:seconds===null?'unknown':seconds<=180?'short-candidate':'long',views:Number(v.statistics?.viewCount||0),likes:v.statistics?.likeCount===undefined?null:Number(v.statistics.likeCount),comments:v.statistics?.commentCount===undefined?null:Number(v.statistics.commentCount),privacy:v.status?.privacyStatus||'',publishAt:v.status?.publishAt||'',uploadStatus:v.status?.uploadStatus||''};
+ return {id:v.id,title:shortText(v.snippet?.title,180),description:shortText(v.snippet?.description,1200),thumbnail:v.snippet?.thumbnails?.medium?.url||'',channelId:v.snippet?.channelId||'',publishedAt:v.snippet?.publishedAt||'',seconds,format:seconds===null?'unknown':seconds<=180?'short-candidate':'long',views:Number(v.statistics?.viewCount||0),viewsAvailable:v.statistics?.viewCount!==undefined,likes:v.statistics?.likeCount===undefined?null:Number(v.statistics.likeCount),comments:v.statistics?.commentCount===undefined?null:Number(v.statistics.commentCount),privacy:v.status?.privacyStatus||'',publishAt:v.status?.publishAt||'',uploadStatus:v.status?.uploadStatus||''};
 }
 async function listVideos(token,owner,pageToken='',fetcher=fetch){
  if(!owner.uploads)throw Error('YouTube не повернув плейлист завантажень');
@@ -62,11 +62,15 @@ async function listVideos(token,owner,pageToken='',fetcher=fetch){
 }
 async function analytics(token,owner,videoId='',fetcher=fetch,clock=new Date()){
  if(videoId&&!ID.test(videoId))throw Error('Некоректний video ID');
- const end=new Date(clock.getTime()-2*86400000),start=new Date(end.getTime()-27*86400000);
+ const pacificDate=d=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+ const end=pacificDate(clock),start=pacificDate(new Date(clock.getTime()-27*86400000));
  const u=new URL('https://youtubeanalytics.googleapis.com/v2/reports');
- u.search=new URLSearchParams({ids:'channel=='+owner.id,startDate:start.toISOString().slice(0,10),endDate:end.toISOString().slice(0,10),metrics:'views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost',...(videoId?{filters:'video=='+videoId}:{})}).toString();
- const d=await json(u,{headers:{Authorization:'Bearer '+token}},fetcher);
- return {start:start.toISOString().slice(0,10),end:end.toISOString().slice(0,10),metrics:Object.fromEntries((d.columnHeaders||[]).map((h,i)=>[h.name,d.rows?.[0]?.[i]??null]))};
+ const metricNames='views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost';
+ u.search=new URLSearchParams({ids:'channel=='+owner.id,startDate:start,endDate:end,metrics:metricNames,...(videoId?{filters:'video=='+videoId}:{})}).toString();
+ let current=null,currentError='',reportError='',hasReport=false,metrics=Object.fromEntries(metricNames.split(',').map(k=>[k,null]));
+ if(videoId){try{const data=await api(token,'videos',{part:'snippet,statistics',id:videoId},fetcher),v=(data.items||[]).find(x=>x.id===videoId&&x.snippet?.channelId===owner.id);if(!v)throw Error('Відео не знайдено на цьому каналі');const n=x=>x!==undefined&&Number.isFinite(Number(x))?Number(x):null;current={views:n(v.statistics?.viewCount),likes:n(v.statistics?.likeCount),comments:n(v.statistics?.commentCount),publishedAt:v.snippet?.publishedAt||'',checkedAt:clock.toISOString()};}catch(e){currentError=String(e.message||e).slice(0,200);}}
+ try{const d=await json(u,{headers:{Authorization:'Bearer '+token}},fetcher);hasReport=Array.isArray(d.rows)&&d.rows.length>0;if(hasReport)for(const [i,h] of (d.columnHeaders||[]).entries())if(Object.hasOwn(metrics,h.name))metrics[h.name]=d.rows[0]?.[i]??null;}catch(e){reportError=String(e.message||e).slice(0,200);}
+ return {start,end,metrics,hasReport,current,currentError,reportError};
 }
 function uploadMetadata(raw,now=Date.now()){
  const title=shortText(raw.title,100),description=shortText(raw.description,5000),tags=String(raw.tags||'').split(',').map(x=>shortText(x,80)).filter(Boolean).slice(0,30);

@@ -19,6 +19,8 @@ import './studio.css';
 import {ChatImportPage,RankStudioPage,UpdatesPanel} from './ExtraPages';
 import {SmartSettings} from './SmartSettings';
 import {SettingsCenter} from './SettingsCenter';
+import {LifePlanner} from './LifePlanner';
+import {TaskServiceIcon} from './TaskServiceIcon';
 import {PlannerPage,ProjectsPage,YoutubePage,StreamsPage,NewsPage,MusicPage} from './WorkspacePages';
 import {FitnessStudio} from './FitnessStudio';
 const categories:{id:Category;title:string;short:string;icon:ComponentType<{size?:number}>;tone:string}[]=[
@@ -103,13 +105,13 @@ function App(){
  const activeCat=categories.find(c=>c.id===page);
  const dueSoon=tasks.filter(t=>!isDone(t,t.dueDate) && (upcomingMode==='tomorrow'? scheduledOccurs(t,plusDays(today(),1)):t.recurrence==='none'&&t.dueDate>=today()&&['high','critical','urgent'].includes(t.priority||'normal'))).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||(a.time||'99:99').localeCompare(b.time||'99:99')).slice(0,4);
  const navSections=[
-  {title:'ПЛАНУВАННЯ',items:[{id:'today',title:'Сьогодні',icon:ListTodo},{id:'planner',title:'Плани',icon:CalendarRange},{id:'projects',title:'Проєкти',icon:FolderKanban},{id:'allTasks',title:'Усі справи',icon:CheckCheck},{id:'power',title:'Світло',icon:Zap}]},
+  {title:'ПЛАНУВАННЯ',items:[{id:'today',title:'Сьогодні',icon:ListTodo},{id:'lifeplanner',title:'AI Life Planner',icon:Sparkles},{id:'planner',title:'Плани',icon:CalendarRange},{id:'projects',title:'Проєкти',icon:FolderKanban},{id:'allTasks',title:'Усі справи',icon:CheckCheck},{id:'power',title:'Світло',icon:Zap}]},
   {title:'ТРЕНУВАННЯ',items:[{id:'fitness',title:'Фізична форма',icon:Dumbbell},{id:'cs2train',title:'CS2 · Практика',icon:Crosshair}]},
   {title:'КОНТЕНТ ТА МЕДІА',items:[{id:'youtube',title:'YouTube',icon:Youtube},{id:'streams',title:'Стріми',icon:Radio},{id:'news',title:'Новини',icon:Newspaper},{id:'music',title:'Музика',icon:Music2}]},
   {title:'ОСОБИСТЕ',items:[{id:'study',title:'Навчання',icon:GraduationCap}]},
  ];
  const allNav=navSections.flatMap(x=>x.items);
- const englishLabels:Record<string,string>={today:'Today',planner:'Planner',projects:'Projects',allTasks:'All tasks',power:'Power',fitness:'Fitness',cs2train:'CS2 training',youtube:'YouTube',streams:'Streams',news:'News',music:'Music',study:'Studies',stats:'Statistics',imports:'ChatGPT Import',settings:'Settings'};
+ const englishLabels:Record<string,string>={today:'Today',lifeplanner:'AI Life Planner',planner:'Planner',projects:'Projects',allTasks:'All tasks',power:'Power',fitness:'Fitness',cs2train:'CS2 training',youtube:'YouTube',streams:'Streams',news:'News',music:'Music',study:'Studies',stats:'Statistics',imports:'ChatGPT Import',settings:'Settings'};
  const navLabel=(p:{id:string;title:string})=>snapshot?.preferences.language==='en'?(englishLabels[p.id]||p.title):p.title;
  function taskItem(t:Task,date:string,showDate=false){
   const done=isDone(t,date),unavailable=t.recurrence!=='none'&&!occurs(t,date),tone=categories.find(c=>c.id===t.category)?.tone||'slate';
@@ -127,7 +129,7 @@ function App(){
     <div className="lh-agenda-time"><strong>{t.time||'—'}</strong><small>{t.time?'ПОЧАТОК':'ВЕСЬ ДЕНЬ'}</small></div>
     <button className={`task-check ${done?'checked':''}`} disabled={unavailable} aria-label={done?'Скасувати виконання':'Відмітити виконаним'} onClick={()=>void safe(()=>window.lifehub.toggleTask(t.id,date))}>{done&&<Check size={15}/>}</button>
     <div className="task-body" onClick={()=>setExpanded(expanded===t.id?null:t.id)} role="button" tabIndex={0} onKeyDown={e=>{if(e.key==='Enter')setExpanded(expanded===t.id?null:t.id);}}>
-      <span className="task-title">{t.title}</span>
+      <span className="task-title"><TaskServiceIcon title={t.title}/>{t.title}</span>
       <div className="task-meta"><span className={`tag ${tone}`}><CatIcon size={12}/>{categories.find(c=>c.id===t.category)?.title}</span><span className={`hub-priority priority-${t.priority||'normal'}`}>{priorityNames[t.priority||'normal']}</span>{!!t.durationMin&&<span><Timer size={12}/> {durationText(t.durationMin)}</span>}{showDate&&<span><CalendarDays size={12}/>{t.dueDate}</span>}{t.recurrence!=='none'&&<span><RotateCcw size={12}/>{repeatLabels[t.recurrence]}</span>}</div>
       {counter&&<div className="task-meter"><div className="task-meter-track"><span style={{width:`${Math.min(100,current/target*100)}%`}}/></div><small>{current.toLocaleString('uk-UA')} / {target.toLocaleString('uk-UA')} {t.unit||'од.'} · {Math.round(current/target*100)}%</small></div>}
       {expanded===t.id&&t.note&&<p className="task-note">{t.note}</p>}
@@ -179,6 +181,7 @@ function App(){
     {page==='allTasks'&&<AllTasksPage tasks={tasks} onAdd={()=>showAdd('personal',today())} onEdit={showEdit} onDelete={setConfirmTask} onToggle={(task,date)=>{void safe(()=>window.lifehub.toggleTask(task.id,date),'Відмітку оновлено');}} onMove={(task,date)=>{void safe(()=>window.lifehub.editTask(task.id,{...task,dueDate:date}),'Перенесено на сьогодні');}}/>}
     {page==='power'&&<PowerPage snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='study'&&<PlannerPage categoryFilter="study" heading="Навчання та дедлайни" snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d)=>showAdd('study',d)} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
+    {page==='lifeplanner'&&<LifePlanner snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='planner'&&<PlannerPage snapshot={snapshot} refresh={refresh} report={setToast} onAddTask={(d,c,title)=>showAdd(c||'personal',d,title||'')} onEditTask={showEdit} onDeleteTask={setConfirmTask}/>}
     {page==='projects'&&<ProjectsPage snapshot={snapshot} refresh={refresh} report={setToast}/>}
     {page==='fitness'&&<FitnessStudio snapshot={snapshot} refresh={refresh} report={setToast}/>}

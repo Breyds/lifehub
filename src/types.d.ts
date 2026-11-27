@@ -47,7 +47,7 @@ declare global {
     streamImportMaterial:(id:string)=>Promise<StreamMaterial|null>;
     streamRemoveMaterial:(id:string,material:string)=>Promise<boolean>;
     streamObsCheck:(port:number,password:string,test?:boolean)=>Promise<ObsSnapshot>;
-    streamAiReview:(id:string,request:string,metrics:ObsSnapshot|null)=>Promise<{text:string;spent:number;partial?:boolean}>;
+    streamAiReview:(id:string,request:string,metrics:ObsSnapshot|null)=>Promise<{text:string;spent:number}>;
     newsCoverMissing:(id:string)=>Promise<boolean>;
     addWorkspace:(kind:WorkspaceKind,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
     editWorkspace:(kind:WorkspaceKind,id:string,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
@@ -122,7 +122,7 @@ declare global {
     generateLifePlanner:(config:LifePlannerConfig)=>Promise<LifePlannerPreview>;
     rebuildLifePlanner:(config:LifePlannerConfig,items:LifeIntent[])=>Promise<LifePlannerPreview>;
     applyLifePlanner:(id:string)=>Promise<number>;
-    aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number}>;
+    aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number;partial?:boolean}>;
     projectReview:(id:string,evidence:string,mode:'review'|'plan')=>Promise<{summary:string;updates:{index:number;progress:number;reason:string}[];suggestedStages:string[];nextActions:string[];risks:string[];spent:number}>;
     fitnessImportVideo:()=>Promise<{id:string;title:string;bytes:number}|null>;
     fitnessOpenVideo:(id:string)=>Promise<boolean>;

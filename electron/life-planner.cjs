@@ -42,7 +42,7 @@ function build(raw,config,tasks,today,nowMinute=0){
  const norm=normalized;
  const baseTitle=t=>norm(String(t).replace(/ · частина \d+$/i,''));
  const stageTitle=x=>x.group?(x.group+' · '+x.title).slice(0,99):x.title;
- const matches=(t,x)=>baseTitle(t.title)===norm(stageTitle(x))||baseTitle(t.title)===norm(x.title);
+ const matches=(t,x)=>baseTitle(t.title)===norm(stageTitle(x))||(!x.group&&baseTitle(t.title)===norm(x.title))||(!!x.group&&baseTitle(t.title)===norm(x.title)&&(!String(t.note||'').includes('Проєкт/ціль:')||norm(String(t.note).split('Проєкт/ціль:').at(-1))===norm(x.group)));
  const monday=date=>addDay(date,-((new Date(date+'T12:00:00Z').getUTCDay()+6)%7));
  function fit(d,start,duration){return blocks.length<400&&start>=wake&&start+duration<=end&&d.planned+duration<=s.maxPlannedMinutes&&start>=0&&start+duration<=1440&&d.occupancy.subarray(start,Math.min(1440,start+duration+s.buffer)).every(v=>v===0);}
  function schedule(d,x,start,duration){mark(d,start,start+duration+s.buffer,3);d.planned+=duration;const part=++x.parts,title=x.kind==='stage'?stageTitle(x)+(x.duration>x.chunk||part>1?' · частина '+part:''):x.title,task={title,category:x.category,dueDate:d.date,time:clock(start),allDay:false,recurrence:'none',priority:x.priority,durationMin:duration,progressType:'check',note:part===1?x.note:''};d.newTasks.push(task);blocks.push(task);if(x.group)groupCursor.set(x.group,d.date+'T'+clock(start+duration));}

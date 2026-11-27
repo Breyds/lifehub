@@ -78,6 +78,7 @@ contextBridge.exposeInMainWorld('lifehub', {
   aiInsight:(kind,query)=>ipcRenderer.invoke('ai:insight',kind,query),
   saveLifePlanner:(config)=>ipcRenderer.invoke('life-planner:save',config),
   generateLifePlanner:(config)=>ipcRenderer.invoke('life-planner:generate',config),
+  rebuildLifePlanner:(config,items)=>ipcRenderer.invoke('life-planner:rebuild',config,items),
   applyLifePlanner:(id)=>ipcRenderer.invoke('life-planner:apply',id),
   projectReview:(id,evidence,mode)=>ipcRenderer.invoke('projects:ai-review',id,evidence,mode),
   fitnessImportVideo:()=>ipcRenderer.invoke('fitness:video-import'),

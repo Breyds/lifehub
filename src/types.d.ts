@@ -37,8 +37,9 @@ export type PowerLive={status:string;checkedAt:string;source:string;message:stri
 export type TikTokCachedVideo={url:string;title:string;author:string;sound:string;recognized?:{title:string;artist:string;spotifyUrl:string}};
 export type SpotifyPick=MusicTrack&{reason:string};
 export type SpotifyPersonal={feedback:Record<string,'like'|'dislike'>;connected:boolean;week:string;items:SpotifyPick[];regions:{us:SpotifyPick[];regional:SpotifyPick[]};message:string;radarPlaylist:string;radarMessage:string;mode:string;window:{from:string;to:string}|null};
-export type LifePlannerConfig={thoughts:string;wake:string;sleep:string;freeMinutes:number;maxPlannedMinutes:number;buffer:number;days:number;includeProjects:boolean};
-export type LifePlannerPreview={id:string;summary:string;assumptions:string[];tasks:TaskInput[];unscheduled:{title:string;minutes:number;reason:string}[];days:{date:string;existing:{title:string;start:string;end:string;minutes:number}[];rest:{start:string;end:string;minutes:number}[];restMinutes:number;plannedMinutes:number;remainingMinutes:number}[];spent:number};
+export type LifePlannerConfig={thoughts:string;wake:string;sleep:string;freeMinutes:number;maxPlannedMinutes:number;buffer:number;days:number;includeProjects:boolean;includeNotes:boolean};
+export type LifeIntent={title:string;note:string;kind:'once'|'weekly'|'stage';sessionsPerWeek:number;category:Category;priority:Priority;durationMinutes:number;chunkMinutes:number;earliest:string;deadline:string;fixedTime:string;group:string};
+export type LifePlannerPreview={intents:LifeIntent[];id:string;summary:string;assumptions:string[];tasks:TaskInput[];unscheduled:{title:string;minutes:number;reason:string}[];days:{date:string;existing:{title:string;start:string;end:string;minutes:number}[];rest:{start:string;end:string;minutes:number}[];restMinutes:number;plannedMinutes:number;remainingMinutes:number}[];spent:number};
 export type Snapshot={lifePlanner:LifePlannerConfig;spotifyPersonal:SpotifyPersonal;tiktokCache:{url:string;videos:TikTokCachedVideo[];fetchedAt:string;message:string};cs2:CS2State;powerLive:PowerLive;telegram:{connected:boolean;enabled:boolean;pendingCode:string;chatId:string;cloud:{configured:boolean;url:string;lastSync:string;error:string;conflicts:{id:string;title:string}[]}};audDConnected:boolean;powerAddress:{settlement:string;street:string;house:string};powerGroup:string;powerGroupOrigin?:'official'|'manual'|'';blackoutSchedule:string;youtubeStudio:{accounts:Record<string,{owner:CreatorOwner}>;jobs:CreatorJob[]};youtubeConnected:boolean;youtubeTrends:YoutubeTrendsState;workspace:Workspace;preferences:Preferences;news:NewsState;music:MusicCharts;newsFeedback:NewsFeedback;newsMutedSources:string[];newsImageUsage:number;newsCoverError:string;newsCoverPauseUntil:number;newsSaved:NewsEntry[];newsIllustrations:Record<string,string>;update:UpdateState;tasks:Task[];spent:number;limit:number;hasKey:boolean;autostart:boolean;evening:boolean;model:string};
 declare global {
   interface Window { lifehub:{
@@ -46,7 +47,7 @@ declare global {
     streamImportMaterial:(id:string)=>Promise<StreamMaterial|null>;
     streamRemoveMaterial:(id:string,material:string)=>Promise<boolean>;
     streamObsCheck:(port:number,password:string,test?:boolean)=>Promise<ObsSnapshot>;
-    streamAiReview:(id:string,request:string,metrics:ObsSnapshot|null)=>Promise<{text:string;spent:number}>;
+    streamAiReview:(id:string,request:string,metrics:ObsSnapshot|null)=>Promise<{text:string;spent:number;partial?:boolean}>;
     newsCoverMissing:(id:string)=>Promise<boolean>;
     addWorkspace:(kind:WorkspaceKind,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
     editWorkspace:(kind:WorkspaceKind,id:string,data:Record<string,unknown>)=>Promise<WorkspaceItem>;
@@ -119,6 +120,7 @@ declare global {
     checkTikTok:(url:string)=>Promise<{status:'invalid'|'short'|'video'|'collection'|'unknown'|'unavailable';message:string;url:string;title:string;author:string;videos?:{url:string;title:string;author:string;sound:string}[]}>;
     saveLifePlanner:(config:LifePlannerConfig)=>Promise<LifePlannerConfig>;
     generateLifePlanner:(config:LifePlannerConfig)=>Promise<LifePlannerPreview>;
+    rebuildLifePlanner:(config:LifePlannerConfig,items:LifeIntent[])=>Promise<LifePlannerPreview>;
     applyLifePlanner:(id:string)=>Promise<number>;
     aiInsight:(kind:'fitness'|'nutrition'|'trends'|'streams'|'youtube'|'translate',query:string)=>Promise<{text:string;spent:number}>;
     projectReview:(id:string,evidence:string,mode:'review'|'plan')=>Promise<{summary:string;updates:{index:number;progress:number;reason:string}[];suggestedStages:string[];nextActions:string[];risks:string[];spent:number}>;

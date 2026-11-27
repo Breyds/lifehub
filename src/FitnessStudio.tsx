@@ -68,6 +68,7 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
  const [measureWaist,setMeasureWaist]=useState('');
  const [aiQuestion,setAiQuestion]=useState('Оціни мій прогрес за останніми тренуваннями та допоможи скоригувати наступний тиждень.');
  const [aiAnswer,setAiAnswer]=useState('');
+ const [aiError,setAiError]=useState(''),[aiPartial,setAiPartial]=useState(false);
  const [aiBusy,setAiBusy]=useState(false);
  const now=today(),start=monday(now),end=addDays(start,6);
  const onBoarded=!!f.onboardedAt;
@@ -164,7 +165,7 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
  }
  async function askCoach(kind:'fitness'|'nutrition'='fitness'){
   if(!aiQuestion.trim()){report('Напиши питання для AI');return;}
-  setAiBusy(true);try{const r=await window.lifehub.aiInsight(kind,aiQuestion.slice(0,1800));setAiAnswer(r.text);await refresh();}catch(e){report(e instanceof Error?e.message:String(e));}finally{setAiBusy(false);}
+  setAiBusy(true);setAiError('');setAiPartial(false);setAiAnswer('');try{const r=await window.lifehub.aiInsight(kind,aiQuestion.slice(0,1800));setAiAnswer(r.text);setAiPartial(!!r.partial);}catch(e){setAiError(e instanceof Error?e.message:String(e));}finally{setAiBusy(false);await refresh().catch(()=>{});}
  }
  const exerciseContent=(r:Routine)=>r.steps.map(s=><div className="fs-step" key={s.id}><div><strong>{exercises.find(e=>e.id===s.id)?.title||s.id}</strong><small>{s.sets} × {s.reps} · відпочинок {s.rest||0} с</small></div><button onClick={()=>{setTab('library');setOpened(s.id);}}><ChevronRight size={16}/></button></div>);
 
@@ -274,7 +275,7 @@ export function FitnessStudio({snapshot,refresh,report}:Props){
    {tab==='coach'&&<section className="fs-panel fs-ai"><div className="fs-panel-head"><div><span className="fs-eyebrow">LIFEHUB AI COACH</span><h2>Персональні рекомендації</h2><p>AI отримує профіль, недавні тренування та журнали, коли ти натискаєш кнопку запиту.</p></div><Sparkles size={23}/></div>
     <div className="fs-suggestions">{['Зроби мені збалансований план тренувань на 7 днів з урахуванням інвентарю.','Які вправи краще замінити через мої обмеження?','Порадь простий раціон без суворих заборон.','Чи є прогрес і що змінити наступного тижня?'].map(s=><button key={s} onClick={()=>setAiQuestion(s)}>{s}</button>)}</div>
     <Field label="Запит для AI"><textarea rows={5} maxLength={1800} value={aiQuestion} onChange={e=>setAiQuestion(e.target.value)}/></Field><div className="fs-actions"><button disabled={aiBusy} className="fs-btn primary" onClick={()=>void askCoach(/харч|раціон|їж|продукт/i.test(aiQuestion)?'nutrition':'fitness')}><Sparkles size={17}/> {aiBusy?'Аналіз…':'Отримати пораду'}</button><span>Запити витрачають кошти OpenAI API за локальним лімітом.</span></div>
-    {aiAnswer&&<div className="fs-ai-result"><h3>Відповідь AI</h3><p>{aiAnswer}</p></div>}
+    {aiError&&<div className="fs-ai-result" role="alert"><h3>Не вдалося отримати план</h3><p>{aiError}</p><p>Запит міг використати токени. Повтор автоматично не виконується.</p></div>}{aiAnswer&&<div className="fs-ai-result"><h3>{aiPartial?'Часткова відповідь · ліміт токенів':'Відповідь AI'}</h3><p style={{whiteSpace:'pre-wrap'}}>{aiAnswer}</p>{aiPartial&&<p>Це не завершений план; не використовуй його як повну програму.</p>}</div>}
     <Notice>Поради — загальна інформація, а не діагностика чи лікування. AI не аналізує відеотехніку, доки файл не передано через окрему підтверджену функцію.</Notice>
    </section>}
   </>}

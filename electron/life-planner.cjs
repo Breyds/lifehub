@@ -1,13 +1,13 @@
 'use strict';
 const {validDate,validTime,scheduledOccurs,taskDone,CATEGORIES,PRIORITIES}=require('./logic.cjs');
 const {createHash}=require('node:crypto');
-const defaults={thoughts:'',wake:'09:00',sleep:'00:00',freeMinutes:180,maxPlannedMinutes:480,buffer:10,days:7,includeProjects:true};
+const defaults={thoughts:'',wake:'09:00',sleep:'00:00',freeMinutes:180,maxPlannedMinutes:480,buffer:10,days:7,includeProjects:true,includeNotes:false};
 const minutes=s=>Number(s.slice(0,2))*60+Number(s.slice(3,5));
 const clock=n=>n===1440?'24:00':String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
 function addDay(date,n){const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
-function settings(raw){const r=raw||{},num=(x,def,lo,hi)=>Number.isInteger(x)&&x>=lo&&x<=hi?x:def;const wake=validTime(r.wake)&&r.wake?r.wake:defaults.wake,sleep=validTime(r.sleep)&&r.sleep?r.sleep:defaults.sleep;if(wake===sleep)throw Error('Час сну та підйому не можуть збігатися');return {thoughts:String(r.thoughts||'').slice(0,6000),wake,sleep,freeMinutes:num(r.freeMinutes,180,60,720),maxPlannedMinutes:num(r.maxPlannedMinutes,480,60,960),buffer:num(r.buffer,10,0,60),days:num(r.days,7,1,28),includeProjects:r.includeProjects!==false};}
+function settings(raw){const r=raw||{},num=(x,def,lo,hi)=>Number.isInteger(x)&&x>=lo&&x<=hi?x:def;const wake=validTime(r.wake)&&r.wake?r.wake:defaults.wake,sleep=validTime(r.sleep)&&r.sleep?r.sleep:defaults.sleep;if(wake===sleep)throw Error('Час сну та підйому не можуть збігатися');return {thoughts:String(r.thoughts||'').slice(0,6000),wake,sleep,freeMinutes:num(r.freeMinutes,180,60,720),maxPlannedMinutes:num(r.maxPlannedMinutes,480,60,960),buffer:num(r.buffer,10,0,60),days:num(r.days,7,1,28),includeProjects:r.includeProjects!==false,includeNotes:r.includeNotes===true};}
 const obj=props=>({type:'object',properties:props,required:Object.keys(props),additionalProperties:false}),str={type:'string'},int={type:'integer'};
-const schema=obj({summary:str,assumptions:{type:'array',items:str},items:{type:'array',items:obj({title:str,note:str,category:{type:'string',enum:CATEGORIES},priority:{type:'string',enum:PRIORITIES},durationMinutes:int,chunkMinutes:int,earliest:str,deadline:str,fixedTime:str,group:str})},blocked:{type:'array',items:obj({date:str,start:str,end:str,reason:str})}});
+const schema=obj({summary:str,assumptions:{type:'array',items:str},items:{type:'array',items:obj({title:str,note:str,kind:{type:'string',enum:['once','weekly','stage']},sessionsPerWeek:int,category:{type:'string',enum:CATEGORIES},priority:{type:'string',enum:PRIORITIES},durationMinutes:int,chunkMinutes:int,earliest:str,deadline:str,fixedTime:str,group:str})},blocked:{type:'array',items:obj({date:str,start:str,end:str,reason:str})}});
 function fingerprint(tasks){return createHash('sha256').update(JSON.stringify(tasks)).digest('hex');}
 function build(raw,config,tasks,today,nowMinute=0){
  const s=settings(config);if(!validDate(today))throw Error('Некоректна дата');const endDate=addDay(today,s.days-1),wake=minutes(s.wake),bed=minutes(s.sleep),end=bed>wake?bed:1440,notes=[],unscheduled=[],blocks=[];
@@ -28,18 +28,26 @@ function build(raw,config,tasks,today,nowMinute=0){
   }
  }
  for(const b of (Array.isArray(raw?.blocked)?raw.blocked:[]).slice(0,80)){const d=byDate.get(b.date);if(!d||!validTime(b.start)||!validTime(b.end)||!b.start||!b.end||minutes(b.start)>=minutes(b.end))continue;mark(d,minutes(b.start),minutes(b.end),1);d.existing.push({title:String(b.reason||'Зайнятий час').slice(0,120),start:b.start,end:b.end,minutes:minutes(b.end)-minutes(b.start)});}
+ const seenIntents=new Set();
+ const normalized=v=>String(v||'').normalize('NFKC').trim().toLocaleLowerCase('uk-UA').replace(/\s+/g,' ');
  const items=(Array.isArray(raw?.items)?raw.items:[]).slice(0,50).map((x,i)=>{
   const title=String(x?.title||'').trim().slice(0,120),earliest=x.earliest||today,deadline=x.deadline||endDate;
-  if(!title||(x.fixedTime&&earliest<today)||!validDate(earliest)||!validDate(deadline)||deadline<earliest||!Number.isInteger(x.durationMinutes)||x.durationMinutes<5||x.durationMinutes>6000||!Number.isInteger(x.chunkMinutes)||x.chunkMinutes<5||x.chunkMinutes>720||!validTime(x.fixedTime||'')){unscheduled.push({title:title||'Невідома справа',minutes:Math.max(0,Number(x.durationMinutes)||0),reason:'Некоректна оцінка або дата AI'});return null;}
-  return {title,note:String(x.note||'').slice(0,360),category:CATEGORIES.includes(x.category)?x.category:'personal',priority:PRIORITIES.includes(x.priority)?x.priority:'normal',duration:x.durationMinutes,chunk:x.chunkMinutes,earliest:earliest<today?today:earliest,deadline:deadline>endDate?endDate:deadline,fixedTime:x.fixedTime||'',group:String(x.group||'').trim().slice(0,120),index:i};
+  const kind=['once','weekly','stage'].includes(x.kind)?x.kind:(x.group?'stage':'legacy'),group=kind==='stage'?String(x.group||'').trim().slice(0,120):'';
+  if(!title||(kind==='weekly'&&(!Number.isInteger(x.sessionsPerWeek)||x.sessionsPerWeek<1||x.sessionsPerWeek>7||x.fixedTime||x.durationMinutes>720))||(kind==='once'&&x.durationMinutes>720)||(kind==='stage'&&!group)||(x.fixedTime&&earliest<today)||!validDate(earliest)||!validDate(deadline)||deadline<earliest||!Number.isInteger(x.durationMinutes)||x.durationMinutes<5||x.durationMinutes>6000||!Number.isInteger(x.chunkMinutes)||x.chunkMinutes<5||x.chunkMinutes>720||!validTime(x.fixedTime||'')){unscheduled.push({title:title||'Невідома справа',minutes:Math.max(0,Number(x.durationMinutes)||0),reason:'Некоректна оцінка або дата AI'});return null;}
+  const identity=normalized(group)+'|'+normalized(title)+'|'+kind+(kind==='once'?'|'+earliest+'|'+(x.fixedTime||''):'');if(seenIntents.has(identity)){notes.push(title+' — повторний намір пропущено');return null;}seenIntents.add(identity);
+  return {title,kind,sessionsPerWeek:x.sessionsPerWeek||0,note:s.includeNotes?String(x.note||'').trim().slice(0,360):'',category:CATEGORIES.includes(x.category)?x.category:'personal',priority:PRIORITIES.includes(x.priority)?x.priority:'normal',duration:x.durationMinutes,chunk:kind==='once'||kind==='weekly'?x.durationMinutes:x.chunkMinutes,earliest:earliest<today?today:earliest,deadline:deadline>endDate?endDate:deadline,fixedTime:x.fixedTime||'',group,index:i,parts:0};
  }).filter(Boolean);
  const groupCursor=new Map();
  const groupBlocked=new Set();
- const norm=t=>String(t).trim().toLocaleLowerCase('uk-UA');
+ const norm=normalized;
+ const baseTitle=t=>norm(String(t).replace(/ · частина \d+$/i,''));
+ const stageTitle=x=>x.group?(x.group+' · '+x.title).slice(0,99):x.title;
+ const matches=(t,x)=>baseTitle(t.title)===norm(stageTitle(x))||baseTitle(t.title)===norm(x.title);
+ const monday=date=>addDay(date,-((new Date(date+'T12:00:00Z').getUTCDay()+6)%7));
  function fit(d,start,duration){return blocks.length<400&&start>=wake&&start+duration<=end&&d.planned+duration<=s.maxPlannedMinutes&&start>=0&&start+duration<=1440&&d.occupancy.subarray(start,Math.min(1440,start+duration+s.buffer)).every(v=>v===0);}
- function schedule(d,x,start,duration){mark(d,start,start+duration+s.buffer,3);d.planned+=duration;const title=x.title,task={title,category:x.category,dueDate:d.date,time:clock(start),allDay:false,recurrence:'none',priority:x.priority,durationMin:duration,progressType:'check',note:('[LifePlanner] '+x.note+(x.group?' · Проєкт/ціль: '+x.group:'')).slice(0,500)};d.newTasks.push(task);blocks.push(task);if(x.group)groupCursor.set(x.group,d.date+'T'+clock(start+duration));}
+ function schedule(d,x,start,duration){mark(d,start,start+duration+s.buffer,3);d.planned+=duration;const part=++x.parts,title=x.kind==='stage'?stageTitle(x)+(x.duration>x.chunk||part>1?' · частина '+part:''):x.title,task={title,category:x.category,dueDate:d.date,time:clock(start),allDay:false,recurrence:'none',priority:x.priority,durationMin:duration,progressType:'check',note:part===1?x.note:''};d.newTasks.push(task);blocks.push(task);if(x.group)groupCursor.set(x.group,d.date+'T'+clock(start+duration));}
  // Fixed commitments go first. No slot is allocated if it would remove the protected rest allowance.
- for(const x of items.filter(x=>x.fixedTime)){const d=byDate.get(x.earliest),start=minutes(x.fixedTime),duplicate=d&&tasks.some(t=>scheduledOccurs(t,d.date)&&norm(t.title)===norm(x.title)&&t.time===x.fixedTime);if(duplicate){notes.push(x.title+' — уже є в календарі.');continue;}if(!d||d.date>x.deadline||x.group||!fit(d,start,x.duration)||available(d)<x.duration+s.buffer+s.freeMinutes){unscheduled.push({title:x.title,minutes:x.duration,reason:'Фіксований час конфліктує з календарем, сном, відпочинком або денним лімітом'});if(x.group)groupBlocked.add(x.group);continue;}schedule(d,x,start,x.duration);}
+ for(const x of items.filter(x=>x.fixedTime)){const d=byDate.get(x.earliest),start=minutes(x.fixedTime),duplicate=d&&[...tasks,...blocks].some(t=>scheduledOccurs(t,d.date)&&norm(t.title)===norm(x.title)&&t.time===x.fixedTime);if(duplicate){notes.push(x.title+' — уже є в календарі.');continue;}if(!d||d.date>x.deadline||x.group||!fit(d,start,x.duration)||available(d)<x.duration+s.buffer+s.freeMinutes){unscheduled.push({title:x.title,minutes:x.duration,reason:'Фіксований час конфліктує з календарем, сном, відпочинком або денним лімітом'});if(x.group)groupBlocked.add(x.group);continue;}schedule(d,x,start,x.duration);}
  for(const d of days){d.rest=reserve(d,s.freeMinutes,2,true);if(d.rest<s.freeMinutes)notes.push(d.date+' · уже наявні зобов’язання залишили лише '+d.rest+' хв захищеного вільного часу. Нові справи не витісняють відпочинок.');}
  // Groups retain the input order; deadlines prioritize independent groups, not later stages.
  const flex=items.filter(x=>!x.fixedTime);
@@ -47,10 +55,36 @@ function build(raw,config,tasks,today,nowMinute=0){
  flex.sort((a,b)=>(groupDeadline.get(a.group)||a.deadline).localeCompare(groupDeadline.get(b.group)||b.deadline)||a.index-b.index);
  for(const x of flex){let remaining=x.duration;
   if(x.group&&groupBlocked.has(x.group)){unscheduled.push({title:x.title,minutes:remaining,reason:'Попередній етап не вмістився'});continue;}
-  // An existing plan for the exact same objective is not automatically duplicated.
-  const existing=tasks.filter(t=>t.dueDate>=today&&t.dueDate<=x.deadline&&norm(t.title)===norm(x.title));
-  if(existing.length){notes.push(x.title+' — уже є '+existing.length+' справ(и) з такою назвою; перевір їх перед повторним плануванням.');if(x.group)groupBlocked.add(x.group);unscheduled.push({title:x.title,minutes:remaining,reason:'Можливий дублікат наявної справи'});continue;}
   const candidates=days.filter(d=>d.date>=x.earliest&&d.date<=x.deadline&&d.rest>=s.freeMinutes);
+  if(x.kind==='weekly'){
+   const weeks=[...new Set(days.filter(d=>d.date>=x.earliest&&d.date<=x.deadline).map(d=>monday(d.date)))];
+   for(const week of weeks){
+    const dates=Array.from({length:7},(_,i)=>addDay(week,i)),existingDates=dates.filter(date=>tasks.some(t=>matches(t,x)&&scheduledOccurs(t,date))||blocks.some(t=>matches(t,x)&&t.dueDate===date));
+    let needed=Math.max(0,x.sessionsPerWeek-existingDates.length);
+    const choices=candidates.filter(d=>monday(d.date)===week&&!existingDates.includes(d.date));
+    // Prefer evenly separated days and never schedule more than one session per day.
+    const selected=[...existingDates];while(needed&&choices.length){
+     choices.sort((a,b)=>{const gap=d=>selected.length?Math.min(...selected.map(v=>Math.abs(Date.parse(d.date)-Date.parse(v))/86400000)):0;return gap(b)-gap(a)||a.date.localeCompare(b.date);});
+     const d=choices.shift();let start=Math.ceil(wake/5)*5;for(;start+x.duration<=end;start+=5)if(fit(d,start,x.duration))break;
+     if(start+x.duration<=end&&fit(d,start,x.duration)){schedule(d,x,start,x.duration);selected.push(d.date);needed--;}
+    }
+    if(needed)unscheduled.push({title:x.title,minutes:needed*x.duration,reason:'Тиждень від '+week+': бракує '+needed+' повних занять у доступних днях. Частота не збільшена.'});
+   }continue;
+  }
+  const existing=tasks.filter(t=>matches(t,x)&&t.dueDate<=x.deadline&&(t.dueDate>=today||x.kind==='stage'||(x.kind==='once'&&t.dueDate>=x.earliest)));
+  if(x.kind==='stage'&&existing.length){
+   // Existing stages are not recreated. If the calendar contains an unfinished stage,
+   // later stages stay blocked until its scope is reviewed rather than guessed.
+   const pending=existing.filter(t=>!taskDone(t,t.dueDate));if(pending.length){notes.push(x.title+' — етап уже запланований, повторно не додається.');groupBlocked.add(x.group);continue;}
+   notes.push(x.title+' — знайдено виконаний етап, повторно не додається.');continue;
+  }
+  if(existing.length||blocks.some(t=>matches(t,x)&&t.dueDate>=x.earliest&&t.dueDate<=x.deadline)){
+   notes.push(x.title+' — уже є в календарі; повторно не додається.');if(x.kind==='legacy')unscheduled.push({title:x.title,minutes:remaining,reason:'Можливий дублікат наявної справи'});continue;
+  }
+  if(x.kind==='once'){
+   let placed=false;for(const d of candidates){for(let start=Math.ceil(wake/5)*5;start+x.duration<=end;start+=5){if(fit(d,start,x.duration)){schedule(d,x,start,x.duration);placed=true;break;}}if(placed)break;}
+   if(!placed)unscheduled.push({title:x.title,minutes:x.duration,reason:'Немає одного суцільного вільного інтервалу потрібної тривалості'});continue;
+  }
   // One session per day first, then use additional slots if a deadline requires them.
   for(let pass=0;pass<20&&remaining>0;pass++){
    let added=false;
